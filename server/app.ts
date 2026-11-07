@@ -1,10 +1,12 @@
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import websocket from "@fastify/websocket";
 import type { Database } from "better-sqlite3";
 import Fastify from "fastify";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { listAccounts, verifyPassword } from "./accounts.js";
 import type { Account, Role } from "./accounts.js";
+import { registerCardRoutes } from "./card-routes.js";
 import { createSession, deleteSession, findSessionAccount } from "./sessions.js";
 
 const SESSION_COOKIE = "session";
@@ -26,6 +28,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   await app.register(cookie);
   await app.register(rateLimit, { global: false });
+  await app.register(websocket);
 
   function currentAccount(request: FastifyRequest): Account | null {
     const token = request.cookies[SESSION_COOKIE];
@@ -93,6 +96,24 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   app.get("/api/admin/accounts", { preHandler: requireRole("admin") }, async () => {
     return listAccounts(db);
+  });
+
+  // Stations only listen on this socket. All writes go through the HTTP routes, so
+  // that validation and role checks live in one place.
+  app.get("/api/live", { websocket: true, preValidation: requireRole() }, () => {});
+
+  registerCardRoutes(app, {
+    db,
+    currentAccount,
+    requireRole,
+    broadcast: (message) => {
+      const data = JSON.stringify(message);
+      for (const client of app.websocketServer.clients) {
+        if (client.readyState === client.OPEN) {
+          client.send(data);
+        }
+      }
+    },
   });
 
   return app;

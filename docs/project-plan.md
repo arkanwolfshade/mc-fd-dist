@@ -34,8 +34,8 @@ These choices were not discussed in the interview and are open to change.
 
 ## Data model
 
-- **shift:** date, status (open or closed).
-- **card:** shift, card number (unique per shift), family size, arrival method (one of East, West, AC, Bus, Walk), senior box (yes/no), cheese (yes/no), TEFAP bags, TEFAP override flag, other (text), callback, confirmed, distributed, up to three load weights.
+- **shift:** date (one shift per date), status (open or closed).
+- **card:** shift, card number (unique per shift), family size, arrival method (one of East, West, AC, Bus, Walk), senior box (yes/no), cheese (yes/no), TEFAP bags, TEFAP override flag, other (text), status (entered, called, confirmed, distributed), up to three load weights, revision.
 - **partner_batch:** shift, partner (Door Dash or Helping Hands), family count, weight. Zero or more per shift, entered in a dedicated end-of-shift step, never mixed into the card list.
 - **returned_batch:** shift, weight, time. A running log that is not tied to any card.
 - **account:** role login or named admin, with password hash.
@@ -101,9 +101,9 @@ Estimates from third-party guides, to confirm on official AWS pricing pages:
 Confirm with staff before the affected build step:
 
 1. What "Total # of families" counts: cards only, or cards plus partner batch family counts. Do partner batch weights count toward shift weight?
-2. How Callback works in practice. The plan assumes the family is called forward at the front desk.
+2. ~~How Callback works in practice.~~ Answered: see ADR 0010.
 3. Whether "Other" is free text or a set of known items.
-4. Whether a day can have more than one shift, and whether card numbers ever exceed 200.
+4. ~~Whether a day can have more than one shift.~~ Answered: see ADR 0011. Still to confirm: whether card numbers ever exceed 200.
 5. How long data must be kept, and whether anything outside the food bank requires these figures (for example TEFAP reporting).
 6. Who the named staff owner is, and whether they accept that role.
 7. What devices the food bank has or needs to obtain.

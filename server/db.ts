@@ -18,6 +18,35 @@ const MIGRATIONS: readonly string[] = [
     expires_at INTEGER NOT NULL
   );
   `,
+  `
+  CREATE TABLE shift (
+    id INTEGER PRIMARY KEY,
+    date TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed'))
+  );
+
+  CREATE TABLE card (
+    id INTEGER PRIMARY KEY,
+    shift_id INTEGER NOT NULL REFERENCES shift (id),
+    client_id TEXT NOT NULL UNIQUE,
+    number INTEGER NOT NULL CHECK (number > 0),
+    family_size INTEGER NOT NULL CHECK (family_size > 0),
+    arrival_method TEXT NOT NULL
+      CHECK (arrival_method IN ('East', 'West', 'AC', 'Bus', 'Walk')),
+    senior_box INTEGER NOT NULL DEFAULT 0,
+    cheese INTEGER NOT NULL DEFAULT 0,
+    other TEXT NOT NULL DEFAULT '',
+    tefap_bags INTEGER NOT NULL CHECK (tefap_bags >= 0),
+    tefap_override INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'entered'
+      CHECK (status IN ('entered', 'called', 'confirmed', 'distributed')),
+    load_1 REAL CHECK (load_1 >= 0),
+    load_2 REAL CHECK (load_2 >= 0),
+    load_3 REAL CHECK (load_3 >= 0),
+    revision INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (shift_id, number)
+  );
+  `,
 ];
 
 export function openDatabase(path: string): Database {
