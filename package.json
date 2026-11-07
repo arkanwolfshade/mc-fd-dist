@@ -10,8 +10,9 @@
   "scripts": {
     "dev": "tsx watch server/main.ts",
     "start": "node dist/server/main.js",
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev:client": "vite",
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "account": "tsx server/cli/account.ts"
@@ -19,17 +20,21 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
     "@fastify/rate-limit": "^11.2.2",
+    "@fastify/static": "^10.1.10",
     "@fastify/websocket": "^11.3.7",
     "argon2": "^0.45.2",
     "better-sqlite3": "^13.0.3",
-    "fastify": "^5.12.8"
+    "fastify": "^5.12.8",
+    "preact": "^11.2.0"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
+    "vite": "^8.3.6",
     "vitest": "^5.1.0"
   }
 }

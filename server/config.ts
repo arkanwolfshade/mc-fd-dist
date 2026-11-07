@@ -1,5 +1,5 @@
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
 export interface Config {
   databasePath: string;
@@ -7,6 +7,7 @@ export interface Config {
   host: string;
   cookieSecure: boolean;
   trustProxy: boolean;
+  clientDir: string;
 }
 
 // Secure cookies are on unless explicitly disabled for local development over HTTP.
@@ -19,5 +20,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     host: env.HOST ?? "127.0.0.1",
     cookieSecure: env.COOKIE_SECURE !== "false",
     trustProxy: env.TRUST_PROXY === "true",
+    clientDir: resolve(env.CLIENT_DIR ?? "dist/client"),
   };
 }

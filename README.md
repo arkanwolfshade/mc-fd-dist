@@ -25,7 +25,10 @@ To run the server locally over plain HTTP, create an account and start it with s
 ```sh
 npm run account -- pat admin
 COOKIE_SECURE=false npm run dev
+npm run dev:client   # in a second terminal, then open the address it prints
 ```
+
+For a production build, run `npm run build` and then `npm start`. The server also serves the client from `dist/client`.
 
 The server reads these environment variables:
 
@@ -35,4 +38,5 @@ The server reads these environment variables:
 | `PORT` | `3000` | Port to listen on |
 | `HOST` | `127.0.0.1` | Address to listen on |
 | `COOKIE_SECURE` | `true` | Set to `false` only for local HTTP development |
+| `CLIENT_DIR` | `dist/client` | Location of the built client |
 | `TRUST_PROXY` | `false` | Set to `true` behind the HTTPS proxy, so that login limits see the real client address |

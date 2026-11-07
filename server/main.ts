@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { openDatabase } from "./db.js";
@@ -9,6 +10,7 @@ const app = await buildApp({
   cookieSecure: config.cookieSecure,
   trustProxy: config.trustProxy,
   logger: true,
+  ...(existsSync(config.clientDir) ? { clientDir: config.clientDir } : {}),
 });
 
 async function shutdown(): Promise<void> {

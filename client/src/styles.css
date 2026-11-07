@@ -1,0 +1,211 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f1f3f5;
+  color: #1a1a1a;
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+h1,
+h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+button,
+input {
+  font: inherit;
+  min-height: 44px;
+  border: 1px solid #868e96;
+  border-radius: 6px;
+}
+
+button {
+  padding: 8px 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+button.selected {
+  border-color: #1c5d99;
+  background: #1c5d99;
+  color: #fff;
+}
+
+button.primary {
+  border-color: #1b6e3c;
+  background: #1b6e3c;
+  color: #fff;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  background: #fff;
+}
+
+label {
+  display: block;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #ced4da;
+}
+
+.tabs,
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+  gap: 16px;
+  padding: 16px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+}
+
+.station > .panel {
+  margin: 16px;
+}
+
+.login {
+  max-width: 360px;
+  margin: 48px auto;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.tefap {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tefap strong {
+  display: block;
+  padding-top: 8px;
+  font-size: 24px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cards > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.cards > li.queue-card {
+  display: block;
+}
+
+.queue-card > * + * {
+  margin-top: 8px;
+}
+
+.correct {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.status {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #e9ecef;
+  font-size: 13px;
+}
+
+.status.called {
+  background: #fff3bf;
+}
+
+.status.confirmed {
+  background: #d0ebff;
+}
+
+.status.distributed {
+  background: #d3f9d8;
+}
+
+.notice {
+  margin: 0;
+  color: #495057;
+}
+
+.error,
+.warning {
+  margin: 8px 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.error {
+  background: #ffe3e3;
+  color: #8a1c1c;
+}
+
+.warning {
+  background: #fff3bf;
+}
+
+.panel > .error {
+  margin: 0;
+}

@@ -1,5 +1,6 @@
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import fastifyStatic from "@fastify/static";
 import websocket from "@fastify/websocket";
 import type { Database } from "better-sqlite3";
 import Fastify from "fastify";
@@ -17,6 +18,7 @@ export interface AppOptions {
   trustProxy?: boolean;
   logger?: boolean;
   now?: () => number;
+  clientDir?: string;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -29,6 +31,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(cookie);
   await app.register(rateLimit, { global: false });
   await app.register(websocket);
+  if (options.clientDir) {
+    await app.register(fastifyStatic, { root: options.clientDir });
+  }
 
   function currentAccount(request: FastifyRequest): Account | null {
     const token = request.cookies[SESSION_COOKIE];
