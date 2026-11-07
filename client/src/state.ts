@@ -12,7 +12,7 @@ export function mergeCard(cards: Card[], incoming: Card): Card[] {
   );
 }
 
-export function nextCardNumber(cards: Card[]): number {
+export function nextCardNumber(cards: readonly { number: number }[]): number {
   return cards.reduce((highest, card) => Math.max(highest, card.number), 0) + 1;
 }
 

@@ -1,0 +1,14 @@
+{
+  "name": "Food bank shift tracker",
+  "short_name": "Shift tracker",
+  "description": "Front desk and distribution tracking for food bank shifts.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f1f3f5",
+  "theme_color": "#1b6e3c",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

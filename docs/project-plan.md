@@ -28,7 +28,7 @@ These choices were not discussed in the interview and are open to change.
 
 - **Server:** Node.js with TypeScript, Fastify, and better-sqlite3 in WAL mode.
 - **Live updates:** WebSocket broadcast per shift, with a full resync on reconnect.
-- **Client:** Vite with Preact, plus a service worker for install and a local queue for writes during dropouts. Each queued write carries a client-generated ID so that retries are safe.
+- **Client:** Vite with Preact, plus a service worker for install and a local queue for writes during dropouts. Each queued write carries a client-generated ID so that retries are safe (see ADR 0014).
 - **Deployment:** Docker Compose with Caddy for automatic HTTPS. A domain name is needed, because PWA install requires HTTPS.
 - **Repo:** New repository, with deployment and restore scripts checked in so that moving from the prototype account to the food bank account is a repeatable step.
 

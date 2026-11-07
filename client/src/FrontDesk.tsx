@@ -1,16 +1,17 @@
 import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS, tefapBags } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
-import { api } from "./api.js";
+import type { ShiftView } from "./pending.js";
 import { nextCardNumber } from "./state.js";
-import type { Card, ShiftWithCards, UpdateCard } from "./types.js";
+import type { Card, Submit, UpdateCard } from "./types.js";
 
 export function FrontDesk(props: {
-  shift: ShiftWithCards;
+  shift: ShiftView;
+  submit: Submit;
   onSaved: (card: Card) => void;
   onUpdate: UpdateCard;
 }) {
-  const { shift, onSaved, onUpdate } = props;
+  const { shift, submit: submitWrite, onSaved, onUpdate } = props;
   const [number, setNumber] = useState("");
   const [familySize, setFamilySize] = useState("");
   const [method, setMethod] = useState<ArrivalMethod | null>(null);
@@ -20,7 +21,7 @@ export function FrontDesk(props: {
   const [error, setError] = useState("");
 
   const size = Number(familySize);
-  const suggested = nextCardNumber(shift.cards);
+  const suggested = nextCardNumber([...shift.cards, ...shift.pendingCards]);
 
   async function submit(event: Event) {
     event.preventDefault();
@@ -29,18 +30,26 @@ export function FrontDesk(props: {
       return;
     }
     setError("");
+    const cardNumber = Number(number) || suggested;
     try {
-      onSaved(
-        await api<Card>("POST", `/api/shifts/${shift.id}/cards`, {
+      const result = await submitWrite({
+        kind: "card-create",
+        method: "POST",
+        url: `/api/shifts/${shift.id}/cards`,
+        body: {
           clientId: crypto.randomUUID(),
-          number: Number(number) || suggested,
+          number: cardNumber,
           familySize: size,
           arrivalMethod: method,
           seniorBox,
           cheese,
           other,
-        }),
-      );
+        },
+        label: `Card ${cardNumber} (family of ${size}, ${method})`,
+      });
+      if (result.status === "sent") {
+        onSaved(result.data as Card);
+      }
       setNumber("");
       setFamilySize("");
       setMethod(null);
@@ -136,6 +145,15 @@ export function FrontDesk(props: {
       <section class="panel">
         <h2>Cards ({shift.cards.length})</h2>
         <ul class="cards">
+          {shift.pendingCards.map((card) => (
+            <li class="pending-card" key={card.id}>
+              <span>
+                <strong>#{card.number}</strong> · family of {card.familySize} · {card.arrivalMethod}
+                {card.seniorBox ? " · senior box" : ""}
+                {card.cheese ? " · cheese" : ""} · waiting to send
+              </span>
+            </li>
+          ))}
           {[...shift.cards].reverse().map((card) => (
             <li key={card.id}>
               <span>

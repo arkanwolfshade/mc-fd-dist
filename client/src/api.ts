@@ -7,13 +7,24 @@ export class ApiError extends Error {
   }
 }
 
+export class NetworkError extends Error {
+  constructor() {
+    super("This needs a connection. Please try again when it returns.");
+  }
+}
+
 export async function api<T>(method: string, url: string, body?: object): Promise<T> {
-  const response = await fetch(url, {
-    method,
-    ...(body
-      ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }
-      : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      ...(body
+        ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }
+        : {}),
+    });
+  } catch {
+    throw new NetworkError();
+  }
   if (response.status === 204) {
     return undefined as T;
   }

@@ -10,7 +10,10 @@ export const PASSWORD = "local-test-password-1";
 
 interface Fixtures {
   serverUrl: string;
-  signIn: (username: string, options?: { password?: string; muteLive?: boolean }) => Promise<Page>;
+  signIn: (
+    username: string,
+    options?: { password?: string; muteLive?: boolean; installClock?: boolean },
+  ) => Promise<Page>;
   pageErrors: string[];
 }
 
@@ -51,6 +54,10 @@ export const test = base.extend<Fixtures>({
         await page.routeWebSocket("**/api/live", (socket) => {
           socket.connectToServer().onMessage(() => {});
         });
+      }
+      // Must happen before the page loads, to control the timers the page sets up.
+      if (options.installClock) {
+        await page.clock.install();
       }
       await page.goto(serverUrl);
       await page.getByLabel("Username").fill(username);

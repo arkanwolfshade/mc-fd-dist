@@ -2,15 +2,17 @@ import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { PartnerBatches, ReturnedBatches } from "./Batches.js";
+import type { ShiftView } from "./pending.js";
 import { distributionQueue, hasWeight, parseLoads } from "./state.js";
-import type { Card, ShiftWithCards, UpdateCard } from "./types.js";
+import type { Card, Submit, UpdateCard } from "./types.js";
 
 export function Distribution(props: {
-  shift: ShiftWithCards;
+  shift: ShiftView;
+  submit: Submit;
   onUpdate: UpdateCard;
   onCloseShift: () => void;
 }) {
-  const { shift, onUpdate, onCloseShift } = props;
+  const { shift, submit, onUpdate, onCloseShift } = props;
   const [confirmClose, setConfirmClose] = useState(false);
   const { cards } = shift;
   const queue = distributionQueue(cards);
@@ -42,8 +44,8 @@ export function Distribution(props: {
         </ul>
       </section>
 
-      <ReturnedBatches shift={shift} />
-      <PartnerBatches shift={shift} />
+      <ReturnedBatches shift={shift} submit={submit} />
+      <PartnerBatches shift={shift} submit={submit} />
 
       <section class="panel">
         <h2>Finish</h2>

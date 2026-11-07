@@ -37,6 +37,10 @@ npm run dev:client   # in a second terminal, then open the address it prints
 
 For a production build, run `npm run build` and then `npm start`. The server also serves the client from `dist/client`.
 
+The service worker that makes the app installable and available offline only runs in production builds, and browsers only allow it over HTTPS or on localhost. Stations keep working through a connection dropout by holding entries on the device, as described in [ADR 0014](docs/adr/0014-keep-working-through-dropouts.md).
+
+To regenerate the app icons, run `node scripts/generate-icons.mjs`.
+
 The server reads these environment variables:
 
 | Variable | Default | Purpose |

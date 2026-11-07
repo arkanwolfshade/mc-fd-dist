@@ -1,5 +1,6 @@
 import type { Role } from "../../server/accounts.js";
 import type { PartnerBatch, ReturnedBatch } from "../../server/batches.js";
+import type { Outbox } from "./outbox.js";
 import type { Card, CardChanges, Shift } from "../../server/cards.js";
 
 export type { Card, CardChanges, PartnerBatch, ReturnedBatch, Shift };
@@ -14,6 +15,8 @@ export type ShiftWithCards = Shift & {
   partnerBatches: PartnerBatch[];
   returnedBatches: ReturnedBatch[];
 };
+
+export type Submit = Outbox["submit"];
 
 // Sends a change to one card. The parent handles stale writes and shows errors.
 export type UpdateCard = (card: Card, changes: CardChanges) => Promise<void>;
