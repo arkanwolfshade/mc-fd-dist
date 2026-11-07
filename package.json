@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "account": "tsx server/cli/account.ts",
-    "test:e2e": "vite build && playwright test"
+    "test:e2e": "vite build && playwright test",
+    "demo": "vite build && tsx e2e/demo.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

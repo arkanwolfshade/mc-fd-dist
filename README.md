@@ -41,6 +41,8 @@ The service worker that makes the app installable and available offline only run
 
 To regenerate the app icons, run `node scripts/generate-icons.mjs`.
 
+To show the app to someone, run `npm run demo`. It walks through one shift in two windows, side by side, using made-up data in a temporary database. `DEMO_STEP_SECONDS` sets the shortest time each step is shown (default 4).
+
 The server reads these environment variables:
 
 | Variable | Default | Purpose |
