@@ -1,0 +1,33 @@
+{
+  "name": "mc-fd-dist",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shift tracker that replaces the MC-FD and MC-Dist paper sheets at the food bank.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch server/main.ts",
+    "start": "node dist/server/main.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "account": "tsx server/cli/account.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.2",
+    "argon2": "^0.45.2",
+    "better-sqlite3": "^13.0.3",
+    "fastify": "^5.12.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
