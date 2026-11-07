@@ -64,6 +64,17 @@ const MIGRATIONS: readonly string[] = [
     weight REAL NOT NULL CHECK (weight > 0)
   );
   `,
+  `
+  ALTER TABLE shift ADD COLUMN reopened INTEGER NOT NULL DEFAULT 0;
+
+  CREATE TABLE audit_log (
+    id INTEGER PRIMARY KEY,
+    at INTEGER NOT NULL,
+    actor TEXT NOT NULL,
+    action TEXT NOT NULL,
+    detail TEXT NOT NULL
+  );
+  `,
 ];
 
 export function openDatabase(path: string): Database {

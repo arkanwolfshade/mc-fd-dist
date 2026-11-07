@@ -20,3 +20,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0010](0010-single-forward-card-status.md) | Move each card along a single status path | Accepted |
 | [0011](0011-one-shift-per-date.md) | Allow one shift per date | Accepted |
 | [0012](0012-shift-totals.md) | Define shift totals in one shared calculation | Accepted |
+| [0013](0013-closing-shifts.md) | Close shifts by hand and automatically overnight | Accepted |

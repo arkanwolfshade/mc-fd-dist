@@ -8,6 +8,7 @@ export interface Config {
   cookieSecure: boolean;
   trustProxy: boolean;
   clientDir: string;
+  timeZone: string;
 }
 
 // Secure cookies are on unless explicitly disabled for local development over HTTP.
@@ -21,5 +22,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     cookieSecure: env.COOKIE_SECURE !== "false",
     trustProxy: env.TRUST_PROXY === "true",
     clientDir: resolve(env.CLIENT_DIR ?? "dist/client"),
+    timeZone: env.TIME_ZONE ?? "America/Phoenix",
   };
 }

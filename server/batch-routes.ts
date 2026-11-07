@@ -16,9 +16,13 @@ import { findShift } from "./cards.js";
 
 const SHIFT_PARAMS = { type: "object", properties: { shiftId: { type: "integer" } } } as const;
 const ID_PARAMS = { type: "object", properties: { id: { type: "integer" } } } as const;
+const AUDIT_NAME: Record<BatchTable, string> = {
+  partner_batch: "partner",
+  returned_batch: "returned",
+};
 
 export function registerBatchRoutes(app: FastifyInstance, context: CardRouteContext): void {
-  const { db, requireRole, broadcast } = context;
+  const { db, requireRole, broadcast, audit } = context;
   const canEdit = requireRole("distribution", "admin");
 
   function broadcastBatches(shiftId: number): void {
@@ -74,6 +78,7 @@ export function registerBatchRoutes(app: FastifyInstance, context: CardRouteCont
         return reply;
       }
       const batch = createPartnerBatch(db, request.params.shiftId, request.body);
+      audit(request, "partner.create", batch);
       broadcastBatches(batch.shiftId);
       return reply.code(201).send(batch);
     },
@@ -104,6 +109,7 @@ export function registerBatchRoutes(app: FastifyInstance, context: CardRouteCont
         return reply;
       }
       const batch = createReturnedBatch(db, request.params.shiftId, request.body);
+      audit(request, "returned.create", batch);
       broadcastBatches(batch.shiftId);
       return reply.code(201).send(batch);
     },
@@ -126,6 +132,7 @@ export function registerBatchRoutes(app: FastifyInstance, context: CardRouteCont
           return reply;
         }
         deleteBatch(db, table, request.params.id);
+        audit(request, `${AUDIT_NAME[table]}.delete`, { shiftId, id: request.params.id });
         broadcastBatches(shiftId);
         return reply.code(204).send();
       },

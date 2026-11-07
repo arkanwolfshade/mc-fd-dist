@@ -53,6 +53,10 @@ export function findSessionAccount(db: Database, token: string, now: number): Ac
   return { id: row.id, username: row.username, role: row.role };
 }
 
+export function deleteAccountSessions(db: Database, accountId: number): void {
+  db.prepare("DELETE FROM session WHERE account_id = ?").run(accountId);
+}
+
 export function deleteSession(db: Database, token: string): void {
   db.prepare("DELETE FROM session WHERE token_hash = ?").run(hashToken(token));
 }

@@ -13,7 +13,7 @@ import {
   listCards,
   updateCard,
 } from "./cards.js";
-import type { Card, CardChanges, NewCard } from "./cards.js";
+import type { Card, CardChanges, NewCard, Shift } from "./cards.js";
 import { ARRIVAL_METHODS, CARD_STATUSES, canChangeStatus } from "./rules.js";
 import { shiftSummary } from "./summary.js";
 
@@ -31,10 +31,13 @@ export interface CardRouteContext {
   currentAccount: (request: FastifyRequest) => Account | null;
   requireRole: (...roles: Role[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
   broadcast: (message: LiveMessage) => void;
+  closeEndedSockets: () => void;
+  audit: (request: FastifyRequest, action: string, detail?: object) => void;
 }
 
 export type LiveMessage =
   | { type: "card"; card: Card }
+  | { type: "shift"; shift: Shift }
   | {
       type: "batches";
       shiftId: number;
@@ -43,7 +46,7 @@ export type LiveMessage =
     };
 
 export function registerCardRoutes(app: FastifyInstance, context: CardRouteContext): void {
-  const { db, currentAccount, requireRole, broadcast } = context;
+  const { db, currentAccount, requireRole, broadcast, audit } = context;
 
   app.post<{ Body: { date: string } }>(
     "/api/shifts",
@@ -62,6 +65,8 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (shift === "duplicate") {
         return reply.code(409).send({ error: "A shift already exists for that date" });
       }
+      audit(request, "shift.open", { date: shift.date });
+      broadcast({ type: "shift", shift });
       return reply.code(201).send(shift);
     },
   );
@@ -137,6 +142,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (card === "duplicate") {
         return reply.code(409).send({ error: "That card number is already in use" });
       }
+      audit(request, "card.create", { shiftId: shift.id, number: card.number });
       broadcast({ type: "card", card });
       return reply.code(201).send(card);
     },
@@ -198,6 +204,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (result === "duplicate") {
         return reply.code(409).send({ error: "That card number is already in use" });
       }
+      audit(request, "card.update", { shiftId: result.shiftId, number: result.number, changes });
       broadcast({ type: "card", card: result });
       return result;
     },

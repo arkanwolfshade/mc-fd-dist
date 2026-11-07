@@ -5,8 +5,13 @@ import { PartnerBatches, ReturnedBatches } from "./Batches.js";
 import { distributionQueue, hasWeight, parseLoads } from "./state.js";
 import type { Card, ShiftWithCards, UpdateCard } from "./types.js";
 
-export function Distribution(props: { shift: ShiftWithCards; onUpdate: UpdateCard }) {
-  const { shift, onUpdate } = props;
+export function Distribution(props: {
+  shift: ShiftWithCards;
+  onUpdate: UpdateCard;
+  onCloseShift: () => void;
+}) {
+  const { shift, onUpdate, onCloseShift } = props;
+  const [confirmClose, setConfirmClose] = useState(false);
   const { cards } = shift;
   const queue = distributionQueue(cards);
   const done = cards.filter((card) => card.status === "distributed");
@@ -39,6 +44,23 @@ export function Distribution(props: { shift: ShiftWithCards; onUpdate: UpdateCar
 
       <ReturnedBatches shift={shift} />
       <PartnerBatches shift={shift} />
+
+      <section class="panel">
+        <h2>Finish</h2>
+        {confirmClose ? (
+          <div class="confirm">
+            <p>Close this shift? Only an admin can reopen it.</p>
+            <div class="choices">
+              <button onClick={onCloseShift}>Yes, close the shift</button>
+              <button class="primary" onClick={() => setConfirmClose(false)}>
+                Keep it open
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmClose(true)}>Close shift</button>
+        )}
+      </section>
     </div>
   );
 }

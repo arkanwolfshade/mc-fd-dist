@@ -1,33 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { Role } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";
+import { Admin } from "./Admin.js";
 import { ApiError, api, connectLive } from "./api.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
-import { mergeCard } from "./state.js";
+import { isoDate, mergeCard } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
 
-function localDate(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
-type View = "front_desk" | "distribution" | "summary";
+type View = "front_desk" | "distribution" | "summary" | "admin";
 
 const VIEW_LABELS: Record<View, string> = {
   front_desk: "Front desk",
   distribution: "Distribution",
   summary: "Totals",
+  admin: "Admin",
 };
 
 const VIEWS_BY_ROLE: Record<Role, View[]> = {
   front_desk: ["front_desk", "summary"],
   distribution: ["distribution", "summary"],
-  admin: ["front_desk", "distribution", "summary"],
+  admin: ["front_desk", "distribution", "summary", "admin"],
 };
+
+const DATE_CHECK_INTERVAL_MS = 60 * 1000;
 
 export function Station(props: { identity: Identity; onSignedOut: () => void }) {
   const { identity } = props;
@@ -37,7 +34,9 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   const [view, setView] = useState<View>(
     identity.role === "distribution" ? "distribution" : "front_desk",
   );
-  const date = useRef(localDate());
+  // Dedicated devices stay signed in for weeks, so "today" must keep moving.
+  const [today, setToday] = useState(() => isoDate(new Date()));
+  const date = useRef(today);
 
   const loadShift = useCallback(async () => {
     try {
@@ -67,16 +66,30 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         setConnected(true);
         void loadShift();
       },
-      onClose: () => setConnected(false),
+      onClose: () => {
+        setConnected(false);
+        // The socket also closes when the session ends, such as a changed password.
+        api("GET", "/api/me").catch((failure) => {
+          if (failure instanceof ApiError && failure.status === 401) {
+            props.onSignedOut();
+          }
+        });
+      },
       onMessage: (message) => {
         const live = message as LiveMessage;
-        // A first update can arrive before this station knows the shift was opened.
+        // An update can arrive before this station knows the shift was opened.
         setShift((current) => {
           if (!current) void loadShift();
           return current;
         });
         if (live.type === "card") {
           applyCard(live.card);
+        } else if (live.type === "shift") {
+          setShift((current) =>
+            current && current.id === live.shift.id
+              ? { ...current, status: live.shift.status }
+              : current,
+          );
         } else {
           setShift((current) =>
             current && current.id === live.shiftId
@@ -91,6 +104,30 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       },
     });
   }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const current = isoDate(new Date());
+      if (current !== date.current) {
+        date.current = current;
+        setToday(current);
+        void loadShift();
+      }
+    }, DATE_CHECK_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  async function closeShift(shiftId: number) {
+    setNotice("");
+    try {
+      const closed = await api<Shift>("POST", `/api/shifts/${shiftId}/close`);
+      setShift((current) =>
+        current && current.id === closed.id ? { ...current, status: closed.status } : current,
+      );
+    } catch (failure) {
+      setNotice(failure instanceof Error ? failure.message : "Could not close the shift");
+    }
+  }
 
   async function openShift() {
     try {
@@ -133,7 +170,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   return (
     <div class="station">
       <header class="bar">
-        <strong>{date.current}</strong>
+        <strong>{today}</strong>
         <span class="tabs">
           {VIEWS_BY_ROLE[identity.role].map((option) => (
             <button
@@ -155,8 +192,10 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       )}
       {notice && <p class="error">{notice}</p>}
 
-      {shift === undefined && <p class="notice">Loading…</p>}
-      {shift === null && (
+      {view === "admin" && <Admin identity={identity} />}
+
+      {view !== "admin" && shift === undefined && <p class="notice">Loading…</p>}
+      {view !== "admin" && shift === null && (
         <div class="panel">
           <p>No shift has been opened for today.</p>
           <button class="primary" onClick={openShift}>
@@ -164,11 +203,25 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
           </button>
         </div>
       )}
-      {shift && view === "front_desk" && (
+      {view !== "admin" && shift?.status === "closed" && (
+        <>
+          <p class="warning">
+            This shift is closed. An admin can reopen it if something needs correcting.
+          </p>
+          <Summary shift={shift} />
+        </>
+      )}
+      {shift?.status === "open" && view === "front_desk" && (
         <FrontDesk shift={shift} onSaved={applyCard} onUpdate={updateCard} />
       )}
-      {shift && view === "distribution" && <Distribution shift={shift} onUpdate={updateCard} />}
-      {shift && view === "summary" && <Summary shift={shift} />}
+      {shift?.status === "open" && view === "distribution" && (
+        <Distribution
+          shift={shift}
+          onUpdate={updateCard}
+          onCloseShift={() => closeShift(shift.id)}
+        />
+      )}
+      {shift?.status === "open" && view === "summary" && <Summary shift={shift} />}
     </div>
   );
 }

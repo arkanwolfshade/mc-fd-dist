@@ -34,7 +34,7 @@ These choices were not discussed in the interview and are open to change.
 
 ## Data model
 
-- **shift:** date (one shift per date), status (open or closed).
+- **shift:** date (one shift per date), status (open or closed), reopened flag.
 - **card:** shift, card number (unique per shift), family size, arrival method (one of East, West, AC, Bus, Walk), senior box (yes/no), cheese (yes/no), TEFAP bags, TEFAP override flag, other (text), status (entered, called, confirmed, distributed), up to three load weights, revision.
 - **partner_batch:** shift, partner (Door Dash or Helping Hands), family count, weight. Zero or more per shift, entered in a dedicated end-of-shift step, never mixed into the card list.
 - **returned_batch:** shift, weight, time. A running log that is not tied to any card.
@@ -54,7 +54,7 @@ These choices were not discussed in the interview and are open to change.
 1. **Front desk:** fast card entry and a live list of the shift's cards.
 2. **Distribution:** live queue, confirm or correct, enter weights, mark distributed; returned-batch log; end-of-shift partner batch step.
 3. **Shift summary:** matches the MC-Dist Totals table and updates live.
-4. **Admin:** open and close shifts, date-range totals, CSV export, change role passwords, manage admin accounts.
+4. **Admin:** close and reopen shifts, date-range totals, CSV export, change role passwords, manage admin accounts, recent activity. Distribution can also close a shift, and old shifts close automatically overnight (see ADR 0013).
 
 ## Security and operations
 

@@ -114,6 +114,12 @@ export function findShift(db: Database, id: number): Shift | null {
   return (row as Shift | undefined) ?? null;
 }
 
+export function listShiftsBetween(db: Database, from: string, to: string): Shift[] {
+  return db
+    .prepare("SELECT id, date, status FROM shift WHERE date BETWEEN ? AND ? ORDER BY date")
+    .all(from, to) as Shift[];
+}
+
 export function listCards(db: Database, shiftId: number): Card[] {
   const rows = db
     .prepare("SELECT * FROM card WHERE shift_id = ? ORDER BY number")

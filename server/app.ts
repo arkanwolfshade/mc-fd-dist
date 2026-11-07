@@ -7,12 +7,17 @@ import Fastify from "fastify";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { listAccounts, verifyPassword } from "./accounts.js";
 import type { Account, Role } from "./accounts.js";
+import { registerAdminRoutes } from "./admin-routes.js";
+import { AUTOMATIC_ACTOR, recordAudit } from "./audit.js";
 import { registerBatchRoutes } from "./batch-routes.js";
 import { registerCardRoutes } from "./card-routes.js";
 import type { LiveMessage } from "./card-routes.js";
 import { createSession, deleteSession, findSessionAccount } from "./sessions.js";
+import { closeExpiredShifts, localDate } from "./shift-closing.js";
 
 const SESSION_COOKIE = "session";
+const SESSION_ENDED_CLOSE_CODE = 4401;
+const AUTO_CLOSE_INTERVAL_MS = 60 * 60 * 1000;
 
 export interface AppOptions {
   db: Database;
@@ -21,6 +26,7 @@ export interface AppOptions {
   logger?: boolean;
   now?: () => number;
   clientDir?: string;
+  autoCloseTimeZone?: string;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -107,23 +113,70 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   // Stations only listen on this socket. All writes go through the HTTP routes, so
   // that validation and role checks live in one place.
-  app.get("/api/live", { websocket: true, preValidation: requireRole() }, () => {});
+  const socketTokens = new WeakMap<object, string>();
+  app.get("/api/live", { websocket: true, preValidation: requireRole() }, (socket, request) => {
+    socketTokens.set(socket, request.cookies[SESSION_COOKIE] as string);
+  });
+
+  // A socket outlives its session unless checked, so a changed password, a sign-out
+  // or an expiry must also stop live updates. See ADR 0007.
+  function openSocketsWithSessions() {
+    const sockets = [];
+    for (const client of app.websocketServer.clients) {
+      if (client.readyState !== client.OPEN) continue;
+      const token = socketTokens.get(client);
+      if (token && findSessionAccount(db, token, now())) {
+        sockets.push(client);
+      } else {
+        client.close(SESSION_ENDED_CLOSE_CODE, "Session ended");
+      }
+    }
+    return sockets;
+  }
+
+  function broadcast(message: LiveMessage): void {
+    const data = JSON.stringify(message);
+    for (const socket of openSocketsWithSessions()) {
+      socket.send(data);
+    }
+  }
 
   const routeContext = {
     db,
     currentAccount,
     requireRole,
-    broadcast: (message: LiveMessage) => {
-      const data = JSON.stringify(message);
-      for (const client of app.websocketServer.clients) {
-        if (client.readyState === client.OPEN) {
-          client.send(data);
-        }
-      }
+    broadcast,
+    closeEndedSockets: () => void openSocketsWithSessions(),
+    audit: (request: FastifyRequest, action: string, detail?: object) => {
+      const actor = currentAccount(request)?.username ?? "unknown";
+      recordAudit(db, { at: now(), actor, action, ...(detail ? { detail } : {}) });
     },
   };
   registerCardRoutes(app, routeContext);
   registerBatchRoutes(app, routeContext);
+  registerAdminRoutes(app, routeContext);
+
+  const { autoCloseTimeZone } = options;
+  if (autoCloseTimeZone) {
+    const runAutoClose = () => {
+      for (const shift of closeExpiredShifts(db, localDate(now(), autoCloseTimeZone))) {
+        recordAudit(db, {
+          at: now(),
+          actor: AUTOMATIC_ACTOR,
+          action: "shift.close",
+          detail: { date: shift.date },
+        });
+        broadcast({ type: "shift", shift });
+      }
+    };
+    let timer: NodeJS.Timeout;
+    app.addHook("onReady", async () => {
+      runAutoClose();
+      timer = setInterval(runAutoClose, AUTO_CLOSE_INTERVAL_MS);
+      timer.unref();
+    });
+    app.addHook("onClose", async () => clearInterval(timer));
+  }
 
   return app;
 }

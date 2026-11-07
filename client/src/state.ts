@@ -16,6 +16,12 @@ export function nextCardNumber(cards: Card[]): number {
   return cards.reduce((highest, card) => Math.max(highest, card.number), 0) + 1;
 }
 
+export function isoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 export function parseLoads(fields: string[]): (number | null)[] {
   return fields.map((field) => (field.trim() === "" ? null : Number(field)));
 }

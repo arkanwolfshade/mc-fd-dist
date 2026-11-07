@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../../server/cards.js";
-import { distributionQueue, hasWeight, mergeCard, nextCardNumber, parseLoads } from "./state.js";
+import {
+  distributionQueue,
+  hasWeight,
+  isoDate,
+  mergeCard,
+  nextCardNumber,
+  parseLoads,
+} from "./state.js";
 
 function card(overrides: Partial<Card>): Card {
   return {
@@ -50,6 +57,12 @@ describe("nextCardNumber", () => {
 
   it("suggests one above the highest number", () => {
     expect(nextCardNumber([card({ number: 1 }), card({ id: 2, number: 7 })])).toBe(8);
+  });
+});
+
+describe("isoDate", () => {
+  it("formats the local date with leading zeros", () => {
+    expect(isoDate(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05");
   });
 });
 

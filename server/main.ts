@@ -10,6 +10,7 @@ const app = await buildApp({
   cookieSecure: config.cookieSecure,
   trustProxy: config.trustProxy,
   logger: true,
+  autoCloseTimeZone: config.timeZone,
   ...(existsSync(config.clientDir) ? { clientDir: config.clientDir } : {}),
 });
 

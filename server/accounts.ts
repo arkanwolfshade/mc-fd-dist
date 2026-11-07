@@ -11,6 +11,12 @@ export interface Account {
   role: Role;
 }
 
+export class AccountExistsError extends Error {
+  constructor(username: string) {
+    super(`Account already exists: ${username}`);
+  }
+}
+
 const MIN_PASSWORD_LENGTH = 10;
 
 // Verified against when the username is unknown, so that a login attempt takes
@@ -37,10 +43,24 @@ export async function createAccount(
     );
   } catch (error) {
     if (error instanceof SqliteError && error.code === "SQLITE_CONSTRAINT_UNIQUE") {
-      throw new Error(`Account already exists: ${input.username}`);
+      throw new AccountExistsError(input.username);
     }
     throw error;
   }
+}
+
+export function findAccountByUsername(db: Database, username: string): Account | null {
+  const row = db.prepare("SELECT id, username, role FROM account WHERE username = ?").get(username);
+  return (row as Account | undefined) ?? null;
+}
+
+export async function changePassword(db: Database, id: number, password: string): Promise<void> {
+  const passwordHash = await argon2.hash(password);
+  db.prepare("UPDATE account SET password_hash = ? WHERE id = ?").run(passwordHash, id);
+}
+
+export function deleteAccount(db: Database, id: number): void {
+  db.prepare("DELETE FROM account WHERE id = ?").run(id);
 }
 
 export async function verifyPassword(
