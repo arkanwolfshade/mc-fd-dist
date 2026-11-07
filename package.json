@@ -12,10 +12,11 @@
     "start": "node dist/server/main.js",
     "dev:client": "vite",
     "build": "tsc -p tsconfig.build.json && vite build",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json && tsc -p tsconfig.e2e.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "account": "tsx server/cli/account.ts"
+    "account": "tsx server/cli/account.ts",
+    "test:e2e": "vite build && playwright test"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -28,6 +29,7 @@
     "preact": "^11.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@preact/preset-vite": "^2.10.6",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",

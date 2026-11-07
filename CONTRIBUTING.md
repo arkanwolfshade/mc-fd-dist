@@ -9,8 +9,9 @@
 ## Tests
 
 - Write a failing test before changing behavior, and watch it fail for the expected reason.
-- Run `npm test` and `npm run typecheck` before each commit.
-- CI runs both on every push.
+- Run `npm test` and `npm run typecheck` before each commit, and `npm run test:e2e` when a change affects the screens.
+- Add an end-to-end test for anything a person does across stations or screens. Unit tests cannot catch a browser refusing a form or a station missing an update.
+- CI runs all three on every push.
 
 ## Decisions
 

@@ -20,6 +20,13 @@ npm test
 npm run typecheck
 ```
 
+End-to-end tests drive real browser sessions against a real server. Each test gets its own server and in-memory database. Install the browser once, then run them:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
 To run the server locally over plain HTTP, create an account and start it with secure cookies turned off:
 
 ```sh
@@ -39,4 +46,5 @@ The server reads these environment variables:
 | `HOST` | `127.0.0.1` | Address to listen on |
 | `COOKIE_SECURE` | `true` | Set to `false` only for local HTTP development |
 | `CLIENT_DIR` | `dist/client` | Location of the built client |
+| `TIME_ZONE` | `America/Phoenix` | The food bank's time zone, used to close old shifts overnight |
 | `TRUST_PROXY` | `false` | Set to `true` behind the HTTPS proxy, so that login limits see the real client address |
