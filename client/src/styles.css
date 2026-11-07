@@ -87,7 +87,7 @@ legend {
 
 .columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   align-items: start;
   gap: 16px;
   padding: 16px;
@@ -96,6 +96,7 @@ legend {
 .panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 12px;
   padding: 16px;
   background: #fff;
@@ -114,7 +115,13 @@ legend {
 
 .row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.row > label {
+  flex: 1 1 130px;
+  min-width: 0;
 }
 
 .row.end {

@@ -12,7 +12,7 @@ The project is in early development and is not yet in use.
 
 ## Development
 
-Requires Node.js 22 or later.
+Requires Node.js 24.22.1 or later, which includes a security fix.
 
 ```sh
 npm install

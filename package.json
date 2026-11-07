@@ -5,7 +5,7 @@
   "description": "Shift tracker that replaces the MC-FD and MC-Dist paper sheets at the food bank.",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24.22.1"
   },
   "scripts": {
     "dev": "tsx watch server/main.ts",
