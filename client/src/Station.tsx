@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import type { Role } from "../../server/accounts.js";
+import type { LiveMessage } from "../../server/card-routes.js";
 import { ApiError, api, connectLive } from "./api.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
 import { mergeCard } from "./state.js";
+import { Summary } from "./Summary.js";
 import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
 
 function localDate(): string {
@@ -12,7 +15,19 @@ function localDate(): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
-type View = "front_desk" | "distribution";
+type View = "front_desk" | "distribution" | "summary";
+
+const VIEW_LABELS: Record<View, string> = {
+  front_desk: "Front desk",
+  distribution: "Distribution",
+  summary: "Totals",
+};
+
+const VIEWS_BY_ROLE: Record<Role, View[]> = {
+  front_desk: ["front_desk", "summary"],
+  distribution: ["distribution", "summary"],
+  admin: ["front_desk", "distribution", "summary"],
+};
 
 export function Station(props: { identity: Identity; onSignedOut: () => void }) {
   const { identity } = props;
@@ -54,14 +69,25 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       },
       onClose: () => setConnected(false),
       onMessage: (message) => {
-        const { type, card } = message as { type: string; card: Card };
-        if (type !== "card") return;
-        // A first card can arrive before this station knows the shift was opened.
+        const live = message as LiveMessage;
+        // A first update can arrive before this station knows the shift was opened.
         setShift((current) => {
           if (!current) void loadShift();
           return current;
         });
-        applyCard(card);
+        if (live.type === "card") {
+          applyCard(live.card);
+        } else {
+          setShift((current) =>
+            current && current.id === live.shiftId
+              ? {
+                  ...current,
+                  partnerBatches: live.partnerBatches,
+                  returnedBatches: live.returnedBatches,
+                }
+              : current,
+          );
+        }
       },
     });
   }, []);
@@ -69,7 +95,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   async function openShift() {
     try {
       const created = await api<Shift>("POST", "/api/shifts", { date: date.current });
-      setShift({ ...created, cards: [] });
+      setShift({ ...created, cards: [], partnerBatches: [], returnedBatches: [] });
     } catch (failure) {
       // Another station opened it first, which is fine.
       if (failure instanceof ApiError && failure.status === 409) {
@@ -108,24 +134,17 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
     <div class="station">
       <header class="bar">
         <strong>{date.current}</strong>
-        {identity.role === "admin" ? (
-          <span class="tabs">
+        <span class="tabs">
+          {VIEWS_BY_ROLE[identity.role].map((option) => (
             <button
-              class={view === "front_desk" ? "selected" : ""}
-              onClick={() => setView("front_desk")}
+              key={option}
+              class={view === option ? "selected" : ""}
+              onClick={() => setView(option)}
             >
-              Front desk
+              {VIEW_LABELS[option]}
             </button>
-            <button
-              class={view === "distribution" ? "selected" : ""}
-              onClick={() => setView("distribution")}
-            >
-              Distribution
-            </button>
-          </span>
-        ) : (
-          <span>{identity.role === "front_desk" ? "Front desk" : "Distribution"}</span>
-        )}
+          ))}
+        </span>
         <button onClick={signOut}>Sign out</button>
       </header>
 
@@ -148,9 +167,8 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       {shift && view === "front_desk" && (
         <FrontDesk shift={shift} onSaved={applyCard} onUpdate={updateCard} />
       )}
-      {shift && view === "distribution" && (
-        <Distribution cards={shift.cards} onUpdate={updateCard} />
-      )}
+      {shift && view === "distribution" && <Distribution shift={shift} onUpdate={updateCard} />}
+      {shift && view === "summary" && <Summary shift={shift} />}
     </div>
   );
 }

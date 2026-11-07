@@ -47,6 +47,23 @@ const MIGRATIONS: readonly string[] = [
     UNIQUE (shift_id, number)
   );
   `,
+  `
+  CREATE TABLE partner_batch (
+    id INTEGER PRIMARY KEY,
+    shift_id INTEGER NOT NULL REFERENCES shift (id),
+    client_id TEXT NOT NULL UNIQUE,
+    partner TEXT NOT NULL CHECK (partner IN ('Door Dash', 'Helping Hands')),
+    family_count INTEGER NOT NULL CHECK (family_count > 0),
+    weight REAL NOT NULL CHECK (weight >= 0)
+  );
+
+  CREATE TABLE returned_batch (
+    id INTEGER PRIMARY KEY,
+    shift_id INTEGER NOT NULL REFERENCES shift (id),
+    client_id TEXT NOT NULL UNIQUE,
+    weight REAL NOT NULL CHECK (weight > 0)
+  );
+  `,
 ];
 
 export function openDatabase(path: string): Database {

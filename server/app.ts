@@ -7,7 +7,9 @@ import Fastify from "fastify";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { listAccounts, verifyPassword } from "./accounts.js";
 import type { Account, Role } from "./accounts.js";
+import { registerBatchRoutes } from "./batch-routes.js";
 import { registerCardRoutes } from "./card-routes.js";
+import type { LiveMessage } from "./card-routes.js";
 import { createSession, deleteSession, findSessionAccount } from "./sessions.js";
 
 const SESSION_COOKIE = "session";
@@ -107,11 +109,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // that validation and role checks live in one place.
   app.get("/api/live", { websocket: true, preValidation: requireRole() }, () => {});
 
-  registerCardRoutes(app, {
+  const routeContext = {
     db,
     currentAccount,
     requireRole,
-    broadcast: (message) => {
+    broadcast: (message: LiveMessage) => {
       const data = JSON.stringify(message);
       for (const client of app.websocketServer.clients) {
         if (client.readyState === client.OPEN) {
@@ -119,7 +121,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         }
       }
     },
-  });
+  };
+  registerCardRoutes(app, routeContext);
+  registerBatchRoutes(app, routeContext);
 
   return app;
 }

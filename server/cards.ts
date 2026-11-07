@@ -2,6 +2,7 @@ import { SqliteError } from "better-sqlite3";
 import type { Database } from "better-sqlite3";
 import { tefapBags } from "./rules.js";
 import type { ArrivalMethod, CardStatus } from "./rules.js";
+import { roundWeight } from "./summary.js";
 
 export type Loads = [number | null, number | null, number | null];
 
@@ -84,7 +85,7 @@ function toCard(row: CardRow): Card {
     tefapOverride: row.tefap_override === 1,
     status: row.status,
     loads,
-    totalWeight: loads.reduce<number>((sum, load) => sum + (load ?? 0), 0),
+    totalWeight: roundWeight(loads.reduce<number>((sum, load) => sum + (load ?? 0), 0)),
     revision: row.revision,
   };
 }

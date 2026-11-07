@@ -45,7 +45,7 @@ These choices were not discussed in the interview and are open to change.
 
 - TEFAP bags are calculated from family size: 1-4 = 1, 5-8 = 2, 9+ = 3. Staff can override.
 - Card weight is the sum of its load weights.
-- Shift net weight is card loads, plus partner batch weights if confirmed (see open questions), minus returned batches.
+- Shift net weight is card loads, plus partner batch weights, minus returned batches (see ADR 0012).
 - The "on this page" footer totals go away. Their purpose moves to the live shift summary.
 - Two stations can edit one card, so each write carries a revision number. A stale write prompts a review instead of silently overwriting.
 
@@ -100,7 +100,7 @@ Estimates from third-party guides, to confirm on official AWS pricing pages:
 
 Confirm with staff before the affected build step:
 
-1. What "Total # of families" counts: cards only, or cards plus partner batch family counts. Do partner batch weights count toward shift weight?
+1. ~~What "Total # of families" counts.~~ Answered: see ADR 0012. Still to confirm with staff: whether a card entered but never distributed counts as a family.
 2. ~~How Callback works in practice.~~ Answered: see ADR 0010.
 3. Whether "Other" is free text or a set of known items.
 4. ~~Whether a day can have more than one shift.~~ Answered: see ADR 0011. Still to confirm: whether card numbers ever exceed 200.

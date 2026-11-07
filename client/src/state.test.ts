@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../../server/cards.js";
-import { distributionQueue, mergeCard, nextCardNumber } from "./state.js";
+import { distributionQueue, hasWeight, mergeCard, nextCardNumber, parseLoads } from "./state.js";
 
 function card(overrides: Partial<Card>): Card {
   return {
@@ -50,6 +50,26 @@ describe("nextCardNumber", () => {
 
   it("suggests one above the highest number", () => {
     expect(nextCardNumber([card({ number: 1 }), card({ id: 2, number: 7 })])).toBe(8);
+  });
+});
+
+describe("parseLoads", () => {
+  it("turns blank fields into empty loads", () => {
+    expect(parseLoads(["12.5", "", " "])).toEqual([12.5, null, null]);
+  });
+
+  it("keeps a typed zero as a weight", () => {
+    expect(parseLoads(["0", "", ""])).toEqual([0, null, null]);
+  });
+});
+
+describe("hasWeight", () => {
+  it("is false when every load is empty", () => {
+    expect(hasWeight([null, null, null])).toBe(false);
+  });
+
+  it("is true when a zero was typed", () => {
+    expect(hasWeight([0, null, null])).toBe(true);
   });
 });
 

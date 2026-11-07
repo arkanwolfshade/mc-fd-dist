@@ -16,6 +16,14 @@ export function nextCardNumber(cards: Card[]): number {
   return cards.reduce((highest, card) => Math.max(highest, card.number), 0) + 1;
 }
 
+export function parseLoads(fields: string[]): (number | null)[] {
+  return fields.map((field) => (field.trim() === "" ? null : Number(field)));
+}
+
+export function hasWeight(loads: readonly (number | null)[]): boolean {
+  return loads.some((load) => load !== null);
+}
+
 export function distributionQueue(cards: Card[]): Card[] {
   return cards.filter((card) => card.status === "called" || card.status === "confirmed");
 }

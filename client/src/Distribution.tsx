@@ -1,11 +1,13 @@
 import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
-import { distributionQueue } from "./state.js";
-import type { Card, UpdateCard } from "./types.js";
+import { PartnerBatches, ReturnedBatches } from "./Batches.js";
+import { distributionQueue, hasWeight, parseLoads } from "./state.js";
+import type { Card, ShiftWithCards, UpdateCard } from "./types.js";
 
-export function Distribution(props: { cards: Card[]; onUpdate: UpdateCard }) {
-  const { cards, onUpdate } = props;
+export function Distribution(props: { shift: ShiftWithCards; onUpdate: UpdateCard }) {
+  const { shift, onUpdate } = props;
+  const { cards } = shift;
   const queue = distributionQueue(cards);
   const done = cards.filter((card) => card.status === "distributed");
 
@@ -27,13 +29,16 @@ export function Distribution(props: { cards: Card[]; onUpdate: UpdateCard }) {
           {[...done].reverse().map((card) => (
             <li key={card.id}>
               <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} · {card.totalWeight} lb
+                <strong>#{card.number}</strong> · family of {card.familySize} · {hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight"}
               </span>
               <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
             </li>
           ))}
         </ul>
       </section>
+
+      <ReturnedBatches shift={shift} />
+      <PartnerBatches shift={shift} />
     </div>
   );
 }
@@ -42,9 +47,15 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
   const { card, onUpdate } = props;
   const [loads, setLoads] = useState(card.loads.map((load) => (load === null ? "" : String(load))));
   const [correcting, setCorrecting] = useState(false);
+  const [confirmNoWeight, setConfirmNoWeight] = useState(false);
 
-  function parsedLoads(): (number | null)[] {
-    return loads.map((load) => (load.trim() === "" ? null : Number(load)));
+  function markDistributed() {
+    const parsed = parseLoads(loads);
+    if (!hasWeight(parsed)) {
+      setConfirmNoWeight(true);
+      return;
+    }
+    void onUpdate(card, { loads: parsed, status: "distributed" });
   }
 
   return (
@@ -76,7 +87,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
                   type="number"
                   inputmode="decimal"
                   min="0"
-                  step="0.1"
+                  step="any"
                   value={load}
                   onInput={(e) => {
                     const value = e.currentTarget.value;
@@ -87,15 +98,25 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
             ))}
           </div>
           <div class="choices">
-            <button
-              class="primary"
-              onClick={() => onUpdate(card, { loads: parsedLoads(), status: "distributed" })}
-            >
+            <button class="primary" onClick={markDistributed}>
               Mark distributed
             </button>
             <button onClick={() => onUpdate(card, { status: "called" })}>Undo confirm</button>
             <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
           </div>
+          {confirmNoWeight && (
+            <div class="confirm">
+              <p>No weight entered. Mark distributed anyway?</p>
+              <div class="choices">
+                <button onClick={() => onUpdate(card, { status: "distributed" })}>
+                  Yes, no weight
+                </button>
+                <button class="primary" onClick={() => setConfirmNoWeight(false)}>
+                  Go back and enter weight
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

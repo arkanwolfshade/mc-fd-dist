@@ -117,6 +117,55 @@ legend {
   gap: 8px;
 }
 
+.row.end {
+  align-items: flex-end;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.totals {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.totals th,
+.totals td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #e9ecef;
+  text-align: left;
+}
+
+.totals td {
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals .detail th,
+.totals .detail td {
+  padding-left: 20px;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.warning-inline,
+.confirm {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fff3bf;
+}
+
+.confirm p {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
 .tefap {
   flex: 1;
   font-size: 14px;

@@ -19,3 +19,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0009](0009-node-typescript-fastify.md) | Use Node.js, TypeScript and Fastify on the server | Accepted |
 | [0010](0010-single-forward-card-status.md) | Move each card along a single status path | Accepted |
 | [0011](0011-one-shift-per-date.md) | Allow one shift per date | Accepted |
+| [0012](0012-shift-totals.md) | Define shift totals in one shared calculation | Accepted |

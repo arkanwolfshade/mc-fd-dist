@@ -1,6 +1,8 @@
 import type { Database } from "better-sqlite3";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Account, Role } from "./accounts.js";
+import { listPartnerBatches, listReturnedBatches } from "./batches.js";
+import type { PartnerBatch, ReturnedBatch } from "./batches.js";
 import {
   createCard,
   createShift,
@@ -13,6 +15,7 @@ import {
 } from "./cards.js";
 import type { Card, CardChanges, NewCard } from "./cards.js";
 import { ARRIVAL_METHODS, CARD_STATUSES, canChangeStatus } from "./rules.js";
+import { shiftSummary } from "./summary.js";
 
 const CARD_DETAIL_PROPERTIES = {
   number: { type: "integer", minimum: 1 },
@@ -27,8 +30,17 @@ export interface CardRouteContext {
   db: Database;
   currentAccount: (request: FastifyRequest) => Account | null;
   requireRole: (...roles: Role[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
-  broadcast: (message: { type: "card"; card: Card }) => void;
+  broadcast: (message: LiveMessage) => void;
 }
+
+export type LiveMessage =
+  | { type: "card"; card: Card }
+  | {
+      type: "batches";
+      shiftId: number;
+      partnerBatches: PartnerBatch[];
+      returnedBatches: ReturnedBatch[];
+    };
 
 export function registerCardRoutes(app: FastifyInstance, context: CardRouteContext): void {
   const { db, currentAccount, requireRole, broadcast } = context;
@@ -71,7 +83,16 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (!shift) {
         return reply.code(404).send({ error: "No shift for that date" });
       }
-      return { ...shift, cards: listCards(db, shift.id) };
+      const cards = listCards(db, shift.id);
+      const partnerBatches = listPartnerBatches(db, shift.id);
+      const returnedBatches = listReturnedBatches(db, shift.id);
+      return {
+        ...shift,
+        cards,
+        partnerBatches,
+        returnedBatches,
+        summary: shiftSummary(cards, partnerBatches, returnedBatches),
+      };
     },
   );
 
