@@ -6,6 +6,15 @@
 - Use [Conventional Commits](https://www.conventionalcommits.org/), for example `feat: add card entry form` or `fix: correct TEFAP count at nine people`.
 - Keep each commit to one logical change.
 
+## Git hooks
+
+`npm install` sets up hooks with husky:
+
+- **Before each commit:** formats and lints the staged files, then scans the staged changes for secrets with [gitleaks](https://github.com/gitleaks/gitleaks).
+- **Before each push:** runs the type checks and unit tests.
+
+gitleaks is not an npm package, so install it separately (on Windows, `winget install Gitleaks.Gitleaks`). Without it the commit hook warns and skips the secret scan, and CI catches secrets only after they reach GitHub.
+
 ## Tests
 
 - Write a failing test before changing behavior, and watch it fail for the expected reason.

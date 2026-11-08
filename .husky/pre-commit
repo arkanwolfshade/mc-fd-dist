@@ -1,0 +1,9 @@
+# Formats and lints the staged files, then scans the staged changes for secrets.
+npx lint-staged
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --verbose
+else
+  echo "gitleaks is not installed, so the staged changes were not scanned for secrets." >&2
+  echo "Install it (on Windows: winget install Gitleaks.Gitleaks). CI scans after the push." >&2
+fi

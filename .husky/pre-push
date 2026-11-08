@@ -1,0 +1,3 @@
+# The quicker checks that need the whole project. CI runs everything else.
+npm run typecheck
+npm test

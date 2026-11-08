@@ -21,7 +21,12 @@
     "demo": "vite build && tsx e2e/demo.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "oxlint --deny-warnings ."
+    "lint": "oxlint --deny-warnings .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,json,css,html,yaml,yml}": "prettier --write",
+    "*.{ts,tsx,js,mjs}": "oxlint --deny-warnings"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -40,6 +45,8 @@
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
     "@vitest/coverage-v8": "^5.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "oxlint": "^1.92.0",
     "oxlint-tsgolint": "^7.0.2006",
     "prettier": "3.9.10",
