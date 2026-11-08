@@ -1,9 +1,13 @@
-import type { Page } from "@playwright/test";
-import { addCard, callBack, expect, openShift, queueCard, test, totalsRow } from "./fixtures.js";
-
-function frontDeskCard(page: Page, number: number) {
-  return page.locator(".cards > li").filter({ hasText: `#${number} ` });
-}
+import {
+  addCard,
+  callBack,
+  cardRow,
+  expect,
+  openShift,
+  queueCard,
+  test,
+  totalsRow,
+} from "./fixtures.js";
 
 test("distribution records a family who left without food, and can undo it", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
@@ -24,7 +28,7 @@ test("distribution records a family who left without food, and can undo it", asy
   await confirm.getByRole("button", { name: "Keep it open" }).click();
 
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
-  await expect(frontDeskCard(frontDesk, 1).locator(".status")).toHaveText("left without food");
+  await expect(cardRow(frontDesk, 1).locator(".status")).toHaveText("Left without food");
 
   await distribution.getByRole("button", { name: "Totals", exact: true }).click();
   await expect(totalsRow(distribution, "Total # of families")).toContainText("0");
@@ -37,7 +41,7 @@ test("distribution records a family who left without food, and can undo it", asy
     .getByRole("button", { name: "Undo" })
     .click();
   // The card goes back to the front desk, which calls the family forward again.
-  await expect(frontDeskCard(frontDesk, 1).locator(".status")).toHaveText("entered");
+  await expect(cardRow(frontDesk, 1).locator(".status")).toHaveText("Waiting");
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
   await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
@@ -72,13 +76,13 @@ test("an admin deletes a card entered by mistake, and every station loses it", a
   // Only admins can delete.
   await expect(frontDesk.getByRole("button", { name: "Delete" })).toHaveCount(0);
 
-  const row = frontDeskCard(admin, 2);
+  const row = cardRow(admin, 2);
   await row.getByRole("button", { name: "Delete" }).click();
   await expect(row).toContainText("Delete card #2? This cannot be undone.");
   await row.getByRole("button", { name: "Yes, delete" }).click();
 
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await expect(frontDeskCard(frontDesk, 2)).toHaveCount(0);
+  await expect(cardRow(frontDesk, 2)).toHaveCount(0);
   await expect(admin.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
 });
 

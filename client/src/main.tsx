@@ -4,6 +4,11 @@ import { ApiError, api } from "./api.js";
 import type { Identity } from "./types.js";
 import { Login } from "./Login.js";
 import { Station } from "./Station.js";
+// Bundled with the app, so it works offline and within the content security policy.
+import "@fontsource/atkinson-hyperlegible-next/400.css";
+import "@fontsource/atkinson-hyperlegible-next/600.css";
+import "@fontsource/atkinson-hyperlegible-next/700.css";
+import "@fontsource/atkinson-hyperlegible-mono/700.css";
 import "./styles.css";
 
 const IDENTITY_KEY = "identity";

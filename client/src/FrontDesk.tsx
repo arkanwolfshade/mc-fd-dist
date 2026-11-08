@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
-import { DeleteCardButton, StatusLabel } from "./CardActions.js";
+import { cardDetails, DeleteCardButton, Family, StatusLabel, Ticket } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import { nextCardNumber } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
@@ -43,13 +43,21 @@ export function FrontDesk(props: {
   // Numbers still being saved, so that the next card is not offered one of them.
   const [saving, setSaving] = useState<number[]>([]);
   const [error, setError] = useState("");
+  // The last card saved, confirmed under the form.
+  const [saved, setSaved] = useState<{
+    number: number;
+    familySize: number;
+    arrivalMethod: ArrivalMethod;
+    seniorBox: boolean;
+    cheese: boolean;
+  } | null>(null);
 
   const { number, familySize, method, seniorBox, cheese, other } = form;
   const size = Number(familySize);
   const suggested = nextCardNumber([
     ...shift.cards,
     ...shift.pendingCards,
-    ...saving.map((saved) => ({ number: saved })),
+    ...saving.map((pending) => ({ number: pending })),
   ]);
 
   function change(changes: Partial<CardForm>) {
@@ -88,7 +96,9 @@ export function FrontDesk(props: {
       if (result.status === "sent") {
         onSaved(result.data as Card);
       }
+      setSaved({ number: cardNumber, familySize: size, arrivalMethod: method, seniorBox, cheese });
     } catch (failure) {
+      setSaved(null);
       const reason = failure instanceof Error ? failure.message : "please try again";
       setError(`${label} was not saved: ${reason}`);
       // The details come back for correction, unless the next family is already being typed.
@@ -105,6 +115,15 @@ export function FrontDesk(props: {
     <div class="columns">
       <form class="panel" onSubmit={submit}>
         <h2>New card</h2>
+        {/* The number the card will be saved with, as the ticket in the family's hand. */}
+        <div class="next-card">
+          <Ticket number={Number(number) || suggested} big />
+          <span class="hint">
+            {number
+              ? "Card number typed below"
+              : "Next card number. Type another below to change it."}
+          </span>
+        </div>
         <div class="row">
           <label>
             Card #
@@ -152,7 +171,7 @@ export function FrontDesk(props: {
           </div>
         </fieldset>
 
-        <div class="choices">
+        <div class="choices extras">
           <button
             type="button"
             class={seniorBox ? "selected" : ""}
@@ -186,42 +205,43 @@ export function FrontDesk(props: {
 
         {error && <p class="error">{error}</p>}
         <button class="primary" type="submit">
-          Save card
+          Save card {Number(number) || suggested}
         </button>
+        {saved && (
+          <p class="saved" role="status">
+            <Ticket number={saved.number} /> Saved: family of {saved.familySize},{" "}
+            {cardDetails(saved)}
+          </p>
+        )}
       </form>
 
       <section class="panel">
         <h2>Cards ({shift.cards.length})</h2>
         <ul class="cards">
           {shift.pendingCards.map((card) => (
-            <li class="pending-card" key={card.id}>
-              <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
-                {arrivalLabel(card.arrivalMethod)}
-                {card.seniorBox ? " · senior box" : ""}
-                {card.cheese ? " · cheese" : ""} · waiting to send
-              </span>
+            <li class="card-row pending-card" key={card.id}>
+              <Ticket number={card.number} />
+              <Family card={card} />
+              <span class="status pending">waiting to send</span>
             </li>
           ))}
           {[...shift.cards].reverse().map((card) => (
-            <li key={card.id}>
-              <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
-                {arrivalLabel(card.arrivalMethod)}
-                {card.seniorBox ? " · senior box" : ""}
-                {card.cheese ? " · cheese" : ""}
-              </span>
+            <li class="card-row" key={card.id}>
+              <Ticket number={card.number} />
+              <Family card={card} />
               <StatusLabel status={card.status} />
-              {/* "Call back" is the radio call to distribution. */}
-              {card.status === "entered" && (
-                <button onClick={() => onUpdate(card, { status: "called" })}>Call back</button>
-              )}
-              {card.status === "called" && (
-                <button onClick={() => onUpdate(card, { status: "entered" })}>
-                  Undo call back
-                </button>
-              )}
-              {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
+              <span class="row-actions">
+                {/* "Call back" is the radio call to distribution. */}
+                {card.status === "entered" && (
+                  <button onClick={() => onUpdate(card, { status: "called" })}>Call back</button>
+                )}
+                {card.status === "called" && (
+                  <button onClick={() => onUpdate(card, { status: "entered" })}>
+                    Undo call back
+                  </button>
+                )}
+                {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
+              </span>
             </li>
           ))}
         </ul>

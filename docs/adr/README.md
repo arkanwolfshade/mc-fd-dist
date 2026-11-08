@@ -28,3 +28,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0018](0018-documentation.md) | Write the guides and developer docs once, in HADS Markdown | Accepted |
 | [0019](0019-correcting-unserved-cards.md) | Correct unserved cards by recording them as left, or by deleting them | Accepted; amended by 0020 |
 | [0020](0020-food-bank-process-rules.md) | Follow the food bank's own process and words | Accepted |
+| [0021](0021-visual-design.md) | Give the screens a quiet design with the card number as a ticket | Accepted |

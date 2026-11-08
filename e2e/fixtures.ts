@@ -108,8 +108,17 @@ export async function callBack(frontDesk: Page): Promise<void> {
   await frontDesk.getByRole("button", { name: "Call back", exact: true }).first().click();
 }
 
+// Cards are found by the number on their ticket, as a volunteer finds them.
+function ticket(page: Page, number: number) {
+  return page.locator(".ticket").filter({ hasText: new RegExp(`^${number}$`) });
+}
+
 export function queueCard(distribution: Page, number: number) {
-  return distribution.locator(".queue-card").filter({ hasText: `#${number} ` });
+  return distribution.locator(".queue-card").filter({ has: ticket(distribution, number) });
+}
+
+export function cardRow(page: Page, number: number) {
+  return page.locator(".cards > li").filter({ has: ticket(page, number) });
 }
 
 export function totalsRow(page: Page, label: string) {

@@ -15,6 +15,7 @@ Read `[NOTE]` only if the reason behind a step is needed.
 
 **[SPEC]**
 - **Queue**: families called back by the front desk, with their details and any note from the front desk.
+- Each card leads with the family's yellow ticket number, then a **Give** line listing the TEFAP bags, senior box and cheese to hand over.
 - **Distributed**: families served today, with the weight they received.
 - **Returned items**, **End of shift: last cards** and **Finish** are further along.
 
@@ -28,7 +29,7 @@ You never type a family's details. They arrive from the front desk.
 ## 2. Serving a family
 
 **[SPEC]**
-1. When the front desk calls a card back, check its number and details against the call, then tap **Confirm**. The front desk sees the card confirmed.
+1. When the front desk calls a card back, check its number and details against the call, then tap **Confirm card** with its number, for example **Confirm card 16**. The front desk sees the card confirmed.
 2. Enter the weight of each load: **Load 1**, **Load 2**, **Load 3**. Use only as many as you need. They are added up for you.
 3. Tap **Mark distributed**.
 
@@ -66,7 +67,7 @@ Fix: Tap **Go back and enter weight** and enter the weights. Only choose **Yes, 
 
 **[SPEC]**
 - It is recorded when closing the shift, not during it. Closing lists every card not yet distributed: for a family who left, tap **Left without food**, then **Yes, left without food**.
-- The card leaves the queue and moves to the **Distributed** list, marked **left without food**.
+- The card leaves the queue and moves to the **Distributed** list, marked **Left without food**.
 - The family is not counted as served. Totals show them on their own line, **Left without food**.
 - Recorded by mistake? Tap **Undo** on that card. It goes back to the front desk, which taps **Call back** again when the family is ready.
 

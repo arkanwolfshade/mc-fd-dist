@@ -33,10 +33,12 @@ test("closing warns about families not yet served, and lists them", async ({ sig
 
   const confirm = distribution.locator(".confirm");
   await expect(confirm).toContainText("2 cards have not been marked distributed");
-  await expect(confirm.locator(".unserved-card")).toHaveText([
-    "#1 · family of 5 · entered",
-    "#2 · family of 2 · called",
+  await expect(confirm.locator(".unserved-card .ticket")).toHaveText(["1", "2"]);
+  await expect(confirm.locator(".unserved-card .family")).toHaveText([
+    "Family of 5",
+    "Family of 2",
   ]);
+  await expect(confirm.locator(".unserved-card .status")).toHaveText(["Waiting", "Called back"]);
   await expect(confirm.getByRole("button", { name: "Keep it open" })).toBeVisible();
   await expect(confirm.getByRole("button", { name: "Yes, close the shift" })).toBeVisible();
 });

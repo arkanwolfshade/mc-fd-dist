@@ -1,4 +1,4 @@
-import { addCard, callBack, expect, openShift, queueCard, test } from "./fixtures.js";
+import { addCard, callBack, cardRow, expect, openShift, queueCard, test } from "./fixtures.js";
 
 test("cheese is offered only once a senior box is ticked", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
@@ -32,8 +32,8 @@ test("correcting a card keeps cheese with the senior box", async ({ signIn }) =>
   await expect(correct.getByRole("button", { name: "Cheese" })).toBeDisabled();
   await correct.getByRole("button", { name: "Save correction" }).click();
 
-  await expect(card).not.toContainText("senior box");
-  await expect(card).not.toContainText("cheese");
+  await expect(card).not.toContainText("senior box", { ignoreCase: true });
+  await expect(card).not.toContainText("cheese", { ignoreCase: true });
 });
 
 test("the call to distribution is a call back", async ({ signIn }) => {
@@ -41,8 +41,8 @@ test("the call to distribution is a call back", async ({ signIn }) => {
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 2, method: "Walk" });
   await frontDesk.getByRole("button", { name: "Call back" }).click();
-  const row = frontDesk.locator(".cards > li", { hasText: "#1 " });
-  await expect(row.locator(".status")).toHaveText("called back");
+  const row = cardRow(frontDesk, 1);
+  await expect(row.locator(".status")).toHaveText("Called back");
   await expect(row.getByRole("button", { name: "Undo call back" })).toBeVisible();
 });
 
@@ -51,7 +51,7 @@ test("parking around the corner is written out", async ({ signIn }) => {
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 3, method: "Around corner" });
-  await expect(frontDesk.locator(".cards > li", { hasText: "#1 " })).toContainText("Around corner");
+  await expect(cardRow(frontDesk, 1)).toContainText("Around corner");
   await callBack(frontDesk);
   await expect(queueCard(distribution, 1)).toContainText("Around corner");
 });

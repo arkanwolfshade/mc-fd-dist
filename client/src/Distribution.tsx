@@ -2,7 +2,14 @@ import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS, arrivalLabel } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { PartnerBatches, ReturnedBatches } from "./Batches.js";
-import { DeleteCardButton, LeftWithoutFoodButton, StatusLabel } from "./CardActions.js";
+import {
+  DeleteCardButton,
+  Family,
+  familyLabel,
+  LeftWithoutFoodButton,
+  StatusLabel,
+  Ticket,
+} from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import { distributionQueue, hasWeight, parseLoads } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
@@ -40,21 +47,27 @@ export function Distribution(props: {
         <h2>Distributed ({done.length})</h2>
         <ul class="cards">
           {[...done].reverse().map((card) => (
-            <li key={card.id}>
-              <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
-                {hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight"}
+            <li class="card-row" key={card.id}>
+              <Ticket number={card.number} />
+              <span class="who">
+                <strong class="family">{familyLabel(card)}</strong>
+                <span class="details">
+                  {hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight"}
+                </span>
               </span>
-              <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
+              <span class="row-actions">
+                <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
+              </span>
             </li>
           ))}
           {left.map((card) => (
-            <li key={card.id}>
-              <span>
-                <strong>#{card.number}</strong> · family of {card.familySize}
-              </span>
+            <li class="card-row" key={card.id}>
+              <Ticket number={card.number} />
+              <Family card={card} />
               <StatusLabel status={card.status} />
-              <button onClick={() => onUpdate(card, { status: "entered" })}>Undo</button>
+              <span class="row-actions">
+                <button onClick={() => onUpdate(card, { status: "entered" })}>Undo</button>
+              </span>
             </li>
           ))}
         </ul>
@@ -78,7 +91,9 @@ export function Distribution(props: {
                   {unserved.map((card) => (
                     <li key={card.id}>
                       <span class="unserved-card">
-                        #{card.number} · family of {card.familySize} · {card.status}
+                        <Ticket number={card.number} />
+                        <span class="family">{familyLabel(card)}</span>
+                        <StatusLabel status={card.status} />
                       </span>
                       <span class="choices">
                         <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
@@ -122,12 +137,21 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
 
   return (
     <li class="queue-card">
-      <div>
-        <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
-        {arrivalLabel(card.arrivalMethod)}
-        {card.seniorBox ? " · senior box" : ""}
-        {card.cheese ? " · cheese" : ""} · TEFAP {card.tefapBags}
+      <div class="queue-head">
+        <Ticket number={card.number} big />
+        <Family card={card} />
         <StatusLabel status={card.status} />
+      </div>
+      {/* What to hand over is the point of the card, so it has its own line. */}
+      <div class="give">
+        <span class="give-label">Give</span>
+        <ul>
+          <li>
+            {card.tefapBags} TEFAP {card.tefapBags === 1 ? "bag" : "bags"}
+          </li>
+          {card.seniorBox && <li>Senior box</li>}
+          {card.cheese && <li>Cheese</li>}
+        </ul>
       </div>
       {card.other && (
         <p class="note-from-desk">
@@ -139,7 +163,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
       {card.status === "called" && (
         <div class="choices">
           <button class="primary" onClick={() => onUpdate(card, { status: "confirmed" })}>
-            Confirm
+            Confirm card {card.number}
           </button>
           <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
         </div>

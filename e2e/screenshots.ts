@@ -34,6 +34,11 @@ async function signIn(page: Page, username: string, password: string): Promise<v
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 }
 
+// Cards are found by the number on their ticket.
+function ticket(page: Page, number: number) {
+  return page.locator(".ticket").filter({ hasText: new RegExp(`^${number}$`) });
+}
+
 async function shot(target: Page | Locator, name: string): Promise<void> {
   await target.screenshot({ path: `${OUTPUT}/${name}.png`, animations: "disabled" });
   console.log(`wrote ${name}.png`);
@@ -81,17 +86,20 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await expect(fdCards.getByRole("heading", { name: "Cards (3)" })).toBeVisible();
   await shot(fd, "front-desk");
   await fdCards
-    .locator("li", { hasText: "#1 " })
+    .locator("li")
+    .filter({ has: ticket(fd, 1) })
     .getByRole("button", { name: "Call back" })
     .click();
   await fdCards
-    .locator("li", { hasText: "#2 " })
+    .locator("li")
+    .filter({ has: ticket(fd, 2) })
     .getByRole("button", { name: "Call back" })
     .click();
   await shot(fdCards, "front-desk-cards");
 
   // Distribution.
-  const queue = (number: number) => dist.locator(".queue-card", { hasText: `#${number} ` });
+  const queue = (number: number) =>
+    dist.locator(".queue-card").filter({ has: ticket(dist, number) });
   await expect(dist.getByRole("heading", { name: "Queue (2)" })).toBeVisible();
   await shot(dist, "distribution");
   await queue(2).getByRole("button", { name: "Correct details" }).click();

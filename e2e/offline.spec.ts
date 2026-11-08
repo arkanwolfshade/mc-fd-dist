@@ -26,7 +26,7 @@ test("a card entered during an outage waits on the device, then reaches distribu
   await expect(frontDesk.getByText("Connection lost")).toBeVisible();
 
   await addCard(frontDesk, { familySize: 2, method: "Walk" });
-  await expect(frontDesk.locator(".pending-card")).toContainText("#2");
+  await expect(frontDesk.locator(".pending-card .ticket")).toHaveText("2");
   await expect(frontDesk.locator(".pending-card")).toContainText("waiting to send");
   await expect(frontDesk.getByText("1 entry waiting to send")).toBeVisible();
 
@@ -41,7 +41,7 @@ test("a card entered during an outage waits on the device, then reaches distribu
 
   await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
-  await expect(queueCard(distribution, 2)).toContainText("family of 2");
+  await expect(queueCard(distribution, 2)).toContainText("Family of 2");
 });
 
 test("a card waiting to send cannot be called forward yet", async ({ signIn }) => {
@@ -66,7 +66,7 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   await distribution.context().setOffline(true);
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
-  await expect(card.locator(".status")).toHaveText("confirmed");
+  await expect(card.locator(".status")).toHaveText("Confirmed");
   await card.getByLabel("Load 1 (lb)").fill("12.5");
   await card.getByLabel("Load 2 (lb)").fill("8");
   await card.getByRole("button", { name: "Mark distributed" }).click();
@@ -75,10 +75,10 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   await expect(distribution.getByText("20.5 lb")).toBeVisible();
 
   // Nothing has reached the front desk yet.
-  await expect(frontDesk.locator(".status")).toHaveText("called back");
+  await expect(frontDesk.locator(".status")).toHaveText("Called back");
 
   await distribution.context().setOffline(false);
-  await expect(frontDesk.locator(".status")).toHaveText("distributed", { timeout: 15000 });
+  await expect(frontDesk.locator(".status")).toHaveText("Distributed", { timeout: 15000 });
   await expect(distribution.getByText("waiting to send")).toHaveCount(0);
   await expect(distribution.locator(".error")).toHaveCount(0);
 
@@ -130,7 +130,7 @@ test("the app reloads during an outage and keeps what is waiting", async ({ sign
   await frontDesk.reload();
 
   await expect(frontDesk.getByRole("heading", { name: "New card" })).toBeVisible();
-  await expect(frontDesk.locator(".pending-card")).toContainText("#1");
+  await expect(frontDesk.locator(".pending-card .ticket")).toHaveText("1");
   await expect(frontDesk.getByLabel("Username")).toHaveCount(0);
 
   await frontDesk.context().setOffline(false);

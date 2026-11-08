@@ -1,6 +1,7 @@
 import {
   addCard,
   callBack,
+  cardRow,
   expect,
   openShift,
   PASSWORD,
@@ -23,9 +24,9 @@ test("a card moves between stations live, with no reload", async ({ signIn }) =>
   await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
   const card = queueCard(distribution, 1);
-  await expect(card).toContainText("family of 5");
+  await expect(card).toContainText("Family of 5");
   await expect(card).toContainText("senior box");
-  await expect(card).toContainText("TEFAP 2");
+  await expect(card).toContainText("2 TEFAP bags");
 
   await card.getByRole("button", { name: "Confirm" }).click();
   await card.getByLabel("Load 1 (lb)").fill("12.5");
@@ -34,7 +35,7 @@ test("a card moves between stations live, with no reload", async ({ signIn }) =>
 
   await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
   await expect(distribution.getByText("20.5 lb")).toBeVisible();
-  await expect(frontDesk.locator(".status")).toHaveText("distributed");
+  await expect(frontDesk.locator(".status")).toHaveText("Distributed");
 });
 
 test("the front desk previews TEFAP bags and requires an arrival method", async ({ signIn }) => {
@@ -82,9 +83,12 @@ test("the next family can be typed while the last card is still saving", async (
   await addCard(frontDesk, { familySize: 9, method: "Walk", seniorBox: true });
 
   await expect(frontDesk.getByRole("heading", { name: "Cards (2)" })).toBeVisible();
-  const cards = frontDesk.locator(".cards > li");
-  await expect(cards.filter({ hasText: "#1 " })).toContainText("family of 5 · East");
-  await expect(cards.filter({ hasText: "#2 " })).toContainText("family of 9 · Walk · senior box");
+  const first = cardRow(frontDesk, 1);
+  const second = cardRow(frontDesk, 2);
+  await expect(first.locator(".family")).toHaveText("Family of 5");
+  await expect(first.locator(".details")).toHaveText("East");
+  await expect(second.locator(".family")).toHaveText("Family of 9");
+  await expect(second.locator(".details")).toHaveText("Walk, senior box");
 });
 
 test("a correction at distribution reaches the front desk live", async ({ signIn }) => {
@@ -100,8 +104,8 @@ test("a correction at distribution reaches the front desk live", async ({ signIn
   await card.locator(".correct").getByLabel("# in family").fill("2");
   await card.getByRole("button", { name: "Save correction" }).click();
 
-  await expect(card).toContainText("family of 2");
-  await expect(card).toContainText("TEFAP 1");
+  await expect(card).toContainText("Family of 2");
+  await expect(card).toContainText("1 TEFAP bag");
   await expect(frontDesk.getByText("family of 2")).toBeVisible();
 });
 
@@ -196,7 +200,7 @@ test("a station acting on an outdated card is told to review it", async ({ signI
 
   await queueCard(outdated, 1).getByRole("button", { name: "Confirm" }).click();
   await expect(outdated.locator(".error")).toContainText("changed at another station");
-  await expect(queueCard(outdated, 1).locator(".status")).toHaveText("confirmed");
+  await expect(queueCard(outdated, 1).locator(".status")).toHaveText("Confirmed");
 });
 
 test("a station that loses its connection warns, then recovers the missed updates", async ({
@@ -231,7 +235,7 @@ test("a station left signed in overnight moves on to the new day", async ({
   await page.getByLabel("Username").fill("front-desk");
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("2026-11-07")).toBeVisible();
+  await expect(page.getByText("Saturday, November 7")).toBeVisible();
   await openShift(page);
 
   // A resync for the old day that answers late must not bring the old shift back.
@@ -242,7 +246,7 @@ test("a station left signed in overnight moves on to the new day", async ({
   await page.clock.fastForward("03:59:45");
   await page.clock.fastForward("00:01:00");
 
-  await expect(page.getByText("2026-11-08")).toBeVisible();
+  await expect(page.getByText("Sunday, November 8")).toBeVisible();
   await expect(page.getByRole("button", { name: "Open today's shift" })).toBeVisible();
   // Still the new day once the late answer for the old day has arrived.
   await new Promise((resolve) => setTimeout(resolve, 1500));

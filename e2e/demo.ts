@@ -121,16 +121,17 @@ async function run(frontDesk: Station, distribution: Station, password: string):
   const dist = distribution.page;
   const type = (target: Locator, text: string) =>
     target.pressSequentially(text, { delay: TYPING_DELAY_MS });
-  const fdCard = (number: number) => fd.locator(".cards > li").filter({ hasText: `#${number} ` });
+  // Cards are found by the number on their ticket.
+  const ticket = (page: Page, number: number) =>
+    page.locator(".ticket").filter({ hasText: new RegExp(`^${number}$`) });
+  const fdCard = (number: number) => fd.locator(".cards > li").filter({ has: ticket(fd, number) });
   const queueCard = (number: number) =>
-    dist.locator(".queue-card").filter({ hasText: `#${number} ` });
+    dist.locator(".queue-card").filter({ has: ticket(dist, number) });
   const doneCard = (number: number) =>
     dist
       .locator("section", { hasText: "Distributed (" })
       .locator("li")
-      .filter({
-        hasText: `#${number} `,
-      });
+      .filter({ has: ticket(dist, number) });
   const returned = dist.locator("section", { hasText: "Returned items" });
   const partners = dist.locator("section", { hasText: "End of shift" });
 

@@ -33,6 +33,22 @@ const VIEWS_BY_ROLE: Record<Role, View[]> = {
   admin: ["front_desk", "distribution", "summary", "admin", "help"],
 };
 
+const STATION_NAMES: Record<Role, string> = {
+  front_desk: "Front desk",
+  distribution: "Distribution",
+  admin: "Admin",
+};
+
+// "2026-11-07" becomes "Saturday, November 7".
+function dayInWords(isoDay: string): string {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 // The admin and help screens don't depend on today's shift.
 const SHIFT_VIEWS: ReadonlySet<View> = new Set(["front_desk", "distribution", "summary"]);
 
@@ -291,19 +307,29 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   return (
     <div class="station">
       <header class="bar">
-        <strong>{today}</strong>
-        <span class="tabs">
+        <div class="station-id">
+          <strong class="station-name">{STATION_NAMES[identity.role]}</strong>
+          <span class="station-date">{dayInWords(today)}</span>
+        </div>
+        <span class={connected ? "connection online" : "connection offline"}>
+          {connected ? "Connected" : "Offline"}
+        </span>
+        <nav class="tabs" aria-label="Screens">
           {VIEWS_BY_ROLE[identity.role].map((option) => (
             <button
               key={option}
               class={view === option ? "selected" : ""}
+              aria-current={view === option ? "page" : undefined}
               onClick={() => setView(option)}
             >
               {VIEW_LABELS[option]}
             </button>
           ))}
-        </span>
-        <button onClick={signOut}>Sign out</button>
+        </nav>
+        {/* Station devices stay signed in, so this is kept small and out of the way. */}
+        <button class="signout" onClick={signOut}>
+          Sign out
+        </button>
       </header>
 
       {!connected && (

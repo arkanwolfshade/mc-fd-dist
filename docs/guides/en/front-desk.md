@@ -24,12 +24,12 @@ Read `[NOTE]` only if the reason behind a step is needed.
 ## 2. Entering a family
 
 **[SPEC]**
-1. **Card #**: leave it blank to use the number shown in grey, or type the number on the family's card.
+1. **Card #**: the yellow ticket at the top shows the number the card will get. Leave **Card #** blank to use it, or type the number on the family's card.
 2. **# in family**: type how many people are in the family.
 3. **Arrived by**: tap one: East, West, Around corner, Bus or Walk.
 4. Tap **Senior box** if it applies. **Cheese** comes only with a senior box, so it can be tapped once **Senior box** is ticked. Tap again to undo.
 5. **Other**: anything else distribution should know. Optional. It appears on distribution's card as a note from the front desk.
-6. Tap **Save card**.
+6. Tap **Save card**, which shows the card number, for example **Save card 18**. A green line below confirms what was saved.
 
 ![A card being entered](../images/front-desk-new-card.png)
 
@@ -71,11 +71,11 @@ Each card shows where it is:
 
 | Label | Meaning |
 |---|---|
-| entered | Saved, not yet called back |
-| called back | Called back to distribution, waiting for them to confirm |
-| confirmed | Distribution has checked the card number and details and confirmed them |
-| distributed | Food given out |
-| left without food | The family left before being served |
+| Waiting | Saved, not yet called back |
+| Called back | Called back to distribution, waiting for them to confirm |
+| Confirmed | Distribution has checked the card number and details and confirmed them |
+| Distributed | Food given out |
+| Left without food | The family left before being served |
 
 **[NOTE]**
 A card marked **waiting to send** has no **Call back** button yet. It gets one once the connection returns and the card reaches the server.
