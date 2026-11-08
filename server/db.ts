@@ -77,6 +77,8 @@ const MIGRATIONS: readonly string[] = [
   `,
 ];
 
+export const SCHEMA_VERSION = MIGRATIONS.length;
+
 export function openDatabase(path: string): Database {
   const db = new Sqlite(path);
   db.pragma("journal_mode = WAL");

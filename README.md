@@ -37,6 +37,18 @@ npm run dev:client   # in a second terminal, then open the address it prints
 
 For a production build, run `npm run build` and then `npm start`. The server also serves the client from `dist/client`.
 
+`GET /api/health` answers without signing in, for uptime monitoring. It returns 503 if the database cannot be read.
+
+Backups are made with SQLite's backup method, which is safe while the server runs, and each one is checked before it is kept. After a build:
+
+```sh
+node dist/server/cli/backup.js create backup.db    # write a verified backup
+node dist/server/cli/backup.js check backup.db     # verify one and show what it holds
+node dist/server/cli/backup.js restore backup.db   # replace the database (stop the server first)
+```
+
+A restore keeps the previous database beside the new one, so that restoring the wrong backup can be undone.
+
 The service worker that makes the app installable and available offline only runs in production builds, and browsers only allow it over HTTPS or on localhost. Stations keep working through a connection dropout by holding entries on the device, as described in [ADR 0014](docs/adr/0014-keep-working-through-dropouts.md).
 
 To regenerate the app icons, run `node scripts/generate-icons.mjs`.

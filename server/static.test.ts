@@ -31,6 +31,32 @@ describe("serving the client", () => {
     expect(response.body).toContain("Shift tracker");
   });
 
+  it("sends security headers with every response", async () => {
+    for (const url of ["/", "/api/health", "/api/nothing-here"]) {
+      const { headers } = await app.inject({ method: "GET", url, headers: { host: "shifts.test" } });
+      expect(headers["content-security-policy"]).toBe(
+        "default-src 'self'; connect-src 'self' wss://shifts.test; object-src 'none'; " +
+          "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+      );
+      expect(headers["x-content-type-options"]).toBe("nosniff");
+      expect(headers["referrer-policy"]).toBe("no-referrer");
+      expect(headers["x-frame-options"]).toBe("DENY");
+      expect(headers["strict-transport-security"]).toBe("max-age=31536000");
+    }
+  });
+
+  it("allows an unencrypted live connection only when running without HTTPS", async () => {
+    const local = await buildApp({ db, cookieSecure: false, clientDir: dir });
+    const { headers } = await local.inject({
+      method: "GET",
+      url: "/",
+      headers: { host: "127.0.0.1:3000" },
+    });
+    await local.close();
+    expect(headers["content-security-policy"]).toContain("connect-src 'self' ws://127.0.0.1:3000;");
+    expect(headers["strict-transport-security"]).toBeUndefined();
+  });
+
   it("keeps a JSON 404 for an unknown API route", async () => {
     const response = await app.inject({ method: "GET", url: "/api/nothing-here" });
     expect(response.statusCode).toBe(404);

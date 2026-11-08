@@ -18,6 +18,7 @@ import { closeExpiredShifts, localDate } from "./shift-closing.js";
 const SESSION_COOKIE = "session";
 const SESSION_ENDED_CLOSE_CODE = 4401;
 const AUTO_CLOSE_INTERVAL_MS = 60 * 60 * 1000;
+const SAFE_HOST = /^[a-z0-9.-]+(:\d+)?$/i;
 
 export interface AppOptions {
   db: Database;
@@ -34,6 +35,25 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? false,
     trustProxy: options.trustProxy ?? false,
+  });
+
+  // Browsers have differed on whether 'self' covers the live socket's ws: or wss:
+  // address, so it is listed by host. A host that could alter the policy is left out.
+  app.addHook("onRequest", async (request, reply) => {
+    const socketSource = SAFE_HOST.test(request.host)
+      ? ` ${cookieSecure ? "wss" : "ws"}://${request.host}`
+      : "";
+    reply.header(
+      "content-security-policy",
+      `default-src 'self'; connect-src 'self'${socketSource}; object-src 'none'; ` +
+        "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    );
+    reply.header("x-content-type-options", "nosniff");
+    reply.header("referrer-policy", "no-referrer");
+    reply.header("x-frame-options", "DENY");
+    if (cookieSecure) {
+      reply.header("strict-transport-security", "max-age=31536000");
+    }
   });
 
   await app.register(cookie);
@@ -92,6 +112,16 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       return { username: account.username, role: account.role };
     },
   );
+
+  // For uptime monitoring and the container health check, so it needs no sign-in.
+  app.get("/api/health", async (_request, reply) => {
+    try {
+      db.prepare("SELECT 1").get();
+      return { status: "ok" };
+    } catch {
+      return reply.code(503).send({ status: "unavailable" });
+    }
+  });
 
   app.post("/api/logout", async (request, reply) => {
     const token = request.cookies[SESSION_COOKIE];
