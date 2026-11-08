@@ -43,6 +43,14 @@ Resources:
   # delete the server or its backups, or create an IAM user without the boundary.
   StackRole:
     Type: AWS::IAM::Role
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_111
+            comment: >-
+              The Lightsail server and static IP are named only when CloudFormation
+              creates them, so their actions cannot name a resource. They are limited to
+              the actions CloudFormation needs, and deletions are denied.
     Properties:
       RoleName: !Sub "${AppStackName}-cloudformation"
       AssumeRolePolicyDocument:
