@@ -82,9 +82,17 @@ Estimates from third-party guides, to confirm on official AWS pricing pages:
 3. Partner batches, returned batches, TEFAP rule, shift summary.
 4. Admin, date-range reports, CSV export, audit log.
 5. PWA install, dropout queue and resync.
-6. Deployment, backups, monitoring, and restore scripts on the prototype account.
-7. Runbook and short volunteer guide.
-8. Create the food bank AWS account, deploy there, run the rollout.
+6. Deployment, backups, monitoring, and restore scripts, in the AWS account that is handed to the food bank (see ADR 0015).
+7. Code health tools, run in CI and blocking a merge when they fail. Proposed, to be confirmed:
+   - linting and formatting checks;
+   - type checking, which is already in place;
+   - static security analysis (SAST);
+   - scanning of dependencies, the container image and the infrastructure template, plus secret scanning;
+   - dynamic security testing (DAST) against the running app.
+8. Developer and user documentation following [HADS](https://github.com/catcam/hads), the Human-AI Document Standard. It replaces the earlier plan for a short runbook and volunteer guide, and covers:
+   - developer documentation: architecture, setup, operations and the runbook;
+   - a user guide for each station, with screenshots for food bank volunteers. The screenshots are generated from the end-to-end tests, so that they stay current as the screens change.
+9. Hand the AWS account to the food bank and run the rollout.
 
 ## Verification
 

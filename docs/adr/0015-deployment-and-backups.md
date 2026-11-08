@@ -27,6 +27,8 @@ The developer's existing account turned out to be a member of an AWS Organizatio
 
 **Backups.** At 02:00 each night, `deploy/backup.sh` writes a backup with SQLite's backup method, checks it, and uploads it to S3. Backups are kept for 365 days. Older versions of an overwritten backup are kept just as long, so a stolen key cannot quietly replace the history. Copies on the server are kept for 7 days for quick restores. Lightsail snapshots at 04:00 cover the whole server. `deploy/restore.sh` restores a backup by name and keeps the replaced database.
 
+*Amended 2026-11-07:* backups older than 30 days move to S3 Glacier Instant Retrieval, which costs less to store and still restores at once. Each object is billed for at least 90 days and at least 128 KB.
+
 ## Alternatives considered
 
 - **Console set-up by hand:** Nothing to install, but it can't be repeated exactly or reviewed in the repository.

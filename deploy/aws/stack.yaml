@@ -91,6 +91,13 @@ Resources:
             Status: Enabled
             Prefix: nightly/
             ExpirationInDays: !Ref BackupRetentionDays
+            # The last month stays in Standard. Older backups still restore at once.
+            Transitions:
+              - StorageClass: GLACIER_IR
+                TransitionInDays: 30
+            NoncurrentVersionTransitions:
+              - StorageClass: GLACIER_IR
+                TransitionInDays: 30
             # As long as current backups, so that one overwritten by a stolen key survives.
             NoncurrentVersionExpiration:
               NoncurrentDays: !Ref BackupRetentionDays
