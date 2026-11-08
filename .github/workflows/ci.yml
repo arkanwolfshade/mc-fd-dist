@@ -51,7 +51,9 @@ jobs:
       # Findings become annotations, which can be read without access to the job log.
       - run: |
           cat hadolint.txt
-          while IFS= read -r line; do echo "::error title=hadolint::$line"; done < hadolint.txt
+          while IFS= read -r line || [ -n "$line" ]; do
+            echo "::error title=hadolint::$line"
+          done < hadolint.txt
           [ ! -s hadolint.txt ]
       - run: pipx run cfn-lint --regions us-west-2 -- deploy/aws/stack.yaml
       - run: pipx run checkov==3.4.3 --compact --quiet -d deploy/aws --framework cloudformation

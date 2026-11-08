@@ -24,3 +24,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0014](0014-keep-working-through-dropouts.md) | Queue writes on the device during connection dropouts | Accepted |
 | [0015](0015-deployment-and-backups.md) | Deploy with Docker Compose on Lightsail from a CloudFormation stack | Accepted |
 | [0016](0016-code-health-checks.md) | Enforce code health checks in CI | Accepted |
+| [0017](0017-branch-rulesets.md) | Protect main with branch rulesets | Accepted |
