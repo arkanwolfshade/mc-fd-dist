@@ -108,14 +108,15 @@ Estimates from third-party guides, to confirm on official AWS pricing pages:
 
 Confirm with staff before the affected build step:
 
-1. ~~What "Total # of families" counts.~~ Answered: see ADR 0012. Still to confirm with staff: whether a card entered but never distributed counts as a family.
+1. ~~What "Total # of families" counts.~~ Answered: see ADR 0012. A card entered but never distributed counts as a family, but at the end of a shift it is an error to be corrected.
 2. ~~How Callback works in practice.~~ Answered: see ADR 0010.
-3. Whether "Other" is free text or a set of known items.
-4. ~~Whether a day can have more than one shift.~~ Answered: see ADR 0011. Still to confirm: whether card numbers ever exceed 200.
-5. How long data must be kept, and whether anything outside the food bank requires these figures (for example TEFAP reporting).
-6. Who the named staff owner is, and whether they accept that role.
-7. What devices the food bank has or needs to obtain.
-8. Whether food bank staff approve the monthly cost and the double entry during parallel shifts.
+3. ~~Whether "Other" is free text or a set of known items.~~ Answered 2026-11-08: free text.
+4. ~~Whether a day can have more than one shift.~~ Answered: see ADR 0011. ~~Whether card numbers ever exceed 200.~~ Answered 2026-11-08: the 200 limit applied only to paper; the app has none.
+5. How long data must be kept, and whether anything outside the food bank requires these figures (for example TEFAP reporting). Still open. Backups are kept 365 days meanwhile.
+6. ~~Who the named staff owner is.~~ Answered 2026-11-08: named by the food bank, and recorded outside this public repository. Still to confirm: that they accept the role.
+7. What devices the food bank has or needs to obtain. Still open.
+8. Whether food bank staff approve the monthly cost and the double entry during parallel shifts. Still open.
+9. ~~Which time zone closes shifts overnight.~~ Answered 2026-11-08: Phoenix (`America/Phoenix`).
 
 ## Risks
 
