@@ -20,7 +20,7 @@ Read `[NOTE]` only if the reasoning behind a design is needed; the ADRs in `docs
 
 | Part | Technology | Where |
 |---|---|---|
-| Server | Node.js 24, TypeScript 7, Fastify 5 | `server/` |
+| Server | Node.js 26, TypeScript 7, Fastify 5 | `server/` |
 | Database | SQLite through better-sqlite3, WAL mode | `server/db.ts` |
 | Client | Preact, built with Vite | `client/` |
 | Offline support | Service worker and a write queue in `localStorage` | `client/public/sw.js`, `client/src/outbox.ts` |

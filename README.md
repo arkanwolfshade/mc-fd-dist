@@ -25,7 +25,7 @@ For developers and the maintainer:
 
 ## Development
 
-Requires Node.js 24.22.1 or later, which includes a security fix.
+Requires Node.js 26.13.0 or later, the current LTS release.
 
 ```sh
 npm install

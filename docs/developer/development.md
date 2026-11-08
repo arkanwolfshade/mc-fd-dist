@@ -14,7 +14,7 @@ Read `[NOTE]` only if additional context is needed.
 ## 1. Requirements
 
 **[SPEC]**
-- Node.js 24.22.1 or later.
+- Node.js 26.13.0 or later (the current LTS release).
 - gitleaks, for the commit hook's secret scan (`winget install Gitleaks.Gitleaks` on Windows).
 - Chromium for Playwright: `npx playwright install chromium`.
 - Docker is not needed locally. CI builds and tests the container.
