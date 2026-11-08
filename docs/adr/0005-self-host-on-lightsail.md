@@ -1,6 +1,6 @@
 # 0005. Self-host on AWS Lightsail instead of Firebase
 
-- **Status:** Accepted
+- **Status:** Accepted; the two-account arrangement is superseded by [0015](0015-deployment-and-backups.md)
 - **Date:** 2026-11-06
 
 ## Context

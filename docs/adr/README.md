@@ -12,7 +12,7 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0002](0002-anonymous-same-day-tickets.md) | Treat Card # as an anonymous same-day ticket | Accepted |
 | [0003](0003-enter-once-workflow.md) | Enter card details once and share them live | Accepted |
 | [0004](0004-installable-web-app.md) | Build one installable web app for all platforms | Accepted |
-| [0005](0005-self-host-on-lightsail.md) | Self-host on AWS Lightsail instead of Firebase | Accepted |
+| [0005](0005-self-host-on-lightsail.md) | Self-host on AWS Lightsail instead of Firebase | Accepted; account arrangement superseded by 0015 |
 | [0006](0006-sqlite-with-nightly-backups.md) | Use SQLite with nightly backups | Accepted |
 | [0007](0007-shared-role-logins.md) | Use shared role logins and named admin accounts | Accepted |
 | [0008](0008-commit-to-main-until-in-use.md) | Commit directly to main until the app is in use | Accepted |
@@ -22,3 +22,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0012](0012-shift-totals.md) | Define shift totals in one shared calculation | Accepted |
 | [0013](0013-closing-shifts.md) | Close shifts by hand and automatically overnight | Accepted |
 | [0014](0014-keep-working-through-dropouts.md) | Queue writes on the device during connection dropouts | Accepted |
+| [0015](0015-deployment-and-backups.md) | Deploy with Docker Compose on Lightsail from a CloudFormation stack | Accepted |

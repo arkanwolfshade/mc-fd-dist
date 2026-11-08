@@ -43,3 +43,20 @@ jobs:
           name: smoke-test-logs
           path: deploy/smoke-test.log
           retention-days: 7
+
+  # Publishes the image the server runs, only from main and only after every check passes.
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, container]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker build -t "$image:$GITHUB_SHA" -t "$image:latest" .
+          docker push "$image:$GITHUB_SHA"
+          docker push "$image:latest"
