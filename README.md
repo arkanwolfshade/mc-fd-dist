@@ -6,6 +6,18 @@ The project is in early development and is not yet in use.
 
 ## Documentation
 
+For volunteers and staff, in the app's Help tab and as printable PDFs (`npm run docs:pdf`):
+
+- [Getting started](docs/guides/en/getting-started.md)
+- [Front desk guide](docs/guides/en/front-desk.md) and [quick card](docs/guides/en/front-desk-card.md)
+- [Distribution guide](docs/guides/en/distribution.md) and [quick card](docs/guides/en/distribution-card.md)
+- [Admin guide](docs/guides/en/admin.md)
+
+For developers and the maintainer:
+
+- [Architecture](docs/developer/architecture.md): how the system is built
+- [Development](docs/developer/development.md): setup, commands, CI and known pitfalls
+- [Operations runbook](docs/developer/operations.md): deploying, updating, backups, restoring and handoff
 - [Project plan](docs/project-plan.md): requirements, data model, build order and open questions
 - [Architecture decision records](docs/adr/README.md): why the system is built this way
 - [Contributing](CONTRIBUTING.md): how changes are made

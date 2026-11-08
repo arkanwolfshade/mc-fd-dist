@@ -35,7 +35,10 @@ You never type a family's details. They arrive from the front desk.
 ![Weights entered for a family](../images/distribution-weights.png)
 
 **[SPEC]**
+- The family moves to **Distributed**, with their total weight.
 - Tapped by mistake? **Undo confirm** takes a confirmed card back. **Undo** on a distributed card takes it back to confirmed.
+
+![Families served today](../images/distribution-done.png)
 
 **[BUG] The app asks "No weight entered. Mark distributed anyway?"**
 Symptom: A yellow box asks whether to mark the family distributed with no weight.
@@ -108,6 +111,8 @@ A card entered at the front desk counts as a family even before it is distribute
 - A shift left open closes by itself overnight.
 
 ![Closing the shift](../images/close-shift.png)
+
+![A closed shift, as both stations see it](../images/shift-closed.png)
 
 **[BUG] Something needs fixing after the shift was closed**
 Symptom: The screens say **This shift is closed**, and nothing can be changed.

@@ -20,6 +20,8 @@
     "test:e2e": "vite build && playwright test",
     "demo": "vite build && tsx e2e/demo.ts",
     "docs:screenshots": "vite build && tsx e2e/screenshots.ts",
+    "docs:pdf": "tsx tools/guides-pdf.ts",
+    "docs:check": "tsx tools/check-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "oxlint --deny-warnings .",
