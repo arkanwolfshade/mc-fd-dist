@@ -63,7 +63,16 @@ jobs:
           done < findings.txt
           [ ! -s findings.txt ]
       - run: pipx run cfn-lint --regions us-west-2 -- deploy/aws/*.yaml
-      - run: pipx run checkov==3.4.3 --compact --quiet -d deploy/aws --framework cloudformation
+      # Findings become annotations, as for hadolint above.
+      - run: |
+          status=0
+          pipx run checkov==3.4.3 --compact --quiet -d deploy/aws --framework cloudformation \
+            > checkov.txt || status=$?
+          cat checkov.txt
+          grep -E 'Check: |FAILED for resource' checkov.txt | paste - - | while IFS= read -r line; do
+            echo "::error title=Checkov::$line"
+          done
+          exit "$status"
       - run: pipx run checkov==3.4.3 --compact --quiet -f Dockerfile --framework dockerfile
       - run: docker build -t mc-fd-dist:ci .
       - id: grype
