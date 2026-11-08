@@ -12,6 +12,7 @@ import { listPartnerBatches, listReturnedBatches } from "./batches.js";
 import type { CardRouteContext } from "./card-routes.js";
 import { listCards, listShiftsBetween } from "./cards.js";
 import { toCsv } from "./csv.js";
+import { arrivalLabel } from "./rules.js";
 import { setShiftStatus } from "./shift-closing.js";
 import { deleteAccountSessions } from "./sessions.js";
 import { shiftSummary } from "./summary.js";
@@ -150,7 +151,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
         shift.date,
         card.number,
         card.familySize,
-        card.arrivalMethod,
+        arrivalLabel(card.arrivalMethod),
         card.seniorBox,
         card.cheese,
         card.tefapBags,

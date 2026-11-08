@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { addCard, callForward, expect, openShift, queueCard, test, totalsRow } from "./fixtures.js";
+import { addCard, callBack, expect, openShift, queueCard, test, totalsRow } from "./fixtures.js";
 
 // Waits until the service worker controls the page, so that a reload works offline.
 async function waitForOfflineReady(page: Page): Promise<void> {
@@ -39,7 +39,7 @@ test("a card entered during an outage waits on the device, then reaches distribu
   });
   await expect(frontDesk.getByText("waiting to send")).toHaveCount(0);
 
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
   await expect(queueCard(distribution, 2)).toContainText("family of 2");
 });
@@ -51,7 +51,7 @@ test("a card waiting to send cannot be called forward yet", async ({ signIn }) =
   await frontDesk.context().setOffline(true);
   await addCard(frontDesk, { familySize: 2, method: "Walk" });
   await expect(frontDesk.locator(".pending-card")).toBeVisible();
-  await expect(frontDesk.getByRole("button", { name: "Call forward" })).toHaveCount(0);
+  await expect(frontDesk.getByRole("button", { name: "Call back" })).toHaveCount(0);
 });
 
 test("several changes to one card during an outage all arrive", async ({ signIn }) => {
@@ -60,7 +60,7 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 5, method: "East" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
 
   await distribution.context().setOffline(true);
@@ -75,7 +75,7 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   await expect(distribution.getByText("20.5 lb")).toBeVisible();
 
   // Nothing has reached the front desk yet.
-  await expect(frontDesk.locator(".status")).toHaveText("called");
+  await expect(frontDesk.locator(".status")).toHaveText("called back");
 
   await distribution.context().setOffline(false);
   await expect(frontDesk.locator(".status")).toHaveText("distributed", { timeout: 15000 });
@@ -190,7 +190,7 @@ test("a station whose live connection silently stopped still catches up", async 
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 3, method: "East" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
 
   await muted.clock.fastForward("00:01:00");
 

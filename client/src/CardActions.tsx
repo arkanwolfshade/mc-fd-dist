@@ -4,7 +4,7 @@ import type { Card, UpdateCard } from "./types.js";
 
 const STATUS_LABELS: Record<CardStatus, string> = {
   entered: "entered",
-  called: "called",
+  called: "called back",
   confirmed: "confirmed",
   distributed: "distributed",
   left: "left without food",

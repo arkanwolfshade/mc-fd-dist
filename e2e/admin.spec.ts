@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { addCard, callForward, expect, openShift, PASSWORD, queueCard, test } from "./fixtures.js";
+import { addCard, callBack, expect, openShift, PASSWORD, queueCard, test } from "./fixtures.js";
 
 const NEW_PASSWORD = "a-brand-new-password";
 
@@ -27,7 +27,7 @@ test("closing warns about families not yet served, and lists them", async ({ sig
   await addCard(frontDesk, { familySize: 5, method: "East" });
   await addCard(frontDesk, { familySize: 2, method: "Walk" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (2)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
 
   await distribution.getByRole("button", { name: "Close shift" }).click();
 
@@ -46,7 +46,7 @@ test("closing a fully served shift has nothing to warn about", async ({ signIn }
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 3, method: "East" });
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
   await card.getByLabel("Load 1 (lb)").fill("10");
@@ -109,7 +109,7 @@ test("an admin sees date-range totals and downloads CSV reports", async ({ signI
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 5, method: "East" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
   await card.getByLabel("Load 1 (lb)").fill("12");

@@ -41,17 +41,20 @@ async function shot(target: Page | Locator, name: string): Promise<void> {
 
 async function addCard(
   page: Page,
-  card: { size: string; method: string; seniorBox?: boolean; cheese?: boolean },
+  card: { size: string; method: string; seniorBox?: boolean; cheese?: boolean; other?: string },
 ): Promise<void> {
   await page.getByLabel("# in family").fill(card.size);
   await page.getByRole("button", { name: card.method, exact: true }).click();
   if (card.seniorBox) await page.getByRole("button", { name: "Senior box" }).click();
   if (card.cheese) await page.getByRole("button", { name: "Cheese" }).click();
+  if (card.other) await page.getByLabel("Other").fill(card.other);
   await page.getByRole("button", { name: "Save card" }).click();
 }
 
 async function run(browser: Browser, url: string, password: string): Promise<void> {
   const fd = await station(browser, url);
+  // The page checks the session before showing the form.
+  await expect(fd.getByLabel("Username")).toBeVisible();
   await shot(fd, "sign-in");
   await signIn(fd, "front-desk", password);
   await shot(fd, "open-shift");
@@ -62,7 +65,13 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await expect(dist.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
 
   // Front desk.
-  await addCard(fd, { size: "5", method: "East", cheese: true });
+  await addCard(fd, {
+    size: "5",
+    method: "East",
+    seniorBox: true,
+    cheese: true,
+    other: "Needs help carrying to the car",
+  });
   await addCard(fd, { size: "9", method: "Walk", seniorBox: true });
   await fd.getByLabel("# in family").fill("2");
   await fd.getByRole("button", { name: "Bus", exact: true }).click();
@@ -73,11 +82,11 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await shot(fd, "front-desk");
   await fdCards
     .locator("li", { hasText: "#1 " })
-    .getByRole("button", { name: "Call forward" })
+    .getByRole("button", { name: "Call back" })
     .click();
   await fdCards
     .locator("li", { hasText: "#2 " })
-    .getByRole("button", { name: "Call forward" })
+    .getByRole("button", { name: "Call back" })
     .click();
   await shot(fdCards, "front-desk-cards");
 

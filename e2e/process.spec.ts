@@ -1,0 +1,68 @@
+import { addCard, callBack, expect, openShift, queueCard, test } from "./fixtures.js";
+
+test("cheese is offered only once a senior box is ticked", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  await openShift(frontDesk);
+  const seniorBox = frontDesk.getByRole("button", { name: "Senior box" });
+  const cheese = frontDesk.getByRole("button", { name: "Cheese" });
+
+  await expect(cheese).toBeDisabled();
+  await seniorBox.click();
+  await expect(cheese).toBeEnabled();
+  await cheese.click();
+  await expect(cheese).toHaveAttribute("aria-pressed", "true");
+
+  // Taking the senior box away takes the cheese with it.
+  await seniorBox.click();
+  await expect(cheese).toBeDisabled();
+  await expect(cheese).toHaveAttribute("aria-pressed", "false");
+});
+
+test("correcting a card keeps cheese with the senior box", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 4, method: "East", seniorBox: true, cheese: true });
+  await callBack(frontDesk);
+
+  const card = queueCard(distribution, 1);
+  await card.getByRole("button", { name: "Correct details" }).click();
+  const correct = card.locator(".correct");
+  await correct.getByRole("button", { name: "Senior box" }).click();
+  await expect(correct.getByRole("button", { name: "Cheese" })).toBeDisabled();
+  await correct.getByRole("button", { name: "Save correction" }).click();
+
+  await expect(card).not.toContainText("senior box");
+  await expect(card).not.toContainText("cheese");
+});
+
+test("the call to distribution is a call back", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 2, method: "Walk" });
+  await frontDesk.getByRole("button", { name: "Call back" }).click();
+  const row = frontDesk.locator(".cards > li", { hasText: "#1 " });
+  await expect(row.locator(".status")).toHaveText("called back");
+  await expect(row.getByRole("button", { name: "Undo call back" })).toBeVisible();
+});
+
+test("parking around the corner is written out", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 3, method: "Around corner" });
+  await expect(frontDesk.locator(".cards > li", { hasText: "#1 " })).toContainText("Around corner");
+  await callBack(frontDesk);
+  await expect(queueCard(distribution, 1)).toContainText("Around corner");
+});
+
+test("the front desk's note stands out on the distribution card", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 3, method: "Bus", other: "Needs help to the car" });
+  await callBack(frontDesk);
+  await expect(queueCard(distribution, 1).locator(".note-from-desk")).toHaveText(
+    "Note from the front desk: Needs help to the car",
+  );
+});

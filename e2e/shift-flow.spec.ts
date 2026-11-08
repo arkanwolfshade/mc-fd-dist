@@ -1,6 +1,6 @@
 import {
   addCard,
-  callForward,
+  callBack,
   expect,
   openShift,
   PASSWORD,
@@ -20,7 +20,7 @@ test("a card moves between stations live, with no reload", async ({ signIn }) =>
   // Distribution learns of the shift from the first update, and an uncalled card is not queued.
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
 
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
   const card = queueCard(distribution, 1);
   await expect(card).toContainText("family of 5");
@@ -93,7 +93,7 @@ test("a correction at distribution reaches the front desk live", async ({ signIn
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 5, method: "East" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
 
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Correct details" }).click();
@@ -113,7 +113,7 @@ test("distributing without a weight asks first, then flags it in the totals", as
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 3, method: "Bus" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
 
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
@@ -142,7 +142,7 @@ test("totals combine cards, partner batches and returned items at every station"
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 9, method: "Walk", seniorBox: true });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
 
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
@@ -182,9 +182,9 @@ test("a station acting on an outdated card is told to review it", async ({ signI
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
-  await addCard(frontDesk, { familySize: 3, method: "AC" });
+  await addCard(frontDesk, { familySize: 3, method: "Around corner" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
 
   // This station's live updates are dropped, so it keeps showing the old revision.
@@ -211,7 +211,7 @@ test("a station that loses its connection warns, then recovers the missed update
 
   await distribution.context().setOffline(true);
   await distribution.evaluate(() => window.dispatchEvent(new Event("offline")));
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
 
   await distribution.context().setOffline(false);

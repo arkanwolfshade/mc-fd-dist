@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { ARRIVAL_METHODS } from "../../server/rules.js";
+import { ARRIVAL_METHODS, arrivalLabel } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { PartnerBatches, ReturnedBatches } from "./Batches.js";
 import { DeleteCardButton, LeftWithoutFoodButton, StatusLabel } from "./CardActions.js";
@@ -123,20 +123,25 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
   return (
     <li class="queue-card">
       <div>
-        <strong>#{card.number}</strong> · family of {card.familySize} · {card.arrivalMethod}
+        <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
+        {arrivalLabel(card.arrivalMethod)}
         {card.seniorBox ? " · senior box" : ""}
         {card.cheese ? " · cheese" : ""} · TEFAP {card.tefapBags}
-        {card.other ? ` · ${card.other}` : ""}
         <StatusLabel status={card.status} />
       </div>
+      {card.other && (
+        <p class="note-from-desk">
+          <strong>Note from the front desk:</strong> {card.other}
+        </p>
+      )}
 
+      {/* Confirming answers the front desk's call back, once the number and details match. */}
       {card.status === "called" && (
         <div class="choices">
           <button class="primary" onClick={() => onUpdate(card, { status: "confirmed" })}>
             Confirm
           </button>
           <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
-          <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
         </div>
       )}
 
@@ -168,7 +173,6 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
             </button>
             <button onClick={() => onUpdate(card, { status: "called" })}>Undo confirm</button>
             <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
-            <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
           </div>
           {confirmNoWeight && (
             <div class="confirm">
@@ -220,7 +224,7 @@ function CorrectDetails(props: { card: Card; onUpdate: UpdateCard; onDone: () =>
             aria-pressed={method === option}
             onClick={() => setMethod(option)}
           >
-            {option}
+            {arrivalLabel(option)}
           </button>
         ))}
       </div>
@@ -228,13 +232,18 @@ function CorrectDetails(props: { card: Card; onUpdate: UpdateCard; onDone: () =>
         <button
           class={seniorBox ? "selected" : ""}
           aria-pressed={seniorBox}
-          onClick={() => setSeniorBox(!seniorBox)}
+          onClick={() => {
+            // Cheese comes only with a senior box, so it goes when the box does.
+            if (seniorBox) setCheese(false);
+            setSeniorBox(!seniorBox);
+          }}
         >
           Senior box
         </button>
         <button
           class={cheese ? "selected" : ""}
           aria-pressed={cheese}
+          disabled={!seniorBox}
           onClick={() => setCheese(!cheese)}
         >
           Cheese

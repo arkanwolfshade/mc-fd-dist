@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { ARRIVAL_METHODS, tefapBags } from "../../server/rules.js";
+import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { DeleteCardButton, StatusLabel } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
@@ -146,7 +146,7 @@ export function FrontDesk(props: {
                 aria-pressed={method === option}
                 onClick={() => change({ method: option })}
               >
-                {option}
+                {arrivalLabel(option)}
               </button>
             ))}
           </div>
@@ -157,7 +157,10 @@ export function FrontDesk(props: {
             type="button"
             class={seniorBox ? "selected" : ""}
             aria-pressed={seniorBox}
-            onClick={() => change({ seniorBox: !seniorBox })}
+            // Cheese comes only with a senior box, so it goes when the box does.
+            onClick={() =>
+              change(seniorBox ? { seniorBox: false, cheese: false } : { seniorBox: true })
+            }
           >
             Senior box
           </button>
@@ -165,6 +168,7 @@ export function FrontDesk(props: {
             type="button"
             class={cheese ? "selected" : ""}
             aria-pressed={cheese}
+            disabled={!seniorBox}
             onClick={() => change({ cheese: !cheese })}
           >
             Cheese
@@ -192,7 +196,8 @@ export function FrontDesk(props: {
           {shift.pendingCards.map((card) => (
             <li class="pending-card" key={card.id}>
               <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} · {card.arrivalMethod}
+                <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
+                {arrivalLabel(card.arrivalMethod)}
                 {card.seniorBox ? " · senior box" : ""}
                 {card.cheese ? " · cheese" : ""} · waiting to send
               </span>
@@ -201,16 +206,20 @@ export function FrontDesk(props: {
           {[...shift.cards].reverse().map((card) => (
             <li key={card.id}>
               <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} · {card.arrivalMethod}
+                <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
+                {arrivalLabel(card.arrivalMethod)}
                 {card.seniorBox ? " · senior box" : ""}
                 {card.cheese ? " · cheese" : ""}
               </span>
               <StatusLabel status={card.status} />
+              {/* "Call back" is the radio call to distribution. */}
               {card.status === "entered" && (
-                <button onClick={() => onUpdate(card, { status: "called" })}>Call forward</button>
+                <button onClick={() => onUpdate(card, { status: "called" })}>Call back</button>
               )}
               {card.status === "called" && (
-                <button onClick={() => onUpdate(card, { status: "entered" })}>Undo call</button>
+                <button onClick={() => onUpdate(card, { status: "entered" })}>
+                  Undo call back
+                </button>
               )}
               {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
             </li>

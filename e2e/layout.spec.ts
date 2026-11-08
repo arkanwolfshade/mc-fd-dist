@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { addCard, callForward, expect, openShift, queueCard, test } from "./fixtures.js";
+import { addCard, callBack, expect, openShift, queueCard, test } from "./fixtures.js";
 
 // A control that spills out of its panel can end up underneath the next panel, where
 // it cannot be tapped. Fonts differ between devices, so this checks every screen width.
@@ -50,9 +50,9 @@ for (const { name, width, height } of WIDTHS) {
     expect(await controlsOutsidePanels(frontDesk)).toEqual([]);
 
     // The list shows the newest card first, and a called card loses this button.
-    await callForward(frontDesk);
-    await expect(frontDesk.getByRole("button", { name: "Undo call" })).toHaveCount(1);
-    await callForward(frontDesk);
+    await callBack(frontDesk);
+    await expect(frontDesk.getByRole("button", { name: "Undo call back" })).toHaveCount(1);
+    await callBack(frontDesk);
     const card = queueCard(distribution, 1);
     await card.getByRole("button", { name: "Confirm" }).click();
     await card.getByRole("button", { name: "Correct details" }).click();

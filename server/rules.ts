@@ -10,11 +10,31 @@ export type CardStatus = (typeof ALL_CARD_STATUSES)[number];
 export const ARRIVAL_METHODS = ["East", "West", "AC", "Bus", "Walk"] as const;
 export type ArrivalMethod = (typeof ARRIVAL_METHODS)[number];
 
+// Stored as short codes, shown in full. "AC" was the paper sheet's abbreviation.
+const ARRIVAL_LABELS: Record<ArrivalMethod, string> = {
+  East: "East",
+  West: "West",
+  AC: "Around corner",
+  Bus: "Bus",
+  Walk: "Walk",
+};
+
+export function arrivalLabel(method: ArrivalMethod): string {
+  return ARRIVAL_LABELS[method];
+}
+
 // The rule printed on the MC-FD and MC-Dist footers: 1-4 = 1, 5-8 = 2, 9+ = 3.
 export function tefapBags(familySize: number): number {
   if (familySize <= 4) return 1;
   if (familySize <= 8) return 2;
   return 3;
+}
+
+// Cheese is handed out only with a senior box. See ADR 0020.
+export const CHEESE_RULE = "Cheese comes only with a senior box";
+
+export function breaksCheeseRule(card: { seniorBox: boolean; cheese: boolean }): boolean {
+  return card.cheese && !card.seniorBox;
 }
 
 // The statuses each role may move a card between on the path. See ADR 0010.

@@ -171,10 +171,11 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     },
     {
       station: frontDesk,
-      say: "One tap records how they arrived, and another adds cheese.",
+      say: "One tap records how they arrived. A senior box comes with the option of cheese, so both are ticked.",
       target: () => fd.locator("fieldset"),
       act: async () => {
         await fd.getByRole("button", { name: "East", exact: true }).click();
+        await fd.getByRole("button", { name: "Senior box" }).click();
         await fd.getByRole("button", { name: "Cheese" }).click();
       },
     },
@@ -186,9 +187,9 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     },
     {
       station: frontDesk,
-      say: "When the family is called forward, the card goes to distribution.",
-      target: () => fdCard(1).getByRole("button", { name: "Call forward" }),
-      act: () => fdCard(1).getByRole("button", { name: "Call forward" }).click(),
+      say: "When it is their turn, the front desk calls them back to distribution, as on the radio, and the card goes across.",
+      target: () => fdCard(1).getByRole("button", { name: "Call back" }),
+      act: () => fdCard(1).getByRole("button", { name: "Call back" }).click(),
     },
     {
       station: distribution,
@@ -197,7 +198,7 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     },
     {
       station: distribution,
-      say: "Distribution confirms the family has arrived.",
+      say: "Distribution checks the card number and details against the call back, then confirms. The front desk sees it confirmed.",
       target: () => queueCard(1).getByRole("button", { name: "Confirm" }),
       act: () => queueCard(1).getByRole("button", { name: "Confirm" }).click(),
     },
@@ -238,11 +239,11 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     },
     {
       station: frontDesk,
-      say: "The card is saved and the family is called forward.",
+      say: "The card is saved and the family is called back.",
       target: () => fd.getByRole("button", { name: "Save card" }),
       act: async () => {
         await fd.getByRole("button", { name: "Save card" }).click();
-        await fdCard(2).getByRole("button", { name: "Call forward" }).click();
+        await fdCard(2).getByRole("button", { name: "Call back" }).click();
       },
     },
     {
@@ -393,7 +394,7 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     ["Total return weight", "3.5 lb"],
     ["Net weight", "87 lb"],
     ["Total # of TEFAP bags", "5"],
-    ["Total # of senior boxes", "1"],
+    ["Total # of senior boxes", "2"],
     ["Total # of cheese", "1"],
   ];
   for (const station of stations) {

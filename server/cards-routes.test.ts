@@ -156,6 +156,25 @@ describe("shift and card routes", () => {
       expect(db.prepare("SELECT COUNT(*) AS n FROM card").get()).toEqual({ n: 1 });
     });
 
+    it("refuses cheese without a senior box", async () => {
+      const shiftId = await openShift();
+      const response = await request("POST", `/api/shifts/${shiftId}/cards`, frontDesk, {
+        clientId: crypto.randomUUID(),
+        ...DETAILS,
+        seniorBox: false,
+        cheese: true,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toBe("Cheese comes only with a senior box");
+    });
+
+    it("refuses a correction that leaves cheese without a senior box", async () => {
+      const card = await addCard(await openShift(), { seniorBox: true, cheese: true });
+      const response = await patchCard(card.id, distribution, { revision: 1, seniorBox: false });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toBe("Cheese comes only with a senior box");
+    });
+
     it("stops distribution from entering a card", async () => {
       const shiftId = await openShift();
       const response = await request("POST", `/api/shifts/${shiftId}/cards`, distribution, {

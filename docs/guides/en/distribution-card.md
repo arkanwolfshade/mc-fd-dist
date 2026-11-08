@@ -12,11 +12,11 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the distribution g
 ## Each family
 
 **[SPEC]**
-1. Family arrives: **Confirm**.
+1. Front desk calls back a card: check the number and details, then **Confirm**.
 2. Enter **Load 1**, **Load 2**, **Load 3** as needed.
 3. **Mark distributed**.
 4. Details wrong? **Correct details**, change them, **Save correction**.
-5. Family left before being served? **Left without food**, then confirm.
+5. Read any **Note from the front desk** on the card.
 
 ## During the shift
 

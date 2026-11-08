@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { addCard, callForward, expect, openShift, queueCard, test, totalsRow } from "./fixtures.js";
+import { addCard, callBack, expect, openShift, queueCard, test, totalsRow } from "./fixtures.js";
 
 function frontDeskCard(page: Page, number: number) {
   return page.locator(".cards > li").filter({ hasText: `#${number} ` });
@@ -10,11 +10,18 @@ test("distribution records a family who left without food, and can undo it", asy
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 5, method: "East" });
-  await callForward(frontDesk);
+  await callBack(frontDesk);
 
+  // Not offered on the card itself: it is an end-of-shift correction.
   const card = queueCard(distribution, 1);
-  await card.getByRole("button", { name: "Left without food" }).click();
-  await card.getByRole("button", { name: "Yes, left without food" }).click();
+  await expect(card).toBeVisible();
+  await expect(card.getByRole("button", { name: "Left without food" })).toHaveCount(0);
+
+  await distribution.getByRole("button", { name: "Close shift" }).click();
+  const confirm = distribution.locator(".confirm");
+  await confirm.getByRole("button", { name: "Left without food" }).click();
+  await confirm.getByRole("button", { name: "Yes, left without food" }).click();
+  await confirm.getByRole("button", { name: "Keep it open" }).click();
 
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
   await expect(frontDeskCard(frontDesk, 1).locator(".status")).toHaveText("left without food");
@@ -32,7 +39,7 @@ test("distribution records a family who left without food, and can undo it", asy
   // The card goes back to the front desk, which calls the family forward again.
   await expect(frontDeskCard(frontDesk, 1).locator(".status")).toHaveText("entered");
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
-  await callForward(frontDesk);
+  await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
 });
 

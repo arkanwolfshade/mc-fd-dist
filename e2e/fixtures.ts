@@ -78,7 +78,14 @@ export async function openShift(frontDesk: Page): Promise<void> {
 
 export async function addCard(
   frontDesk: Page,
-  card: { familySize: number; method: string; seniorBox?: boolean; number?: number },
+  card: {
+    familySize: number;
+    method: string;
+    seniorBox?: boolean;
+    cheese?: boolean;
+    number?: number;
+    other?: string;
+  },
 ): Promise<void> {
   if (card.number !== undefined) {
     await frontDesk.getByLabel("Card #").fill(String(card.number));
@@ -88,11 +95,17 @@ export async function addCard(
   if (card.seniorBox) {
     await frontDesk.getByRole("button", { name: "Senior box" }).click();
   }
+  if (card.cheese) {
+    await frontDesk.getByRole("button", { name: "Cheese" }).click();
+  }
+  if (card.other) {
+    await frontDesk.getByLabel("Other").fill(card.other);
+  }
   await frontDesk.getByRole("button", { name: "Save card" }).click();
 }
 
-export async function callForward(frontDesk: Page): Promise<void> {
-  await frontDesk.getByRole("button", { name: "Call forward" }).first().click();
+export async function callBack(frontDesk: Page): Promise<void> {
+  await frontDesk.getByRole("button", { name: "Call back", exact: true }).first().click();
 }
 
 export function queueCard(distribution: Page, number: number) {

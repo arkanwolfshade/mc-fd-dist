@@ -1,4 +1,5 @@
 import { tefapBags } from "../../server/rules.js";
+import type { ArrivalMethod } from "../../server/rules.js";
 import { roundWeight } from "../../server/summary.js";
 import type { QueuedWrite } from "./outbox.js";
 import type { Card, CardChanges, ShiftWithCards } from "./types.js";
@@ -7,7 +8,7 @@ export interface PendingCard {
   id: string;
   number: number;
   familySize: number;
-  arrivalMethod: string;
+  arrivalMethod: ArrivalMethod;
   seniorBox: boolean;
   cheese: boolean;
   tefapBags: number;
@@ -66,7 +67,7 @@ export function withPending(shift: ShiftWithCards, items: readonly QueuedWrite[]
         id: item.id,
         number: body.number as number,
         familySize,
-        arrivalMethod: body.arrivalMethod as string,
+        arrivalMethod: body.arrivalMethod as ArrivalMethod,
         seniorBox: Boolean(body.seniorBox),
         cheese: Boolean(body.cheese),
         tefapBags: tefapBags(familySize),

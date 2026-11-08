@@ -26,4 +26,5 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0016](0016-code-health-checks.md) | Enforce code health checks in CI | Accepted |
 | [0017](0017-branch-rulesets.md) | Protect main with branch rulesets | Accepted |
 | [0018](0018-documentation.md) | Write the guides and developer docs once, in HADS Markdown | Accepted |
-| [0019](0019-correcting-unserved-cards.md) | Correct unserved cards by recording them as left, or by deleting them | Accepted |
+| [0019](0019-correcting-unserved-cards.md) | Correct unserved cards by recording them as left, or by deleting them | Accepted; amended by 0020 |
+| [0020](0020-food-bank-process-rules.md) | Follow the food bank's own process and words | Accepted |

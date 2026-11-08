@@ -47,7 +47,7 @@ A reopened shift does not close by itself overnight. Remember to close it once t
 - **Delete** a card entered by mistake, such as a duplicate or a typo. It appears on each card in the **Front desk** list, and in the closing warning on **Distribution**.
 - Deleting asks for confirmation, needs a connection, and only works while the shift is open.
 - Every station loses the card straight away. **Recent activity** keeps a record of what it held.
-- For a family who left before being served, use **Left without food** on **Distribution** instead. That keeps the card and counts the family separately.
+- For a family who left before being served, record **Left without food** from the closing warning on **Distribution** instead. That keeps the card and counts the family separately.
 
 **[NOTE]**
 Deleting cannot be undone. When in doubt, record the family as left without food, which can be undone.

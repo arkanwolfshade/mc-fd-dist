@@ -221,6 +221,18 @@ describe("admin and closing routes", () => {
       expect(response.body).toContain("'=HYPERLINK(1)");
     });
 
+    it("writes arrival methods out in full in the cards CSV", async () => {
+      const shiftId = await openShift("2026-11-07");
+      await addCard(shiftId, { arrivalMethod: "AC" });
+      const response = await request(
+        "GET",
+        "/api/admin/reports/cards.csv?from=2026-11-01&to=2026-11-30",
+        admin,
+      );
+      expect(response.body).toContain(",Around corner,");
+      expect(response.body).not.toContain(",AC,");
+    });
+
     it("limits CSV exports to admins", async () => {
       const url = "/api/admin/reports/cards.csv?from=2026-11-01&to=2026-11-30";
       expect((await request("GET", url, frontDesk)).statusCode).toBe(403);

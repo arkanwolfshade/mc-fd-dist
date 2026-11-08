@@ -1,6 +1,6 @@
 # 0019. Correct unserved cards by recording them as left, or by deleting them
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [0020](0020-food-bank-process-rules.md), which offers "left without food" only when closing
 - **Date:** 2026-11-08
 
 ## Context

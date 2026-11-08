@@ -15,7 +15,13 @@ import {
   updateCard,
 } from "./cards.js";
 import type { Card, CardChanges, NewCard, Shift } from "./cards.js";
-import { ALL_CARD_STATUSES, ARRIVAL_METHODS, canChangeStatus } from "./rules.js";
+import {
+  ALL_CARD_STATUSES,
+  ARRIVAL_METHODS,
+  breaksCheeseRule,
+  canChangeStatus,
+  CHEESE_RULE,
+} from "./rules.js";
 import { shiftSummary } from "./summary.js";
 
 const CARD_DETAIL_PROPERTIES = {
@@ -141,6 +147,9 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (shift.status === "closed") {
         return reply.code(409).send({ error: "This shift is closed" });
       }
+      if (breaksCheeseRule({ seniorBox: request.body.seniorBox, cheese: request.body.cheese })) {
+        return reply.code(400).send({ error: CHEESE_RULE });
+      }
 
       const card = createCard(db, shift.id, request.body);
       if (card === "duplicate") {
@@ -185,6 +194,13 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       }
       if (findShift(db, current.shiftId)?.status === "closed") {
         return reply.code(409).send({ error: "This shift is closed" });
+      }
+      const extras = {
+        seniorBox: changes.seniorBox ?? current.seniorBox,
+        cheese: changes.cheese ?? current.cheese,
+      };
+      if (breaksCheeseRule(extras)) {
+        return reply.code(400).send({ error: CHEESE_RULE });
       }
 
       if (changes.loads && account.role === "front_desk") {

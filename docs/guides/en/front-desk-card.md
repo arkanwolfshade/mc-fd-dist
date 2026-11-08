@@ -13,10 +13,10 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the front desk gui
 
 **[SPEC]**
 1. **# in family**: how many people.
-2. **Arrived by**: East, West, AC, Bus or Walk.
-3. **Senior box** and **Cheese** if they apply.
+2. **Arrived by**: East, West, Around corner, Bus or Walk.
+3. **Senior box** if it applies, then **Cheese** if it applies. Cheese comes only with a senior box.
 4. **Save card**. The form clears for the next family.
-5. When it is their turn: **Call forward**.
+5. When it is their turn: **Call back**.
 
 ## TEFAP bags
 

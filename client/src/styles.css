@@ -40,6 +40,11 @@ button.selected {
   color: #fff;
 }
 
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 button.primary {
   border-color: #1b6e3c;
   background: #1b6e3c;
@@ -213,6 +218,14 @@ a.button {
   font-style: italic;
 }
 
+.note-from-desk {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid #e0b100;
+  border-radius: 6px;
+  background: #fff8db;
+}
+
 .report-combined {
   margin: 0;
   padding: 8px 12px;
@@ -349,6 +362,7 @@ a.button {
 }
 
 .status {
+  white-space: nowrap;
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 10px;
