@@ -58,7 +58,11 @@ name="$(docker compose exec -T app ls /data/backups | grep '^mc-fd-dist-' | tail
 grep -q '"role":"admin"' <<<"$(sign_in)"
 
 echo "--- Memory after sign-in, backup and restore"
-docker stats --no-stream --format '{{.Name}}: {{.MemUsage}}'
-free -m
+memory="$(docker stats --no-stream --format '{{.Name}}: {{.MemUsage}}' | tr '\n' ';')"
+echo "$memory"
+# Annotations can be read without access to the job log.
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  echo "::notice title=Container memory::$memory"
+fi
 
 echo "Smoke test passed"
