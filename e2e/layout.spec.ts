@@ -12,10 +12,14 @@ async function controlsOutsidePanels(page: Page): Promise<string[]> {
       for (const control of panel.querySelectorAll("button, input, a, select")) {
         const box = control.getBoundingClientRect();
         if (box.right > panelBox.right + 0.5 || box.left < panelBox.left - 0.5) {
-          problems.push(`${control.textContent || control.outerHTML.slice(0, 60)} leaves its panel`);
+          problems.push(
+            `${control.textContent || control.outerHTML.slice(0, 60)} leaves its panel`,
+          );
         }
         if (box.right > viewportWidth + 0.5) {
-          problems.push(`${control.textContent || control.outerHTML.slice(0, 60)} leaves the screen`);
+          problems.push(
+            `${control.textContent || control.outerHTML.slice(0, 60)} leaves the screen`,
+          );
         }
       }
     }

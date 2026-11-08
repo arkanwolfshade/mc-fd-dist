@@ -24,7 +24,14 @@ function card(overrides: Partial<Card> = {}): Card {
 }
 
 function shift(cards: Card[]): ShiftWithCards {
-  return { id: 1, date: "2026-11-07", status: "open", cards, partnerBatches: [], returnedBatches: [] };
+  return {
+    id: 1,
+    date: "2026-11-07",
+    status: "open",
+    cards,
+    partnerBatches: [],
+    returnedBatches: [],
+  };
 }
 
 function update(body: object, cardId = 5): QueuedWrite {

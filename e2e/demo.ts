@@ -125,9 +125,12 @@ async function run(frontDesk: Station, distribution: Station, password: string):
   const queueCard = (number: number) =>
     dist.locator(".queue-card").filter({ hasText: `#${number} ` });
   const doneCard = (number: number) =>
-    dist.locator("section", { hasText: "Distributed (" }).locator("li").filter({
-      hasText: `#${number} `,
-    });
+    dist
+      .locator("section", { hasText: "Distributed (" })
+      .locator("li")
+      .filter({
+        hasText: `#${number} `,
+      });
   const returned = dist.locator("section", { hasText: "Returned items" });
   const partners = dist.locator("section", { hasText: "End of shift" });
 

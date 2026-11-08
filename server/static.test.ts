@@ -33,7 +33,11 @@ describe("serving the client", () => {
 
   it("sends security headers with every response", async () => {
     for (const url of ["/", "/api/health", "/api/nothing-here"]) {
-      const { headers } = await app.inject({ method: "GET", url, headers: { host: "shifts.test" } });
+      const { headers } = await app.inject({
+        method: "GET",
+        url,
+        headers: { host: "shifts.test" },
+      });
       expect(headers["content-security-policy"]).toBe(
         "default-src 'self'; connect-src 'self' wss://shifts.test; object-src 'none'; " +
           "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",

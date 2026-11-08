@@ -81,8 +81,7 @@ export type BatchTable = "partner_batch" | "returned_batch";
 
 export function findBatchShiftId(db: Database, table: BatchTable, id: number): number | null {
   const row = db.prepare(`SELECT shift_id AS shiftId FROM ${table} WHERE id = ?`).get(id) as
-    | { shiftId: number }
-    | undefined;
+    { shiftId: number } | undefined;
   return row?.shiftId ?? null;
 }
 

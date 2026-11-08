@@ -97,103 +97,95 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
     };
   });
 
-  app.get<RangeQuery>(
-    "/api/admin/reports/shifts.csv",
-    rangeRoute,
-    async (request, reply) => {
-      const { from, to } = request.query;
-      const rows = shiftsInRange(from, to).map(({ date, status, summary }) => [
-        date,
-        status,
-        summary.families.total,
-        summary.families.cards,
-        summary.families.partners,
-        summary.weight.total,
-        summary.weight.cards,
-        summary.weight.partners,
-        summary.returnedWeight,
-        summary.netWeight,
-        summary.tefapBags,
-        summary.seniorBoxes,
-        summary.cheese,
-        summary.distributedWithoutWeight,
-      ]);
-      return reply
-        .type("text/csv; charset=utf-8")
-        .header("content-disposition", `attachment; filename="shifts-${from}-to-${to}.csv"`)
-        .send(
-          toCsv(
-            [
-              "date",
-              "status",
-              "families_total",
-              "families_cards",
-              "families_partners",
-              "weight_total",
-              "weight_cards",
-              "weight_partners",
-              "returned_weight",
-              "net_weight",
-              "tefap_bags",
-              "senior_boxes",
-              "cheese",
-              "distributed_without_weight",
-            ],
-            rows,
-          ),
-        );
-    },
-  );
-
-  app.get<RangeQuery>(
-    "/api/admin/reports/cards.csv",
-    rangeRoute,
-    async (request, reply) => {
-      const { from, to } = request.query;
-      const rows = shiftsInRange(from, to).flatMap((shift) =>
-        shift.cards.map((card) => [
-          shift.date,
-          card.number,
-          card.familySize,
-          card.arrivalMethod,
-          card.seniorBox,
-          card.cheese,
-          card.tefapBags,
-          card.tefapOverride,
-          card.status,
-          card.loads[0],
-          card.loads[1],
-          card.loads[2],
-          card.totalWeight,
-          card.other,
-        ]),
+  app.get<RangeQuery>("/api/admin/reports/shifts.csv", rangeRoute, async (request, reply) => {
+    const { from, to } = request.query;
+    const rows = shiftsInRange(from, to).map(({ date, status, summary }) => [
+      date,
+      status,
+      summary.families.total,
+      summary.families.cards,
+      summary.families.partners,
+      summary.weight.total,
+      summary.weight.cards,
+      summary.weight.partners,
+      summary.returnedWeight,
+      summary.netWeight,
+      summary.tefapBags,
+      summary.seniorBoxes,
+      summary.cheese,
+      summary.distributedWithoutWeight,
+    ]);
+    return reply
+      .type("text/csv; charset=utf-8")
+      .header("content-disposition", `attachment; filename="shifts-${from}-to-${to}.csv"`)
+      .send(
+        toCsv(
+          [
+            "date",
+            "status",
+            "families_total",
+            "families_cards",
+            "families_partners",
+            "weight_total",
+            "weight_cards",
+            "weight_partners",
+            "returned_weight",
+            "net_weight",
+            "tefap_bags",
+            "senior_boxes",
+            "cheese",
+            "distributed_without_weight",
+          ],
+          rows,
+        ),
       );
-      return reply
-        .type("text/csv; charset=utf-8")
-        .header("content-disposition", `attachment; filename="cards-${from}-to-${to}.csv"`)
-        .send(
-          toCsv(
-            [
-              "date",
-              "card_number",
-              "family_size",
-              "arrival_method",
-              "senior_box",
-              "cheese",
-              "tefap_bags",
-              "tefap_override",
-              "status",
-              "load_1",
-              "load_2",
-              "load_3",
-              "total_weight",
-              "other",
-            ],
-            rows,
-          ),
-        );
-    },
-  );
+  });
+
+  app.get<RangeQuery>("/api/admin/reports/cards.csv", rangeRoute, async (request, reply) => {
+    const { from, to } = request.query;
+    const rows = shiftsInRange(from, to).flatMap((shift) =>
+      shift.cards.map((card) => [
+        shift.date,
+        card.number,
+        card.familySize,
+        card.arrivalMethod,
+        card.seniorBox,
+        card.cheese,
+        card.tefapBags,
+        card.tefapOverride,
+        card.status,
+        card.loads[0],
+        card.loads[1],
+        card.loads[2],
+        card.totalWeight,
+        card.other,
+      ]),
+    );
+    return reply
+      .type("text/csv; charset=utf-8")
+      .header("content-disposition", `attachment; filename="cards-${from}-to-${to}.csv"`)
+      .send(
+        toCsv(
+          [
+            "date",
+            "card_number",
+            "family_size",
+            "arrival_method",
+            "senior_box",
+            "cheese",
+            "tefap_bags",
+            "tefap_override",
+            "status",
+            "load_1",
+            "load_2",
+            "load_3",
+            "total_weight",
+            "other",
+          ],
+          rows,
+        ),
+      );
+  });
 
   app.post<{ Body: { username: string; password: string } }>(
     "/api/admin/accounts",

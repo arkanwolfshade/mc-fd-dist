@@ -36,7 +36,8 @@ export function Distribution(props: {
           {[...done].reverse().map((card) => (
             <li key={card.id}>
               <span>
-                <strong>#{card.number}</strong> · family of {card.familySize} · {hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight"}
+                <strong>#{card.number}</strong> · family of {card.familySize} ·{" "}
+                {hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight"}
               </span>
               <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
             </li>
@@ -144,7 +145,9 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
         </>
       )}
 
-      {correcting && <CorrectDetails card={card} onUpdate={onUpdate} onDone={() => setCorrecting(false)} />}
+      {correcting && (
+        <CorrectDetails card={card} onUpdate={onUpdate} onDone={() => setCorrecting(false)} />
+      )}
     </li>
   );
 }

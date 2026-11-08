@@ -1,0 +1,7 @@
+dist/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+# Prose is reviewed by hand, and reflowing it would bury real changes in diffs.
+*.md

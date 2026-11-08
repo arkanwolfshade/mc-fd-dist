@@ -134,8 +134,7 @@ export function findCard(db: Database, id: number): Card | null {
 
 export function findCardByClientId(db: Database, clientId: string): Card | null {
   const row = db.prepare("SELECT * FROM card WHERE client_id = ?").get(clientId) as
-    | CardRow
-    | undefined;
+    CardRow | undefined;
   return row ? toCard(row) : null;
 }
 
@@ -178,9 +177,7 @@ export function updateCard(
   const familySize = changes.familySize ?? current.familySize;
   const tefapOverride =
     changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
-  const bags = tefapOverride
-    ? (changes.tefapBags ?? current.tefapBags)
-    : tefapBags(familySize);
+  const bags = tefapOverride ? (changes.tefapBags ?? current.tefapBags) : tefapBags(familySize);
   const loads = changes.loads ?? current.loads;
 
   try {

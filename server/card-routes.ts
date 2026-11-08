@@ -29,7 +29,9 @@ const CARD_DETAIL_PROPERTIES = {
 export interface CardRouteContext {
   db: Database;
   currentAccount: (request: FastifyRequest) => Account | null;
-  requireRole: (...roles: Role[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
+  requireRole: (
+    ...roles: Role[]
+  ) => (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
   broadcast: (message: LiveMessage) => void;
   closeEndedSockets: () => void;
   audit: (request: FastifyRequest, action: string, detail?: object) => void;

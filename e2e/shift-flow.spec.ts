@@ -76,7 +76,9 @@ test("a correction at distribution reaches the front desk live", async ({ signIn
   await expect(frontDesk.getByText("family of 2")).toBeVisible();
 });
 
-test("distributing without a weight asks first, then flags it in the totals", async ({ signIn }) => {
+test("distributing without a weight asks first, then flags it in the totals", async ({
+  signIn,
+}) => {
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);

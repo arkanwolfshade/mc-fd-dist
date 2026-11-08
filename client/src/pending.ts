@@ -24,7 +24,11 @@ function applyChange(card: Card, body: Record<string, unknown>): Card {
   const changes = rest as CardChanges;
   const familySize = changes.familySize ?? card.familySize;
   const loads = changes.loads
-    ? ([changes.loads[0] ?? null, changes.loads[1] ?? null, changes.loads[2] ?? null] as Card["loads"])
+    ? ([
+        changes.loads[0] ?? null,
+        changes.loads[1] ?? null,
+        changes.loads[2] ?? null,
+      ] as Card["loads"])
     : card.loads;
   const tefapOverride =
     changes.tefapBags === undefined ? card.tefapOverride : changes.tefapBags !== null;

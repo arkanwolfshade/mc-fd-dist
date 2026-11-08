@@ -105,7 +105,9 @@ test("returned items and last cards entered during an outage are sent later", as
   await partners.getByLabel("# of families").fill("4");
   await partners.getByLabel("Weight (lb)").fill("40");
   await partners.getByRole("button", { name: "Add last cards" }).click();
-  await expect(partners.getByText("Door Dash · 4 families · 40 lb · waiting to send")).toBeVisible();
+  await expect(
+    partners.getByText("Door Dash · 4 families · 40 lb · waiting to send"),
+  ).toBeVisible();
 
   await distribution.context().setOffline(false);
   await expect(returned.getByRole("button", { name: "Remove" })).toBeVisible({ timeout: 15000 });
@@ -213,7 +215,9 @@ test("the app can be installed", async ({ signIn, serverUrl }) => {
   await expect(frontDesk.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   const manifestHref = await frontDesk.locator('link[rel="manifest"]').getAttribute("href");
-  const manifest = await (await frontDesk.request.get(new URL(manifestHref ?? "", serverUrl).href)).json();
+  const manifest = await (
+    await frontDesk.request.get(new URL(manifestHref ?? "", serverUrl).href)
+  ).json();
   expect(manifest).toMatchObject({ display: "standalone", start_url: "/" });
   expect(manifest.name).toBeTruthy();
 

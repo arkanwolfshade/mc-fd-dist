@@ -3,7 +3,15 @@ import { toCsv } from "./csv.js";
 
 describe("toCsv", () => {
   it("writes a header row and one row per record", () => {
-    expect(toCsv(["a", "b"], [[1, "x"], [2, "y"]])).toBe("a,b\r\n1,x\r\n2,y\r\n");
+    expect(
+      toCsv(
+        ["a", "b"],
+        [
+          [1, "x"],
+          [2, "y"],
+        ],
+      ),
+    ).toBe("a,b\r\n1,x\r\n2,y\r\n");
   });
 
   it("quotes commas, quotes and line breaks", () => {

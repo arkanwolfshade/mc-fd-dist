@@ -29,7 +29,12 @@ describe("partner and returned batches", () => {
     db.close();
   });
 
-  function request(method: "GET" | "POST" | "DELETE", url: string, cookie: string, payload?: object) {
+  function request(
+    method: "GET" | "POST" | "DELETE",
+    url: string,
+    cookie: string,
+    payload?: object,
+  ) {
     return app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
   }
 

@@ -39,7 +39,12 @@ describe("shift and card routes", () => {
     db.close();
   });
 
-  function request(method: "GET" | "POST" | "PATCH", url: string, cookie: string, payload?: object) {
+  function request(
+    method: "GET" | "POST" | "PATCH",
+    url: string,
+    cookie: string,
+    payload?: object,
+  ) {
     return app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
   }
 
@@ -217,7 +222,10 @@ describe("shift and card routes", () => {
     it("moves a card through the full path", async () => {
       const card = await addCard(await openShift());
       const called = await patchCard(card.id, frontDesk, { revision: 1, status: "called" });
-      const confirmed = await patchCard(card.id, distribution, { revision: 2, status: "confirmed" });
+      const confirmed = await patchCard(card.id, distribution, {
+        revision: 2,
+        status: "confirmed",
+      });
       const done = await patchCard(card.id, distribution, { revision: 3, status: "distributed" });
       expect(called.json().status).toBe("called");
       expect(confirmed.json().status).toBe("confirmed");

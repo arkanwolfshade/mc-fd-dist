@@ -32,9 +32,7 @@ describe("automatic closing when the server starts", () => {
 
     expect(findShift(db, old.id)?.status).toBe("closed");
     expect(findShift(db, today.id)?.status).toBe("open");
-    expect(listAudit(db, 10)).toMatchObject([
-      { actor: AUTOMATIC_ACTOR, action: "shift.close" },
-    ]);
+    expect(listAudit(db, 10)).toMatchObject([{ actor: AUTOMATIC_ACTOR, action: "shift.close" }]);
 
     await app.close();
     db.close();

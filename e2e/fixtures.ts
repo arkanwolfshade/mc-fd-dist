@@ -100,5 +100,7 @@ export function queueCard(distribution: Page, number: number) {
 }
 
 export function totalsRow(page: Page, label: string) {
-  return page.locator(".totals tr").filter({ has: page.getByRole("rowheader", { name: label, exact: true }) });
+  return page
+    .locator(".totals tr")
+    .filter({ has: page.getByRole("rowheader", { name: label, exact: true }) });
 }

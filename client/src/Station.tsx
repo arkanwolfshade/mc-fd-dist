@@ -270,14 +270,14 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
 
       {!connected && (
         <p class="warning">
-          Connection lost. Entries are being kept on this device. This station can't see new
-          entries from others until it returns.
+          Connection lost. Entries are being kept on this device. This station can't see new entries
+          from others until it returns.
         </p>
       )}
       {waiting.length > 0 && (
         <p class="warning">
-          {waiting.length} {waiting.length === 1 ? "entry" : "entries"} waiting to send. Totals
-          will update once they arrive.
+          {waiting.length} {waiting.length === 1 ? "entry" : "entries"} waiting to send. Totals will
+          update once they arrive.
         </p>
       )}
       {notice && <p class="error">{notice}</p>}

@@ -126,7 +126,9 @@ export function PartnerBatches(props: { shift: ShiftView; submit: Submit }) {
 
   return (
     <section class="panel">
-      <h2>End of shift: last cards ({shift.partnerBatches.length + shift.pendingPartners.length})</h2>
+      <h2>
+        End of shift: last cards ({shift.partnerBatches.length + shift.pendingPartners.length})
+      </h2>
       <form class="stack" onSubmit={add}>
         <div class="choices">
           {PARTNERS.map((option) => (
