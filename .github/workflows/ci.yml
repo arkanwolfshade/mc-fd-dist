@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: shellcheck deploy/*.sh
+      - run: shellcheck deploy/*.sh deploy/aws/*.sh
       - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           config: .hadolint.yaml
@@ -62,7 +62,7 @@ jobs:
             echo "::error title=hadolint::$line"
           done < findings.txt
           [ ! -s findings.txt ]
-      - run: pipx run cfn-lint --regions us-west-2 -- deploy/aws/stack.yaml
+      - run: pipx run cfn-lint --regions us-west-2 -- deploy/aws/*.yaml
       - run: pipx run checkov==3.4.3 --compact --quiet -d deploy/aws --framework cloudformation
       - run: pipx run checkov==3.4.3 --compact --quiet -f Dockerfile --framework dockerfile
       - run: docker build -t mc-fd-dist:ci .

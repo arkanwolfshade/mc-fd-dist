@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Lets GitHub Actions release the food bank shift tracker: a role GitHub can assume only
+  from the repository's production environment, and a narrower role CloudFormation uses
+  to change the app's stack. Created once by an administrator, never by GitHub.
+
+Parameters:
+  Repository:
+    Type: String
+    Default: arkanwolfshade/mc-fd-dist
+  Environment:
+    Type: String
+    Default: production
+    Description: The GitHub environment whose approved jobs may deploy.
+  AppStackName:
+    Type: String
+    Default: mc-fd-dist
+
+Resources:
+  GitHubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+
+  # The most an IAM user made by the app's stack can ever do, whatever policy it is given.
+  BackupUserBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${AppStackName}-backup-user-boundary"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${AppStackName}-backupbucket-*/nightly/*"
+
+  # CloudFormation acts as this role for every change to the app's stack, including
+  # changes made by hand. It can change the stack's own kinds of resources, but cannot
+  # delete the server or its backups, or create an IAM user without the boundary.
+  StackRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppStackName}-cloudformation"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: app-stack
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Most Lightsail actions cannot be limited to one resource.
+              - Sid: Lightsail
+                Effect: Allow
+                Action: lightsail:*
+                Resource: "*"
+              - Sid: KeepServer
+                Effect: Deny
+                Action:
+                  - lightsail:DeleteInstance
+                  - lightsail:DeleteInstanceSnapshot
+                  - lightsail:DeleteAutoSnapshot
+                  - lightsail:DisableAddOn
+                  - lightsail:DetachStaticIp
+                  - lightsail:ReleaseStaticIp
+                Resource: "*"
+              - Sid: BackupBucket
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:GetBucket*
+                  - s3:GetEncryptionConfiguration
+                  - s3:GetLifecycleConfiguration
+                  - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:PutBucketTagging
+                  - s3:PutEncryptionConfiguration
+                  - s3:PutLifecycleConfiguration
+                Resource: !Sub "arn:aws:s3:::${AppStackName}-backupbucket-*"
+              - Sid: KeepBackups
+                Effect: Deny
+                Action:
+                  - s3:DeleteBucket
+                  - s3:DeleteBucketPolicy
+                  - s3:DeleteObject
+                  - s3:DeleteObjectVersion
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:PutBucketVersioning
+                Resource:
+                  - !Sub "arn:aws:s3:::${AppStackName}-backupbucket-*"
+                  - !Sub "arn:aws:s3:::${AppStackName}-backupbucket-*/*"
+              - Sid: Budget
+                Effect: Allow
+                Action:
+                  - budgets:ViewBudget
+                  - budgets:ModifyBudget
+                Resource: !Sub "arn:aws:budgets::${AWS::AccountId}:budget/${AppStackName}-*"
+              - Sid: ReadUsers
+                Effect: Allow
+                Action:
+                  - iam:GetUser
+                  - iam:GetUserPolicy
+                  - iam:ListUserPolicies
+                  - iam:ListAttachedUserPolicies
+                  - iam:ListUserTags
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/${AppStackName}-*"
+              # Allowed only while the user carries the boundary, so no user this role
+              # touches can do more than add and read backups.
+              - Sid: BoundedUsers
+                Effect: Allow
+                Action:
+                  - iam:CreateUser
+                  - iam:PutUserPermissionsBoundary
+                  - iam:PutUserPolicy
+                  - iam:DeleteUserPolicy
+                  - iam:AttachUserPolicy
+                  - iam:DetachUserPolicy
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/${AppStackName}-*"
+                Condition:
+                  StringEquals:
+                    iam:PermissionsBoundary: !Ref BackupUserBoundary
+              - Sid: TagUsers
+                Effect: Allow
+                Action:
+                  - iam:TagUser
+                  - iam:UntagUser
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:user/${AppStackName}-*"
+              - Sid: KeepBoundary
+                Effect: Deny
+                Action: iam:DeleteUserPermissionsBoundary
+                Resource: "*"
+
+  # GitHub Actions assumes this role, and only from an approved job in the production
+  # environment. It can update the app's stack through StackRole and reach the server for
+  # the length of a release, nothing more.
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppStackName}-github-deploy"
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidc
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${Repository}:environment:${Environment}"
+      Policies:
+        - PolicyName: release
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ChangeSets
+                Effect: Allow
+                Action:
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                Resource:
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AppStackName}/*"
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/*"
+              - Sid: CreateChangeSetsAsStackRole
+                Effect: Allow
+                Action: cloudformation:CreateChangeSet
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AppStackName}/*"
+                Condition:
+                  StringEquals:
+                    cloudformation:RoleArn: !GetAtt StackRole.Arn
+              - Sid: PassStackRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt StackRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: cloudformation.amazonaws.com
+              - Sid: ReachServer
+                Effect: Allow
+                Action:
+                  - lightsail:GetInstanceAccessDetails
+                  - lightsail:GetInstancePortStates
+                  - lightsail:OpenInstancePublicPorts
+                  - lightsail:PutInstancePublicPorts
+                Resource: !Sub "arn:aws:lightsail:${AWS::Region}:${AWS::AccountId}:Instance/*"
+
+Outputs:
+  DeployRoleArn:
+    Description: Set as the AWS_DEPLOY_ROLE_ARN variable of the GitHub production environment.
+    Value: !GetAtt DeployRole.Arn
+  StackRoleArn:
+    Value: !GetAtt StackRole.Arn
+  BackupUserBoundaryArn:
+    Value: !Ref BackupUserBoundary

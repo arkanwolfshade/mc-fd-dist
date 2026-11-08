@@ -1,0 +1,63 @@
+name: Deploy
+
+# Releases to the Lightsail server after CI passes on main, once a reviewer approves the
+# job in the production environment. A release is refused during shift hours unless it is
+# started by hand with "force". See ADR 0022.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Release even though a shift is running
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One release at a time. A newer release waiting for approval replaces an older one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+      STACK: mc-fd-dist
+      AWS_REGION: us-west-2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - name: Refuse to release during a shift
+        if: ${{ !inputs.force }}
+        run: npx tsx tools/deploy-checks.ts window
+      - name: Check that CI published this commit's image
+        run: docker manifest inspect "ghcr.io/${GITHUB_REPOSITORY,,}:$COMMIT" > /dev/null
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: release-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update the stack
+        run: deploy/aws/update-stack.sh "$STACK" "release-${COMMIT:0:12}-$GITHUB_RUN_ID"
+      - name: Release on the server
+        run: deploy/aws/release-on-server.sh "$STACK" "$COMMIT"

@@ -25,10 +25,22 @@ Where each part of the system lives:
 | Infrastructure | CloudFormation stack `mc-fd-dist`, from `deploy/aws/stack.yaml` |
 | Server | Lightsail instance `mc-fd-dist`, Ubuntu 24.04, app files in `/opt/mc-fd-dist` |
 | Backups | The stack's S3 bucket, under `nightly/` |
+| Release access | CloudFormation stack `mc-fd-dist-github-deploy`, from `deploy/aws/github-deploy.yaml` (ADR 0022) |
+
+**[SPEC]**
+Where settings and credentials live. None of them is in the repository.
+
+| Setting | Where |
+|---|---|
+| The admin's AWS sign-in | `~/.aws/config` on the admin's computer, profile `mc-fd-dist`, signed in with `aws login` |
+| Stack settings, such as the budget email | The parameters of the `mc-fd-dist` stack, in the CloudFormation console |
+| Bucket, backup user and IP address names | The outputs of the `mc-fd-dist` stack |
+| The app's settings and the backup key | `/opt/mc-fd-dist/.env` on the server, readable by root only |
+| The role GitHub releases with | Variable `AWS_DEPLOY_ROLE_ARN` of the GitHub `production` environment. It is not a secret. |
 
 **[SPEC]**
 - Sign in to AWS as an IAM user with MFA. Keep the root user for account-level tasks only.
-- On the server, use the browser SSH client in the Lightsail console. SSH from anywhere else is closed.
+- On the server, use the browser SSH client in the Lightsail console. SSH from anywhere else is closed, except to a GitHub runner during a release.
 
 ---
 
@@ -37,6 +49,7 @@ Where each part of the system lives:
 **[?]**
 - The stack and server exist, but the app has not been started on them yet.
 - Still needed: the site's hostname and its DNS record, the backup key in `.env`, a first restore drill.
+- Releases from GitHub (section 4) have not run yet. The release access stack has not been created.
 - Alerts for downtime and missing backups have not been set up. Only the monthly budget warning reports anything.
 
 ---
@@ -61,17 +74,42 @@ The server's launch script already installed Docker, swap, automatic security up
 ## 4. Updating the app
 
 **[SPEC]**
+GitHub releases each commit on main after CI passes (ADR 0022):
+1. The **Deploy** workflow waits for approval. Open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**.
+2. It refuses to run during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. To release anyway, run **Deploy** by hand from the Actions tab with **force** ticked.
+3. It applies `deploy/aws/stack.yaml` to the stack, and stops if any resource would be replaced or removed.
+4. On the server, `release.sh` backs the database up to S3, runs the image for that commit, and goes back to the previous image if the new one is not healthy.
+
+**[SPEC]**
+- To go back to an earlier version, re-run that commit's **Deploy** run from the Actions tab.
+- `/opt/mc-fd-dist/release-commit` holds the commit now running.
+
+**[SPEC]**
+To release by hand, for example when GitHub is down, use the Lightsail browser SSH client:
 ```sh
 cd /opt/mc-fd-dist
-./backup.sh --local-only     # a copy on the server, in case the update must be undone
-docker compose pull
-docker compose up -d
-docker compose ps            # the app should become "healthy"
+sudo ./release.sh <full commit hash>
 ```
 
 **[SPEC]**
-- Update outside shift hours.
-- To pin a version, set `APP_IMAGE` in `.env` to an image tagged with a commit instead of `latest`.
+One-time set-up of release access, by an administrator with their own AWS sign-in:
+1. Create the release access stack:
+   ```sh
+   aws cloudformation deploy --profile mc-fd-dist --stack-name mc-fd-dist-github-deploy \
+     --template-file deploy/aws/github-deploy.yaml --capabilities CAPABILITY_NAMED_IAM
+   ```
+2. Copy its `DeployRoleArn` output into the `AWS_DEPLOY_ROLE_ARN` variable of the GitHub `production` environment.
+3. In that environment, require a reviewer, allow deployments from `main` only, and do not let administrators bypass the rules.
+
+**[BUG] A release stops at "Stack change refused"**
+Symptom: The **Update the stack** step lists a resource that would be replaced or removed.
+Cause: The change to `stack.yaml` cannot be made in place. Changing the server's launch script replaces the server, and the live database with it.
+Fix: Back up the database, then make the change by hand. The stack's CloudFormation role cannot delete the server, so an administrator first widens it in `github-deploy.yaml`, applies the change, and narrows it again.
+
+**[BUG] A release left SSH open**
+Symptom: The server's networking tab shows port 22 open to an address other than the Lightsail browser client.
+Cause: The release job was killed before it put the port rules back.
+Fix: The next release puts them back. To fix it at once, delete the extra port 22 rule in the Lightsail console's networking tab.
 
 ---
 

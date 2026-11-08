@@ -133,10 +133,12 @@ Resources:
   # Lightsail servers cannot take an IAM role, so the server holds this user's key.
   # It can add and read backups but not list, delete or overwrite history, because the
   # bucket keeps every version. The key is created separately, so that its secret never
-  # appears in the stack's outputs.
+  # appears in the stack's outputs. The boundary, from github-deploy.yaml, caps what this
+  # user can ever be given, so a change to this stack cannot turn it into an administrator.
   BackupWriter:
     Type: AWS::IAM::User
     Properties:
+      PermissionsBoundary: !Sub "arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-backup-user-boundary"
       Policies:
         - PolicyName: nightly-backups
           PolicyDocument:

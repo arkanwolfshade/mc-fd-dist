@@ -17,6 +17,7 @@ export default defineConfig({
         "server/cli/**",
         "tools/check-docs.ts",
         "tools/guides-pdf.ts",
+        "tools/deploy-checks.ts",
       ],
       reporter: ["text-summary"],
       // Set just below the level when coverage was first measured, so it cannot fall.

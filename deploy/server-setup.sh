@@ -32,7 +32,7 @@ Unattended-Upgrade::Automatic-Reboot-Time "03:30";
 EOF
 
 mkdir -p "$dir"
-for file in compose.yaml Caddyfile backup.sh restore.sh .env.example; do
+for file in compose.yaml Caddyfile backup.sh restore.sh release.sh .env.example; do
   curl -fsSL "$source/$file" -o "$dir/$file"
 done
 chmod +x "$dir"/*.sh
