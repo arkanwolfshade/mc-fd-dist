@@ -17,6 +17,8 @@ export function Distribution(props: {
   const { cards } = shift;
   const queue = distributionQueue(cards);
   const done = cards.filter((card) => card.status === "distributed");
+  // Still counted as families, but at the end of a shift each one needs correcting.
+  const unserved = cards.filter((card) => card.status !== "distributed");
 
   return (
     <div class="columns">
@@ -52,6 +54,22 @@ export function Distribution(props: {
         <h2>Finish</h2>
         {confirmClose ? (
           <div class="confirm">
+            {unserved.length > 0 && (
+              <>
+                <p>
+                  {unserved.length} {unserved.length === 1 ? "card has" : "cards have"} not been
+                  marked distributed. Correct {unserved.length === 1 ? "it" : "them"} before
+                  closing:
+                </p>
+                <ul class="unserved">
+                  {unserved.map((card) => (
+                    <li key={card.id}>
+                      #{card.number} · family of {card.familySize} · {card.status}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <p>Close this shift? Only an admin can reopen it.</p>
             <div class="choices">
               <button onClick={onCloseShift}>Yes, close the shift</button>

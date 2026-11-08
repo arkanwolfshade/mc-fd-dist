@@ -20,6 +20,45 @@ test("distribution closes the shift, and every station sees it lock", async ({ s
   await expect(frontDesk.getByRole("heading", { name: "New card" })).toHaveCount(0);
 });
 
+test("closing warns about families not yet served, and lists them", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 5, method: "East" });
+  await addCard(frontDesk, { familySize: 2, method: "Walk" });
+  await expect(frontDesk.getByRole("heading", { name: "Cards (2)" })).toBeVisible();
+  await callForward(frontDesk);
+
+  await distribution.getByRole("button", { name: "Close shift" }).click();
+
+  const confirm = distribution.locator(".confirm");
+  await expect(confirm).toContainText("2 cards have not been marked distributed");
+  await expect(confirm.locator("li")).toHaveText([
+    "#1 · family of 5 · entered",
+    "#2 · family of 2 · called",
+  ]);
+  await expect(confirm.getByRole("button", { name: "Keep it open" })).toBeVisible();
+  await expect(confirm.getByRole("button", { name: "Yes, close the shift" })).toBeVisible();
+});
+
+test("closing a fully served shift has nothing to warn about", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 3, method: "East" });
+  await callForward(frontDesk);
+  const card = queueCard(distribution, 1);
+  await card.getByRole("button", { name: "Confirm" }).click();
+  await card.getByLabel("Load 1 (lb)").fill("10");
+  await card.getByRole("button", { name: "Mark distributed" }).click();
+  await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
+
+  await distribution.getByRole("button", { name: "Close shift" }).click();
+
+  await expect(distribution.locator(".confirm")).toBeVisible();
+  await expect(distribution.locator(".confirm")).not.toContainText("not been marked distributed");
+});
+
 test("closing can be cancelled", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");

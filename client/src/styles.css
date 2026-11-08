@@ -290,6 +290,11 @@ a.button {
   background: #fff3bf;
 }
 
+.confirm .unserved {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
 .confirm p {
   margin: 0 0 8px;
   font-weight: 600;
