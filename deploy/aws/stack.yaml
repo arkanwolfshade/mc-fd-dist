@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Food bank shift tracker: one Lightsail server with a static IP and daily snapshots,
+  and an S3 bucket for nightly database backups with a key that can only add and read them.
+
+Parameters:
+  InstanceName:
+    Type: String
+    Default: mc-fd-dist
+  AvailabilityZone:
+    Type: String
+    Default: us-west-2a
+  BundleId:
+    Type: String
+    Description: Lightsail plan. List them with "aws lightsail get-bundles".
+  SetupCommit:
+    Type: String
+    Description: Git commit whose deploy folder the server is set up from.
+    AllowedPattern: "^[0-9a-f]{40}$"
+  BackupRetentionDays:
+    Type: Number
+    Default: 365
+    Description: How long nightly backups are kept in S3.
+  BudgetEmail:
+    Type: String
+    Default: ""
+    Description: Receives a warning if monthly spend passes the budget. Leave empty for none.
+  MonthlyBudget:
+    Type: Number
+    Default: 15
+
+Conditions:
+  HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
+
+Resources:
+  Server:
+    Type: AWS::Lightsail::Instance
+    Properties:
+      InstanceName: !Ref InstanceName
+      AvailabilityZone: !Ref AvailabilityZone
+      BlueprintId: ubuntu_24_04
+      BundleId: !Ref BundleId
+      AddOns:
+        - AddOnType: AutoSnapshot
+          Status: Enabled
+          AutoSnapshotAddOnRequest:
+            # 04:00 in Phoenix, after the nightly backup and the update window.
+            SnapshotTimeOfDay: "11:00"
+      Networking:
+        Ports:
+          - { Protocol: tcp, FromPort: 80, ToPort: 80, Cidrs: [0.0.0.0/0], Ipv6Cidrs: ["::/0"] }
+          - { Protocol: tcp, FromPort: 443, ToPort: 443, Cidrs: [0.0.0.0/0], Ipv6Cidrs: ["::/0"] }
+          - { Protocol: udp, FromPort: 443, ToPort: 443, Cidrs: [0.0.0.0/0], Ipv6Cidrs: ["::/0"] }
+          # SSH only from the Lightsail console's browser client.
+          - { Protocol: tcp, FromPort: 22, ToPort: 22, CidrListAliases: [lightsail-connect] }
+      UserData: !Sub |
+        #!/bin/bash
+        set -euo pipefail
+        curl -fsSL "https://raw.githubusercontent.com/arkanwolfshade/mc-fd-dist/${SetupCommit}/deploy/server-setup.sh" -o /root/server-setup.sh
+        bash /root/server-setup.sh "${SetupCommit}"
+      Tags:
+        - Key: app
+          Value: mc-fd-dist
+
+  StaticIp:
+    Type: AWS::Lightsail::StaticIp
+    Properties:
+      StaticIpName: !Sub "${InstanceName}-ip"
+      AttachedTo: !Ref Server
+
+  # Kept if the stack is deleted, so that removing the server never removes its backups.
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-backups
+            Status: Enabled
+            Prefix: nightly/
+            ExpirationInDays: !Ref BackupRetentionDays
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+      Tags:
+        - Key: app
+          Value: mc-fd-dist
+
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: RequireTls
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt BackupBucket.Arn
+              - !Sub "${BackupBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # Lightsail servers cannot take an IAM role, so the server holds this user's key.
+  # It can add and read backups but not list, delete or overwrite history, because the
+  # bucket keeps every version. The key is created separately, so that its secret never
+  # appears in the stack's outputs.
+  BackupWriter:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: nightly-backups
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub "${BackupBucket.Arn}/nightly/*"
+
+  Budget:
+    Type: AWS::Budgets::Budget
+    Condition: HasBudgetEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub "${InstanceName}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref MonthlyBudget
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetEmail
+
+Outputs:
+  StaticIpAddress:
+    Description: Point the site's DNS record here.
+    Value: !GetAtt StaticIp.IpAddress
+  BackupBucketName:
+    Value: !Ref BackupBucket
+  BackupWriterUserName:
+    Value: !Ref BackupWriter

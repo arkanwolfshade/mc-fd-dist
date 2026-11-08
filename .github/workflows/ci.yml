@@ -34,6 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: shellcheck deploy/*.sh
+      - run: pipx run cfn-lint --regions us-west-2 -- deploy/aws/stack.yaml
       - run: docker build -t mc-fd-dist:ci .
       - run: deploy/smoke-test.sh mc-fd-dist:ci
       - uses: actions/upload-artifact@v4
