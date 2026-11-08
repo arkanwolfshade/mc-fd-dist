@@ -9,6 +9,7 @@ The project is in early development and is not yet in use.
 - [Project plan](docs/project-plan.md): requirements, data model, build order and open questions
 - [Architecture decision records](docs/adr/README.md): why the system is built this way
 - [Contributing](CONTRIBUTING.md): how changes are made
+- [Security policy](SECURITY.md): how to report a vulnerability
 
 ## Development
 
