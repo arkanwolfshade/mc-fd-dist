@@ -60,10 +60,31 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              # Most Lightsail actions cannot be limited to one resource.
+              # The actions CloudFormation lists for the stack's Lightsail resources
+              # ("aws cloudformation describe-type"). The server and IP are named only when
+              # created, so they cannot be listed here as resources.
               - Sid: Lightsail
                 Effect: Allow
-                Action: lightsail:*
+                Action:
+                  - lightsail:AllocateStaticIp
+                  - lightsail:AttachDisk
+                  - lightsail:AttachStaticIp
+                  - lightsail:CreateInstances
+                  - lightsail:DetachDisk
+                  - lightsail:DetachStaticIp
+                  - lightsail:DisableAddOn
+                  - lightsail:EnableAddOn
+                  - lightsail:GetDisk
+                  - lightsail:GetInstance
+                  - lightsail:GetInstances
+                  - lightsail:GetRegions
+                  - lightsail:GetStaticIp
+                  - lightsail:GetStaticIps
+                  - lightsail:PutInstancePublicPorts
+                  - lightsail:StartInstance
+                  - lightsail:StopInstance
+                  - lightsail:TagResource
+                  - lightsail:UntagResource
                 Resource: "*"
               - Sid: KeepServer
                 Effect: Deny
@@ -71,8 +92,6 @@ Resources:
                   - lightsail:DeleteInstance
                   - lightsail:DeleteInstanceSnapshot
                   - lightsail:DeleteAutoSnapshot
-                  - lightsail:DisableAddOn
-                  - lightsail:DetachStaticIp
                   - lightsail:ReleaseStaticIp
                 Resource: "*"
               - Sid: BackupBucket
