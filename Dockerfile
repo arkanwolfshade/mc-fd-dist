@@ -1,5 +1,9 @@
 # Builds on the CI runner rather than the server, which is too small to compile comfortably.
 FROM node:24.22.1-bookworm-slim AS build
+# npm compiles better-sqlite3 from source, which needs these. Only this stage has them.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
