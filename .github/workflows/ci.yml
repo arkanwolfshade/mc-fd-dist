@@ -28,3 +28,17 @@ jobs:
           name: playwright-traces
           path: test-results/
           retention-days: 7
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck deploy/*.sh
+      - run: docker build -t mc-fd-dist:ci .
+      - run: deploy/smoke-test.sh mc-fd-dist:ci
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-test-logs
+          path: deploy/smoke-test.log
+          retention-days: 7

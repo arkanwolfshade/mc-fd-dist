@@ -23,6 +23,7 @@ function removeWithSideFiles(path: string): void {
 // The copy is switched out of WAL mode so that it is one self-contained file.
 export async function createBackup(sourcePath: string, destinationPath: string): Promise<void> {
   const partial = `${destinationPath}.partial`;
+  mkdirSync(dirname(destinationPath), { recursive: true });
   try {
     const source = new Sqlite(sourcePath, { readonly: true, fileMustExist: true });
     try {

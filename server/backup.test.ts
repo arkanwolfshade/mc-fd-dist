@@ -62,6 +62,15 @@ describe("backups", () => {
       expect(readdirSync(dir).filter((name) => name.startsWith("backup"))).toEqual(["backup.db"]);
     });
 
+    it("creates the folder it writes into", async () => {
+      addShift(source, "2026-11-06");
+      const nested = join(dir, "backups", "nightly.db");
+
+      await createBackup(source, nested);
+
+      expect(shiftDates(nested)).toEqual(["2026-11-06"]);
+    });
+
     it("leaves no partial file when the source is not a database", async () => {
       writeFileSync(source, "this is not a database, and it is long enough to be read as one");
 

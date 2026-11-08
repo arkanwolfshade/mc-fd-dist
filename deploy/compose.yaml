@@ -1,0 +1,60 @@
+# The app behind Caddy, which obtains and renews the HTTPS certificate. Settings come
+# from .env in this folder; see .env.example.
+services:
+  app:
+    image: ${APP_IMAGE:?set APP_IMAGE in .env}
+    restart: unless-stopped
+    environment:
+      TIME_ZONE: ${TIME_ZONE:-America/Phoenix}
+    volumes:
+      - app-data:/data
+      - backups:/data/backups
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging: *logging
+
+  # Used by the backup and restore scripts only. It sees the backups, never the live database.
+  aws:
+    image: amazon/aws-cli
+    profiles:
+      - tools
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-}
+    volumes:
+      - backups:/backups
+
+volumes:
+  app-data:
+  backups:
+  caddy-data:
+  caddy-config:
