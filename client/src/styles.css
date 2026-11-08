@@ -149,6 +149,52 @@ a.button {
   flex-basis: 100%;
 }
 
+.help {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.guide {
+  max-width: 900px;
+  line-height: 1.5;
+}
+
+.guide h1 {
+  font-size: 26px;
+}
+
+.guide h2 {
+  margin-top: 16px;
+}
+
+.guide img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 8px 0;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+}
+
+.guide table {
+  border-collapse: collapse;
+}
+
+.guide th,
+.guide td {
+  padding: 6px 10px;
+  border: 1px solid #ced4da;
+  text-align: left;
+}
+
+.guide hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #e9ecef;
+}
+
 .rejected {
   display: flex;
   flex-wrap: wrap;

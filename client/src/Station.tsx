@@ -9,6 +9,7 @@ import { Admin } from "./Admin.js";
 import { ApiError, NetworkError, api, connectLive } from "./api.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
+import { Help } from "./Help.js";
 import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
@@ -16,20 +17,24 @@ import { isoDate, mergeCard } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
 
-type View = "front_desk" | "distribution" | "summary" | "admin";
+type View = "front_desk" | "distribution" | "summary" | "admin" | "help";
 
 const VIEW_LABELS: Record<View, string> = {
   front_desk: "Front desk",
   distribution: "Distribution",
   summary: "Totals",
   admin: "Admin",
+  help: "Help",
 };
 
 const VIEWS_BY_ROLE: Record<Role, View[]> = {
-  front_desk: ["front_desk", "summary"],
-  distribution: ["distribution", "summary"],
-  admin: ["front_desk", "distribution", "summary", "admin"],
+  front_desk: ["front_desk", "summary", "help"],
+  distribution: ["distribution", "summary", "help"],
+  admin: ["front_desk", "distribution", "summary", "admin", "help"],
 };
+
+// The admin and help screens don't depend on today's shift.
+const SHIFT_VIEWS: ReadonlySet<View> = new Set(["front_desk", "distribution", "summary"]);
 
 const DATE_CHECK_INTERVAL_MS = 60 * 1000;
 
@@ -306,13 +311,14 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       ))}
 
       {view === "admin" && <Admin identity={identity} />}
+      {view === "help" && <Help role={identity.role} />}
 
-      {view !== "admin" && shiftView === undefined && (
+      {SHIFT_VIEWS.has(view) && shiftView === undefined && (
         <p class="notice">
           {connected ? "Loading…" : "Today's shift can't be loaded until the connection returns."}
         </p>
       )}
-      {view !== "admin" && shiftView === null && (
+      {SHIFT_VIEWS.has(view) && shiftView === null && (
         <div class="panel">
           <p>No shift has been opened for today.</p>
           <button class="primary" onClick={openShift}>
@@ -320,7 +326,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
           </button>
         </div>
       )}
-      {view !== "admin" && shiftView?.status === "closed" && (
+      {SHIFT_VIEWS.has(view) && shiftView?.status === "closed" && (
         <>
           <p class="warning">
             This shift is closed. An admin can reopen it if something needs correcting.
