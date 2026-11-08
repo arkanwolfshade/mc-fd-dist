@@ -19,6 +19,14 @@ ENV NODE_ENV=production \
     DATABASE_PATH=/data/mc-fd-dist.db \
     CLIENT_DIR=/app/dist/client \
     TRUST_PROXY=true
+# The app never runs npm or corepack, and their own dependencies carry known vulnerabilities,
+# so they are removed. Debian's security updates are applied because the base image can
+# lag behind them.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+  && apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules

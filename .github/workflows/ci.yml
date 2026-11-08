@@ -64,6 +64,7 @@ jobs:
         with:
           image: mc-fd-dist:ci
           fail-build: false
+          severity-cutoff: high
           only-fixed: true
           output-format: json
       # Fixable high and critical vulnerabilities fail the build, reported as annotations.
