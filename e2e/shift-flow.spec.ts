@@ -205,9 +205,18 @@ test("a station left signed in overnight moves on to the new day", async ({
   await expect(page.getByText("2026-11-07")).toBeVisible();
   await openShift(page);
 
-  await page.clock.fastForward("12:00:00");
+  // A resync for the old day that answers late must not bring the old shift back.
+  await page.route("**/api/shifts?date=2026-11-07", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await route.continue();
+  });
+  await page.clock.fastForward("03:59:45");
+  await page.clock.fastForward("00:01:00");
 
   await expect(page.getByText("2026-11-08")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open today's shift" })).toBeVisible();
+  // Still the new day once the late answer for the old day has arrived.
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   await expect(page.getByRole("button", { name: "Open today's shift" })).toBeVisible();
   await context.close();
 });

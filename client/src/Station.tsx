@@ -92,10 +92,15 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   useEffect(() => outbox.subscribe(setWaiting), []);
 
   const loadShift = useCallback(async () => {
+    const requested = date.current;
     try {
-      setShift(await api<ShiftWithCards>("GET", `/api/shifts?date=${date.current}`));
+      const loaded = await api<ShiftWithCards>("GET", `/api/shifts?date=${requested}`);
+      // An answer for a day that has since ended must not replace the new day's shift.
+      if (requested !== date.current) return;
+      setShift(loaded);
       setConnected(true);
     } catch (failure) {
+      if (requested !== date.current) return;
       if (failure instanceof ApiError && failure.status === 404) {
         setShift(null);
         setConnected(true);

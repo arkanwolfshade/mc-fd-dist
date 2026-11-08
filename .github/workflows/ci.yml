@@ -59,13 +59,26 @@ jobs:
       - run: pipx run checkov==3.4.3 --compact --quiet -d deploy/aws --framework cloudformation
       - run: pipx run checkov==3.4.3 --compact --quiet -f Dockerfile --framework dockerfile
       - run: docker build -t mc-fd-dist:ci .
-      - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+      - id: grype
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
           image: mc-fd-dist:ci
-          fail-build: true
-          severity-cutoff: high
+          fail-build: false
           only-fixed: true
-          output-format: table
+          output-format: json
+      # Fixable high and critical vulnerabilities fail the build, reported as annotations.
+      - env:
+          REPORT: ${{ steps.grype.outputs.json }}
+        run: |
+          jq -r '.matches[]
+            | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical")
+            | select(.vulnerability.fix.state == "fixed")
+            | "\(.vulnerability.id) \(.vulnerability.severity) in \(.artifact.name) \(.artifact.version) (\(.artifact.type)), fixed in \(.vulnerability.fix.versions | join(", "))"' \
+            "$REPORT" | sort -u > grype-findings.txt
+          while IFS= read -r line || [ -n "$line" ]; do
+            echo "::error title=Grype::$line"
+          done < grype-findings.txt
+          [ ! -s grype-findings.txt ]
       - run: deploy/smoke-test.sh mc-fd-dist:ci
       - run: deploy/dast.sh mc-fd-dist:ci
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
