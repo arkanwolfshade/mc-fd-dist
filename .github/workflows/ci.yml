@@ -50,11 +50,11 @@ jobs:
           no-fail: true
       # Findings become annotations, which can be read without access to the job log.
       - run: |
-          cat hadolint.txt
+          grep -v '^[[:space:]]*$' hadolint.txt > findings.txt || true
           while IFS= read -r line || [ -n "$line" ]; do
             echo "::error title=hadolint::$line"
-          done < hadolint.txt
-          [ ! -s hadolint.txt ]
+          done < findings.txt
+          [ ! -s findings.txt ]
       - run: pipx run cfn-lint --regions us-west-2 -- deploy/aws/stack.yaml
       - run: pipx run checkov==3.4.3 --compact --quiet -d deploy/aws --framework cloudformation
       - run: pipx run checkov==3.4.3 --compact --quiet -f Dockerfile --framework dockerfile
