@@ -40,7 +40,7 @@ describe("shift and card routes", () => {
   });
 
   function request(
-    method: "GET" | "POST" | "PATCH",
+    method: "GET" | "POST" | "PATCH" | "DELETE",
     url: string,
     cookie: string,
     payload?: object,
@@ -288,6 +288,94 @@ describe("shift and card routes", () => {
       const second = await addCard(shiftId, { number: 2 });
       const response = await patchCard(second.id, frontDesk, { revision: 1, number: 1 });
       expect(response.statusCode).toBe(409);
+    });
+  });
+
+  describe("leaving without food", () => {
+    it("lets distribution record that a family left, and put them back", async () => {
+      const card = await addCard(await openShift());
+      const left = await patchCard(card.id, distribution, { revision: 1, status: "left" });
+      expect(left.statusCode).toBe(200);
+      expect(left.json().status).toBe("left");
+
+      const back = await patchCard(card.id, distribution, { revision: 2, status: "called" });
+      expect(back.json().status).toBe("called");
+    });
+
+    it("refuses it once the family has been served", async () => {
+      const card = await addCard(await openShift());
+      await patchCard(card.id, frontDesk, { revision: 1, status: "called" });
+      await patchCard(card.id, distribution, { revision: 2, status: "confirmed" });
+      await patchCard(card.id, distribution, { revision: 3, status: "distributed" });
+      const response = await patchCard(card.id, distribution, { revision: 4, status: "left" });
+      expect(response.statusCode).toBe(403);
+    });
+
+    it("refuses it from the front desk", async () => {
+      const card = await addCard(await openShift());
+      const response = await patchCard(card.id, frontDesk, { revision: 1, status: "left" });
+      expect(response.statusCode).toBe(403);
+    });
+  });
+
+  describe("deleting a card", () => {
+    it("lets an admin delete a card entered by mistake", async () => {
+      const shiftId = await openShift();
+      const card = await addCard(shiftId);
+
+      const response = await request("DELETE", `/api/cards/${card.id}`, admin);
+
+      expect(response.statusCode).toBe(204);
+      const shift = await request("GET", `/api/shifts?date=${DATE}`, admin);
+      expect(shift.json().cards).toEqual([]);
+    });
+
+    it("records the deleted card's details in the activity log", async () => {
+      const card = await addCard(await openShift(), { number: 7, familySize: 3 });
+      await request("DELETE", `/api/cards/${card.id}`, admin);
+
+      const entry = db
+        .prepare("SELECT actor, detail FROM audit_log WHERE action = 'card.delete'")
+        .get() as { actor: string; detail: string };
+      expect(entry.actor).toBe("pat");
+      expect(JSON.parse(entry.detail)).toMatchObject({
+        card: { number: 7, familySize: 3, arrivalMethod: "East" },
+      });
+    });
+
+    it("tells every station the card is gone", async () => {
+      const shiftId = await openShift();
+      const card = await addCard(shiftId);
+      const socket = await app.injectWS("/api/live", { headers: { cookie: frontDesk } });
+      const message = new Promise<string>((resolve) => {
+        socket.once("message", (data) => resolve(messageText(data)));
+      });
+
+      await request("DELETE", `/api/cards/${card.id}`, admin);
+
+      expect(JSON.parse(await message)).toEqual({ type: "card-deleted", shiftId, cardId: card.id });
+      socket.terminate();
+    });
+
+    it("is for admins only", async () => {
+      const card = await addCard(await openShift());
+      for (const station of [frontDesk, distribution]) {
+        const response = await request("DELETE", `/api/cards/${card.id}`, station);
+        expect(response.statusCode).toBe(403);
+      }
+    });
+
+    it("refuses a card on a closed shift", async () => {
+      const shiftId = await openShift();
+      const card = await addCard(shiftId);
+      db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(shiftId);
+      const response = await request("DELETE", `/api/cards/${card.id}`, admin);
+      expect(response.statusCode).toBe(409);
+    });
+
+    it("returns 404 for an unknown card", async () => {
+      const response = await request("DELETE", "/api/cards/999", admin);
+      expect(response.statusCode).toBe(404);
     });
   });
 

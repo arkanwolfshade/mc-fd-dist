@@ -1,6 +1,6 @@
 # 0012. Define shift totals in one shared calculation
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [0019](0019-correcting-unserved-cards.md), which excludes families who left without food
 - **Date:** 2026-11-06
 
 ## Context

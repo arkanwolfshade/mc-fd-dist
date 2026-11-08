@@ -70,6 +70,7 @@ The tables and what each holds:
 **[SPEC]**
 - Migrations live in `MIGRATIONS` in `server/db.ts`. Each entry's position is its schema version, stored in `user_version`.
 - Never edit or reorder a released migration. Add a new one.
+- SQLite cannot change a CHECK constraint, so changing one means rebuilding the table, as migration 5 does for `card`.
 
 ---
 
@@ -85,6 +86,7 @@ The tables and what each holds:
 - A write with an old revision gets `409` and the current card. The station shows it and asks the volunteer to review.
 - Records are created with a client-generated `clientId`. Repeating a create returns the existing record, so retries never duplicate.
 - Status moves one step at a time: entered, called, confirmed, distributed (ADR 0010).
+- Off that path, distribution or an admin can record "left", left without food, on any card not yet distributed. Admins can delete a card while its shift is open (ADR 0019).
 
 ---
 

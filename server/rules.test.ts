@@ -48,6 +48,30 @@ describe("canChangeStatus", () => {
     expect(canChangeStatus("admin", "entered", "confirmed")).toBe(false);
   });
 
+  it("lets distribution record that a family left without food, at any point before serving", () => {
+    expect(canChangeStatus("distribution", "entered", "left")).toBe(true);
+    expect(canChangeStatus("distribution", "called", "left")).toBe(true);
+    expect(canChangeStatus("distribution", "confirmed", "left")).toBe(true);
+    expect(canChangeStatus("admin", "entered", "left")).toBe(true);
+  });
+
+  it("does not let a served family be recorded as leaving without food", () => {
+    expect(canChangeStatus("distribution", "distributed", "left")).toBe(false);
+    expect(canChangeStatus("admin", "distributed", "left")).toBe(false);
+  });
+
+  it("keeps leaving without food out of the front desk's hands", () => {
+    expect(canChangeStatus("front_desk", "entered", "left")).toBe(false);
+    expect(canChangeStatus("front_desk", "left", "called")).toBe(false);
+  });
+
+  it("undoes leaving without food by putting the card back in the queue", () => {
+    expect(canChangeStatus("distribution", "left", "called")).toBe(true);
+    expect(canChangeStatus("admin", "left", "called")).toBe(true);
+    expect(canChangeStatus("distribution", "left", "distributed")).toBe(false);
+    expect(canChangeStatus("admin", "left", "entered")).toBe(false);
+  });
+
   it("lets an admin make any single step", () => {
     expect(canChangeStatus("admin", "entered", "called")).toBe(true);
     expect(canChangeStatus("admin", "called", "confirmed")).toBe(true);

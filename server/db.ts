@@ -3,7 +3,7 @@ import type { Database } from "better-sqlite3";
 
 // Applied in order. Each entry's position is its schema version, so entries must
 // never be edited or reordered once released: add a new one instead.
-const MIGRATIONS: readonly string[] = [
+export const MIGRATIONS: readonly string[] = [
   `
   CREATE TABLE account (
     id INTEGER PRIMARY KEY,
@@ -74,6 +74,33 @@ const MIGRATIONS: readonly string[] = [
     action TEXT NOT NULL,
     detail TEXT NOT NULL
   );
+  `,
+  // SQLite cannot change a CHECK constraint, so the card table is rebuilt to allow "left".
+  `
+  CREATE TABLE card_new (
+    id INTEGER PRIMARY KEY,
+    shift_id INTEGER NOT NULL REFERENCES shift (id),
+    client_id TEXT NOT NULL UNIQUE,
+    number INTEGER NOT NULL CHECK (number > 0),
+    family_size INTEGER NOT NULL CHECK (family_size > 0),
+    arrival_method TEXT NOT NULL
+      CHECK (arrival_method IN ('East', 'West', 'AC', 'Bus', 'Walk')),
+    senior_box INTEGER NOT NULL DEFAULT 0,
+    cheese INTEGER NOT NULL DEFAULT 0,
+    other TEXT NOT NULL DEFAULT '',
+    tefap_bags INTEGER NOT NULL CHECK (tefap_bags >= 0),
+    tefap_override INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'entered'
+      CHECK (status IN ('entered', 'called', 'confirmed', 'distributed', 'left')),
+    load_1 REAL CHECK (load_1 >= 0),
+    load_2 REAL CHECK (load_2 >= 0),
+    load_3 REAL CHECK (load_3 >= 0),
+    revision INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (shift_id, number)
+  );
+  INSERT INTO card_new SELECT * FROM card;
+  DROP TABLE card;
+  ALTER TABLE card_new RENAME TO card;
   `,
 ];
 

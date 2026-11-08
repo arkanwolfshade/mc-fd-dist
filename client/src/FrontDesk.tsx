@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS, tefapBags } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
+import { DeleteCardButton, StatusLabel } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import { nextCardNumber } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
@@ -34,8 +35,10 @@ export function FrontDesk(props: {
   submit: Submit;
   onSaved: (card: Card) => void;
   onUpdate: UpdateCard;
+  // Given only to admins.
+  onDelete: ((card: Card) => void) | undefined;
 }) {
-  const { shift, submit: submitWrite, onSaved, onUpdate } = props;
+  const { shift, submit: submitWrite, onSaved, onUpdate, onDelete } = props;
   const [form, setForm] = useState<CardForm>(EMPTY_FORM);
   // Numbers still being saved, so that the next card is not offered one of them.
   const [saving, setSaving] = useState<number[]>([]);
@@ -202,13 +205,14 @@ export function FrontDesk(props: {
                 {card.seniorBox ? " · senior box" : ""}
                 {card.cheese ? " · cheese" : ""}
               </span>
-              <span class={`status ${card.status}`}>{card.status}</span>
+              <StatusLabel status={card.status} />
               {card.status === "entered" && (
                 <button onClick={() => onUpdate(card, { status: "called" })}>Call forward</button>
               )}
               {card.status === "called" && (
                 <button onClick={() => onUpdate(card, { status: "entered" })}>Undo call</button>
               )}
+              {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
             </li>
           ))}
         </ul>

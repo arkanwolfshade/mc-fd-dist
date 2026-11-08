@@ -75,6 +75,7 @@ Each card shows where it is:
 | called | Sent to distribution |
 | confirmed | Distribution has the family |
 | distributed | Food given out |
+| left without food | The family left before being served |
 
 **[NOTE]**
 A card marked **waiting to send** has no **Call forward** button yet. It gets one once the connection returns and the card reaches the server.

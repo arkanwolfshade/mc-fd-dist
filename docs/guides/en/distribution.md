@@ -60,7 +60,20 @@ Fix: Tap **Go back and enter weight** and enter the weights. Only choose **Yes, 
 
 ---
 
-## 4. Returned items
+## 4. A family who leaves without food
+
+**[SPEC]**
+- If a family leaves before being served, tap **Left without food** on their card, then **Yes, left without food**.
+- The card leaves the queue and moves to the **Distributed** list, marked **left without food**.
+- The family is not counted as served. Totals show them on their own line, **Left without food**.
+- Recorded by mistake? Tap **Back to queue** on that card.
+
+**[NOTE]**
+Only distribution and staff can record this. A card entered by mistake, such as a duplicate, is different: ask staff to delete it.
+
+---
+
+## 5. Returned items
 
 **[SPEC]**
 - When items come back, enter their weight under **Returned items** and tap **Add returned batch**.
@@ -71,7 +84,7 @@ Fix: Tap **Go back and enter weight** and enter the weights. Only choose **Yes, 
 
 ---
 
-## 5. End of shift: Door Dash and Helping Hands
+## 6. End of shift: Door Dash and Helping Hands
 
 **[SPEC]**
 - At the end of the shift, enter each partner's batch under **End of shift: last cards**.
@@ -82,30 +95,36 @@ Fix: Tap **Go back and enter weight** and enter the weights. Only choose **Yes, 
 
 ---
 
-## 6. Totals
+## 7. Totals
 
 **[SPEC]**
 - Tap **Totals** at the top to see the shift totals.
 
 | Total | How it is worked out |
 |---|---|
-| Total # of families | Cards entered, plus Door Dash and Helping Hands families |
+| Total # of families | Cards entered, plus Door Dash and Helping Hands families. Families who left without food are not included |
+| Left without food | Cards recorded as leaving without food |
 | Total weight | Card loads, plus Door Dash and Helping Hands weight |
 | Total return weight | All returned batches |
 | Net weight | Total weight minus return weight |
-| TEFAP bags, senior boxes, cheese | Counted from the cards |
+| TEFAP bags, senior boxes, cheese | Counted from the cards of families served |
 
 ![Shift totals](../images/totals.png)
 
 **[NOTE]**
-A card entered at the front desk counts as a family even before it is distributed.
+A card entered at the front desk counts as a family even before it is distributed. By the end of the shift, every card should be either distributed or recorded as left without food.
 
 ---
 
-## 7. Closing the shift
+## 8. Closing the shift
 
 **[SPEC]**
-- When the last family is served and every batch is entered, tap **Close shift** under **Finish**, then **Yes, close the shift**.
+- When the last family is served and every batch is entered, tap **Close shift** under **Finish**.
+- If any card has not been distributed, the app lists it. Correct each one before closing:
+  - the family was served: go back to the queue and finish their card;
+  - the family left: tap **Left without food**;
+  - the card was entered by mistake: staff can **Delete** it.
+- Then tap **Yes, close the shift**.
 - Both stations lock and show the final totals.
 - Only staff can reopen a closed shift.
 - A shift left open closes by itself overnight.

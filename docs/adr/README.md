@@ -17,12 +17,13 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0007](0007-shared-role-logins.md) | Use shared role logins and named admin accounts | Accepted |
 | [0008](0008-commit-to-main-until-in-use.md) | Commit directly to main until the app is in use | Accepted |
 | [0009](0009-node-typescript-fastify.md) | Use Node.js, TypeScript and Fastify on the server | Accepted |
-| [0010](0010-single-forward-card-status.md) | Move each card along a single status path | Accepted |
+| [0010](0010-single-forward-card-status.md) | Move each card along a single status path | Accepted; amended by 0019 |
 | [0011](0011-one-shift-per-date.md) | Allow one shift per date | Accepted |
-| [0012](0012-shift-totals.md) | Define shift totals in one shared calculation | Accepted |
+| [0012](0012-shift-totals.md) | Define shift totals in one shared calculation | Accepted; amended by 0019 |
 | [0013](0013-closing-shifts.md) | Close shifts by hand and automatically overnight | Accepted |
 | [0014](0014-keep-working-through-dropouts.md) | Queue writes on the device during connection dropouts | Accepted |
 | [0015](0015-deployment-and-backups.md) | Deploy with Docker Compose on Lightsail from a CloudFormation stack | Accepted |
 | [0016](0016-code-health-checks.md) | Enforce code health checks in CI | Accepted |
 | [0017](0017-branch-rulesets.md) | Protect main with branch rulesets | Accepted |
 | [0018](0018-documentation.md) | Write the guides and developer docs once, in HADS Markdown | Accepted |
+| [0019](0019-correcting-unserved-cards.md) | Correct unserved cards by recording them as left, or by deleting them | Accepted |

@@ -33,7 +33,7 @@ test("closing warns about families not yet served, and lists them", async ({ sig
 
   const confirm = distribution.locator(".confirm");
   await expect(confirm).toContainText("2 cards have not been marked distributed");
-  await expect(confirm.locator("li")).toHaveText([
+  await expect(confirm.locator(".unserved-card")).toHaveText([
     "#1 · family of 5 · entered",
     "#2 · family of 2 · called",
   ]);

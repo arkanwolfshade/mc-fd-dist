@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { PartnerBatches, ReturnedBatches } from "./Batches.js";
+import { DeleteCardButton, LeftWithoutFoodButton, StatusLabel } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import { distributionQueue, hasWeight, parseLoads } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
@@ -10,15 +11,18 @@ export function Distribution(props: {
   shift: ShiftView;
   submit: Submit;
   onUpdate: UpdateCard;
+  // Given only to admins.
+  onDelete: ((card: Card) => void) | undefined;
   onCloseShift: () => void;
 }) {
-  const { shift, submit, onUpdate, onCloseShift } = props;
+  const { shift, submit, onUpdate, onDelete, onCloseShift } = props;
   const [confirmClose, setConfirmClose] = useState(false);
   const { cards } = shift;
   const queue = distributionQueue(cards);
   const done = cards.filter((card) => card.status === "distributed");
+  const left = cards.filter((card) => card.status === "left");
   // Still counted as families, but at the end of a shift each one needs correcting.
-  const unserved = cards.filter((card) => card.status !== "distributed");
+  const unserved = cards.filter((card) => card.status !== "distributed" && card.status !== "left");
 
   return (
     <div class="columns">
@@ -44,6 +48,15 @@ export function Distribution(props: {
               <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
             </li>
           ))}
+          {left.map((card) => (
+            <li key={card.id}>
+              <span>
+                <strong>#{card.number}</strong> · family of {card.familySize}
+              </span>
+              <StatusLabel status={card.status} />
+              <button onClick={() => onUpdate(card, { status: "called" })}>Back to queue</button>
+            </li>
+          ))}
         </ul>
       </section>
 
@@ -64,7 +77,13 @@ export function Distribution(props: {
                 <ul class="unserved">
                   {unserved.map((card) => (
                     <li key={card.id}>
-                      #{card.number} · family of {card.familySize} · {card.status}
+                      <span class="unserved-card">
+                        #{card.number} · family of {card.familySize} · {card.status}
+                      </span>
+                      <span class="choices">
+                        <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
+                        {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -108,7 +127,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
         {card.seniorBox ? " · senior box" : ""}
         {card.cheese ? " · cheese" : ""} · TEFAP {card.tefapBags}
         {card.other ? ` · ${card.other}` : ""}
-        <span class={`status ${card.status}`}>{card.status}</span>
+        <StatusLabel status={card.status} />
       </div>
 
       {card.status === "called" && (
@@ -117,6 +136,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
             Confirm
           </button>
           <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
+          <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
         </div>
       )}
 
@@ -148,6 +168,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
             </button>
             <button onClick={() => onUpdate(card, { status: "called" })}>Undo confirm</button>
             <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
+            <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
           </div>
           {confirmNoWeight && (
             <div class="confirm">

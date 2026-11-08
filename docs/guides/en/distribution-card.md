@@ -16,6 +16,7 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the distribution g
 2. Enter **Load 1**, **Load 2**, **Load 3** as needed.
 3. **Mark distributed**.
 4. Details wrong? **Correct details**, change them, **Save correction**.
+5. Family left before being served? **Left without food**, then confirm.
 
 ## During the shift
 
@@ -27,7 +28,8 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the distribution g
 **[SPEC]**
 1. Door Dash and Helping Hands: tap the partner, enter families and weight, **Add last cards**.
 2. Check **Totals**.
-3. **Close shift**, then **Yes, close the shift**.
+3. **Close shift**. Any card not distributed is listed: finish it, record **Left without food**, or ask staff to delete it.
+4. **Yes, close the shift**.
 
 ## If something goes wrong
 

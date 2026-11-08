@@ -69,6 +69,28 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
     );
   }, []);
 
+  const removeCard = useCallback((shiftId: number, cardId: number) => {
+    setShift((current) =>
+      current && current.id === shiftId
+        ? { ...current, cards: current.cards.filter((card) => card.id !== cardId) }
+        : current,
+    );
+  }, []);
+
+  // Admins only, and it needs a connection: a deletion is never queued. See ADR 0019.
+  const deleteCard =
+    identity.role === "admin"
+      ? async (card: Card) => {
+          setNotice("");
+          try {
+            await api("DELETE", `/api/cards/${card.id}`);
+            removeCard(card.shiftId, card.id);
+          } catch (failure) {
+            setNotice(failure instanceof Error ? failure.message : "Could not delete that card");
+          }
+        }
+      : undefined;
+
   const outbox = useMemo(
     () =>
       new Outbox({
@@ -167,6 +189,8 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         });
         if (live.type === "card") {
           applyCard(live.card);
+        } else if (live.type === "card-deleted") {
+          removeCard(live.shiftId, live.cardId);
         } else if (live.type === "shift") {
           setShift((current) =>
             current && current.id === live.shift.id
@@ -340,6 +364,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
           submit={(write) => outbox.submit(write)}
           onSaved={applyCard}
           onUpdate={updateCard}
+          onDelete={deleteCard}
         />
       )}
       {shiftView?.status === "open" && view === "distribution" && (
@@ -347,6 +372,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
           shift={shiftView}
           submit={(write) => outbox.submit(write)}
           onUpdate={updateCard}
+          onDelete={deleteCard}
           onCloseShift={() => closeShift(shiftView.id)}
         />
       )}

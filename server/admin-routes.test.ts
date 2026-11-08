@@ -191,6 +191,23 @@ describe("admin and closing routes", () => {
       expect(row).toContain("2026-11-07,open,1");
     });
 
+    it("exports families who left without food in their own column", async () => {
+      const shiftId = await openShift("2026-11-07");
+      await addCard(shiftId);
+      await addCard(shiftId, { number: 2 });
+      db.prepare("UPDATE card SET status = 'left' WHERE number = 2").run();
+      const response = await request(
+        "GET",
+        "/api/admin/reports/shifts.csv?from=2026-11-01&to=2026-11-30",
+        admin,
+      );
+      const [header, row] = response.body.split("\r\n");
+      expect(header).toContain(
+        "families_total,families_cards,families_partners,families_left,weight_total",
+      );
+      expect(row).toMatch(/^2026-11-07,open,1,1,0,1,/);
+    });
+
     it("exports cards as a CSV and guards free text against formulas", async () => {
       const shiftId = await openShift("2026-11-07");
       await addCard(shiftId, { other: "=HYPERLINK(1)" });

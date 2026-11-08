@@ -6,6 +6,7 @@ import type { PartnerBatch, ReturnedBatch } from "./batches.js";
 import {
   createCard,
   createShift,
+  deleteCard,
   findCard,
   findCardByClientId,
   findShift,
@@ -14,7 +15,7 @@ import {
   updateCard,
 } from "./cards.js";
 import type { Card, CardChanges, NewCard, Shift } from "./cards.js";
-import { ARRIVAL_METHODS, CARD_STATUSES, canChangeStatus } from "./rules.js";
+import { ALL_CARD_STATUSES, ARRIVAL_METHODS, canChangeStatus } from "./rules.js";
 import { shiftSummary } from "./summary.js";
 
 const CARD_DETAIL_PROPERTIES = {
@@ -39,6 +40,7 @@ export interface CardRouteContext {
 
 export type LiveMessage =
   | { type: "card"; card: Card }
+  | { type: "card-deleted"; shiftId: number; cardId: number }
   | { type: "shift"; shift: Shift }
   | {
       type: "batches";
@@ -163,7 +165,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
             revision: { type: "integer", minimum: 1 },
             ...CARD_DETAIL_PROPERTIES,
             tefapBags: { type: ["integer", "null"], minimum: 0, maximum: 20 },
-            status: { type: "string", enum: CARD_STATUSES },
+            status: { type: "string", enum: ALL_CARD_STATUSES },
             loads: {
               type: "array",
               maxItems: 3,
@@ -209,6 +211,30 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       audit(request, "card.update", { shiftId: result.shiftId, number: result.number, changes });
       broadcast({ type: "card", card: result });
       return result;
+    },
+  );
+
+  // For a card entered by mistake. The activity log keeps what it held. See ADR 0019.
+  app.delete<{ Params: { id: number } }>(
+    "/api/cards/:id",
+    {
+      preHandler: requireRole("admin"),
+      schema: { params: { type: "object", properties: { id: { type: "integer" } } } },
+    },
+    async (request, reply) => {
+      const card = findCard(db, request.params.id);
+      if (!card) {
+        return reply.code(404).send({ error: "Card not found" });
+      }
+      if (findShift(db, card.shiftId)?.status === "closed") {
+        return reply.code(409).send({ error: "This shift is closed" });
+      }
+
+      deleteCard(db, card.id);
+      const { id: _id, ...details } = card;
+      audit(request, "card.delete", { shiftId: card.shiftId, number: card.number, card: details });
+      broadcast({ type: "card-deleted", shiftId: card.shiftId, cardId: card.id });
+      return reply.code(204).send();
     },
   );
 }

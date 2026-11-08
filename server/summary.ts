@@ -10,7 +10,7 @@ export interface SummaryCard {
 }
 
 export interface ShiftSummary {
-  families: { total: number; cards: number; partners: number };
+  families: { total: number; cards: number; partners: number; left: number };
   weight: { total: number; cards: number; partners: number };
   returnedWeight: number;
   netWeight: number;
@@ -29,10 +29,13 @@ function sum(values: number[]): number {
 }
 
 export function shiftSummary(
-  cards: readonly SummaryCard[],
+  allCards: readonly SummaryCard[],
   partnerBatches: readonly { familyCount: number; weight: number }[],
   returnedBatches: readonly { weight: number }[],
 ): ShiftSummary {
+  // A family who left without food was not served, so they count only on their own line.
+  const left = allCards.filter((card) => card.status === "left").length;
+  const cards = allCards.filter((card) => card.status !== "left");
   const cardWeight = sum(cards.flatMap((card) => card.loads.map((load) => load ?? 0)));
   const partnerWeight = sum(partnerBatches.map((batch) => batch.weight));
   const partnerFamilies = sum(partnerBatches.map((batch) => batch.familyCount));
@@ -43,6 +46,7 @@ export function shiftSummary(
       total: cards.length + partnerFamilies,
       cards: cards.length,
       partners: partnerFamilies,
+      left,
     },
     weight: {
       total: roundWeight(cardWeight + partnerWeight),

@@ -82,7 +82,8 @@ function Reports(props: { onChanged: () => void }) {
             {report.totals.families.total === 1 ? "family" : "families"} ·{" "}
             {report.totals.weight.total} lb · {report.totals.returnedWeight} lb returned ·{" "}
             {report.totals.netWeight} lb net · {report.totals.tefapBags} TEFAP bags ·{" "}
-            {report.totals.seniorBoxes} senior boxes · {report.totals.cheese} cheese
+            {report.totals.seniorBoxes} senior boxes · {report.totals.cheese} cheese ·{" "}
+            {report.totals.families.left} left without food
           </p>
           {report.shifts.length === 0 && <p class="notice">No shifts in that range.</p>}
           <ul class="cards">

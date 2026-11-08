@@ -1,6 +1,6 @@
 # 0010. Move each card along a single status path
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [0019](0019-correcting-unserved-cards.md), which adds a status outside the path
 - **Date:** 2026-11-06
 
 ## Context

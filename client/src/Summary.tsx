@@ -24,6 +24,10 @@ export function Summary(props: { shift: ShiftWithCards }) {
               <td>{summary.families.partners}</td>
             </tr>
             <tr>
+              <th>Left without food</th>
+              <td>{summary.families.left}</td>
+            </tr>
+            <tr>
               <th>Total weight</th>
               <td>{summary.weight.total} lb</td>
             </tr>

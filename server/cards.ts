@@ -132,6 +132,10 @@ export function findCard(db: Database, id: number): Card | null {
   return row ? toCard(row) : null;
 }
 
+export function deleteCard(db: Database, id: number): void {
+  db.prepare("DELETE FROM card WHERE id = ?").run(id);
+}
+
 export function findCardByClientId(db: Database, clientId: string): Card | null {
   const row = db.prepare("SELECT * FROM card WHERE client_id = ?").get(clientId) as
     CardRow | undefined;
