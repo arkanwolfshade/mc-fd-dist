@@ -25,7 +25,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 # Named volumes copy this ownership when they are first created.
 RUN mkdir -p /data/backups && chown -R node:node /data
-USER node
+# The base image's unprivileged "node" user, by number so that hosts can check it isn't root.
+USER 1000:1000
 EXPOSE 3000
 HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
