@@ -1,5 +1,5 @@
 # Builds on the CI runner rather than the server, which is too small to compile comfortably.
-FROM node:24.22.1-bookworm-slim AS build
+FROM node:26.12.1-bookworm-slim AS build
 # npm compiles better-sqlite3 from source, which needs these. Only this stage has them.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
@@ -10,7 +10,7 @@ RUN npm ci
 COPY . .
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24.22.1-bookworm-slim
+FROM node:26.12.1-bookworm-slim
 # Links the published package to the repository on GitHub.
 LABEL org.opencontainers.image.source=https://github.com/arkanwolfshade/mc-fd-dist
 ENV NODE_ENV=production \
