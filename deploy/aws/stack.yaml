@@ -91,8 +91,9 @@ Resources:
             Status: Enabled
             Prefix: nightly/
             ExpirationInDays: !Ref BackupRetentionDays
+            # As long as current backups, so that one overwritten by a stolen key survives.
             NoncurrentVersionExpiration:
-              NoncurrentDays: 30
+              NoncurrentDays: !Ref BackupRetentionDays
       Tags:
         - Key: app
           Value: mc-fd-dist
