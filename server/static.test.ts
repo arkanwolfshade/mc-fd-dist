@@ -46,7 +46,26 @@ describe("serving the client", () => {
       expect(headers["referrer-policy"]).toBe("no-referrer");
       expect(headers["x-frame-options"]).toBe("DENY");
       expect(headers["strict-transport-security"]).toBe("max-age=31536000");
+      expect(headers["permissions-policy"]).toBe(
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+      );
+      expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
+      expect(headers["cross-origin-embedder-policy"]).toBe("require-corp");
+      expect(headers["cross-origin-resource-policy"]).toBe("same-origin");
     }
+  });
+
+  // Stations can be shared devices, so shift data must not be kept in any cache.
+  it("marks API responses as never to be stored", async () => {
+    for (const url of ["/api/health", "/api/nothing-here", "/api/me"]) {
+      const { headers } = await app.inject({ method: "GET", url });
+      expect(headers["cache-control"]).toBe("no-store");
+    }
+  });
+
+  it("leaves the app's own files cacheable", async () => {
+    const { headers } = await app.inject({ method: "GET", url: "/" });
+    expect(headers["cache-control"]).not.toBe("no-store");
   });
 
   it("allows an unencrypted live connection only when running without HTTPS", async () => {

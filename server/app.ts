@@ -51,8 +51,20 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     reply.header("x-content-type-options", "nosniff");
     reply.header("referrer-policy", "no-referrer");
     reply.header("x-frame-options", "DENY");
+    reply.header(
+      "permissions-policy",
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    );
+    // The app loads nothing from other sites, so it can isolate itself from them entirely.
+    reply.header("cross-origin-opener-policy", "same-origin");
+    reply.header("cross-origin-embedder-policy", "require-corp");
+    reply.header("cross-origin-resource-policy", "same-origin");
     if (cookieSecure) {
       reply.header("strict-transport-security", "max-age=31536000");
+    }
+    // Stations can be shared devices, so shift data must not be kept in any cache.
+    if (request.url.startsWith("/api/")) {
+      reply.header("cache-control", "no-store");
     }
   });
 
