@@ -4,7 +4,10 @@ node_modules
 dist
 data
 deploy
-docs
+# The client bundles the volunteer guides from docs/guides, so only the rest is left out.
+docs/adr
+docs/developer
+docs/*.md
 test-results
 playwright-report
 *.db
