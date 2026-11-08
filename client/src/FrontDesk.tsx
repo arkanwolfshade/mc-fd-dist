@@ -5,6 +5,30 @@ import type { ShiftView } from "./pending.js";
 import { nextCardNumber } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
 
+interface CardForm {
+  number: string;
+  familySize: string;
+  method: ArrivalMethod | null;
+  seniorBox: boolean;
+  cheese: boolean;
+  other: string;
+}
+
+const EMPTY_FORM: CardForm = {
+  number: "",
+  familySize: "",
+  method: null,
+  seniorBox: false,
+  cheese: false,
+  other: "",
+};
+
+function isEmpty(form: CardForm): boolean {
+  return Object.entries(form).every(
+    ([field, value]) => value === EMPTY_FORM[field as keyof CardForm],
+  );
+}
+
 export function FrontDesk(props: {
   shift: ShiftView;
   submit: Submit;
@@ -12,16 +36,22 @@ export function FrontDesk(props: {
   onUpdate: UpdateCard;
 }) {
   const { shift, submit: submitWrite, onSaved, onUpdate } = props;
-  const [number, setNumber] = useState("");
-  const [familySize, setFamilySize] = useState("");
-  const [method, setMethod] = useState<ArrivalMethod | null>(null);
-  const [seniorBox, setSeniorBox] = useState(false);
-  const [cheese, setCheese] = useState(false);
-  const [other, setOther] = useState("");
+  const [form, setForm] = useState<CardForm>(EMPTY_FORM);
+  // Numbers still being saved, so that the next card is not offered one of them.
+  const [saving, setSaving] = useState<number[]>([]);
   const [error, setError] = useState("");
 
+  const { number, familySize, method, seniorBox, cheese, other } = form;
   const size = Number(familySize);
-  const suggested = nextCardNumber([...shift.cards, ...shift.pendingCards]);
+  const suggested = nextCardNumber([
+    ...shift.cards,
+    ...shift.pendingCards,
+    ...saving.map((saved) => ({ number: saved })),
+  ]);
+
+  function change(changes: Partial<CardForm>) {
+    setForm((current) => ({ ...current, ...changes }));
+  }
 
   async function submit(event: Event) {
     event.preventDefault();
@@ -30,7 +60,12 @@ export function FrontDesk(props: {
       return;
     }
     setError("");
+    const entry = form;
     const cardNumber = Number(number) || suggested;
+    const label = `Card ${cardNumber} (family of ${size}, ${method})`;
+    // Cleared at once, so that the next family can be typed while this card saves.
+    setForm(EMPTY_FORM);
+    setSaving((current) => [...current, cardNumber]);
     try {
       const result = await submitWrite({
         kind: "card-create",
@@ -45,19 +80,21 @@ export function FrontDesk(props: {
           cheese,
           other,
         },
-        label: `Card ${cardNumber} (family of ${size}, ${method})`,
+        label,
       });
       if (result.status === "sent") {
         onSaved(result.data as Card);
       }
-      setNumber("");
-      setFamilySize("");
-      setMethod(null);
-      setSeniorBox(false);
-      setCheese(false);
-      setOther("");
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Could not save the card");
+      const reason = failure instanceof Error ? failure.message : "please try again";
+      setError(`${label} was not saved: ${reason}`);
+      // The details come back for correction, unless the next family is already being typed.
+      setForm((current) => (isEmpty(current) ? entry : current));
+    } finally {
+      setSaving((current) => {
+        const index = current.indexOf(cardNumber);
+        return current.filter((_, position) => position !== index);
+      });
     }
   }
 
@@ -74,7 +111,7 @@ export function FrontDesk(props: {
               min="1"
               placeholder={String(suggested)}
               value={number}
-              onInput={(e) => setNumber(e.currentTarget.value)}
+              onInput={(e) => change({ number: e.currentTarget.value })}
             />
           </label>
           <label>
@@ -86,7 +123,7 @@ export function FrontDesk(props: {
               max="100"
               required
               value={familySize}
-              onInput={(e) => setFamilySize(e.currentTarget.value)}
+              onInput={(e) => change({ familySize: e.currentTarget.value })}
             />
           </label>
           <div class="tefap">
@@ -104,7 +141,7 @@ export function FrontDesk(props: {
                 key={option}
                 class={method === option ? "selected" : ""}
                 aria-pressed={method === option}
-                onClick={() => setMethod(option)}
+                onClick={() => change({ method: option })}
               >
                 {option}
               </button>
@@ -117,7 +154,7 @@ export function FrontDesk(props: {
             type="button"
             class={seniorBox ? "selected" : ""}
             aria-pressed={seniorBox}
-            onClick={() => setSeniorBox(!seniorBox)}
+            onClick={() => change({ seniorBox: !seniorBox })}
           >
             Senior box
           </button>
@@ -125,7 +162,7 @@ export function FrontDesk(props: {
             type="button"
             class={cheese ? "selected" : ""}
             aria-pressed={cheese}
-            onClick={() => setCheese(!cheese)}
+            onClick={() => change({ cheese: !cheese })}
           >
             Cheese
           </button>
@@ -133,7 +170,11 @@ export function FrontDesk(props: {
 
         <label>
           Other
-          <input value={other} maxLength={500} onInput={(e) => setOther(e.currentTarget.value)} />
+          <input
+            value={other}
+            maxLength={500}
+            onInput={(e) => change({ other: e.currentTarget.value })}
+          />
         </label>
 
         {error && <p class="error">{error}</p>}

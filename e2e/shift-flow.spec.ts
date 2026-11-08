@@ -55,7 +55,36 @@ test("a duplicate card number is refused", async ({ signIn }) => {
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
 
   await addCard(frontDesk, { familySize: 2, method: "West", number: 1 });
-  await expect(frontDesk.locator(".error")).toHaveText("That card number is already in use");
+  await expect(frontDesk.locator(".error")).toHaveText(
+    "Card 1 (family of 2, West) was not saved: That card number is already in use",
+  );
+  // The details come back, so that only the number needs changing.
+  await expect(frontDesk.getByLabel("# in family")).toHaveValue("2");
+  await expect(frontDesk.getByRole("button", { name: "West", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
+test("the next family can be typed while the last card is still saving", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  await openShift(frontDesk);
+  let delayed = false;
+  await frontDesk.route("**/api/shifts/*/cards", async (route) => {
+    if (!delayed) {
+      delayed = true;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    await route.continue();
+  });
+
+  await addCard(frontDesk, { familySize: 5, method: "East" });
+  await addCard(frontDesk, { familySize: 9, method: "Walk", seniorBox: true });
+
+  await expect(frontDesk.getByRole("heading", { name: "Cards (2)" })).toBeVisible();
+  const cards = frontDesk.locator(".cards > li");
+  await expect(cards.filter({ hasText: "#1 " })).toContainText("family of 5 · East");
+  await expect(cards.filter({ hasText: "#2 " })).toContainText("family of 9 · Walk · senior box");
 });
 
 test("a correction at distribution reaches the front desk live", async ({ signIn }) => {
