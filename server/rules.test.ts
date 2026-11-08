@@ -62,14 +62,19 @@ describe("canChangeStatus", () => {
 
   it("keeps leaving without food out of the front desk's hands", () => {
     expect(canChangeStatus("front_desk", "entered", "left")).toBe(false);
-    expect(canChangeStatus("front_desk", "left", "called")).toBe(false);
+    expect(canChangeStatus("front_desk", "left", "entered")).toBe(false);
   });
 
-  it("undoes leaving without food by putting the card back in the queue", () => {
-    expect(canChangeStatus("distribution", "left", "called")).toBe(true);
-    expect(canChangeStatus("admin", "left", "called")).toBe(true);
+  it("undoes leaving without food by returning the card to the front desk", () => {
+    expect(canChangeStatus("distribution", "left", "entered")).toBe(true);
+    expect(canChangeStatus("admin", "left", "entered")).toBe(true);
+  });
+
+  // Otherwise distribution could put a card in its own queue that the front desk never called.
+  it("does not let undoing it skip calling the family forward", () => {
+    expect(canChangeStatus("distribution", "left", "called")).toBe(false);
+    expect(canChangeStatus("admin", "left", "called")).toBe(false);
     expect(canChangeStatus("distribution", "left", "distributed")).toBe(false);
-    expect(canChangeStatus("admin", "left", "entered")).toBe(false);
   });
 
   it("lets an admin make any single step", () => {

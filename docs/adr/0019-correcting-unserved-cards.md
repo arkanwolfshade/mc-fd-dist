@@ -13,7 +13,7 @@ Two different errors need correcting: a family who left before being served, and
 
 - **A new status, "left without food" (`left`):**
   - Distribution and admins can set it on any card that has not been distributed, from the queue or from the closing warning.
-  - Undoing it puts the card back in the queue, as "called".
+  - Undoing it returns the card to "entered", so that only the front desk can call the family forward again. Returning it straight to "called" would let distribution put a card in its own queue that the front desk never called.
   - It sits outside the single-step path of ADR 0010, and the front desk cannot set it.
 - **Totals (amending ADR 0012):** A card that left counts on its own line, "Left without food", and is excluded from families, weight, TEFAP bags, senior boxes and cheese. The CSV report gains a `families_left` column.
 - **Deleting a card:**

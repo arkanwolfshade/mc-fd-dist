@@ -27,8 +27,12 @@ test("distribution records a family who left without food, and can undo it", asy
   await distribution.getByRole("button", { name: "Distribution", exact: true }).click();
   await distribution
     .locator(".cards > li", { hasText: "left without food" })
-    .getByRole("button", { name: "Back to queue" })
+    .getByRole("button", { name: "Undo" })
     .click();
+  // The card goes back to the front desk, which calls the family forward again.
+  await expect(frontDeskCard(frontDesk, 1).locator(".status")).toHaveText("entered");
+  await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
+  await callForward(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
 });
 

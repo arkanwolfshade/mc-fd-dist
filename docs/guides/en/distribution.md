@@ -66,7 +66,7 @@ Fix: Tap **Go back and enter weight** and enter the weights. Only choose **Yes, 
 - If a family leaves before being served, tap **Left without food** on their card, then **Yes, left without food**.
 - The card leaves the queue and moves to the **Distributed** list, marked **left without food**.
 - The family is not counted as served. Totals show them on their own line, **Left without food**.
-- Recorded by mistake? Tap **Back to queue** on that card.
+- Recorded by mistake? Tap **Undo** on that card. It goes back to the front desk, which taps **Call forward** again when the family is ready.
 
 **[NOTE]**
 Only distribution and staff can record this. A card entered by mistake, such as a duplicate, is different: ask staff to delete it.

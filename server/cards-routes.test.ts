@@ -298,8 +298,8 @@ describe("shift and card routes", () => {
       expect(left.statusCode).toBe(200);
       expect(left.json().status).toBe("left");
 
-      const back = await patchCard(card.id, distribution, { revision: 2, status: "called" });
-      expect(back.json().status).toBe("called");
+      const back = await patchCard(card.id, distribution, { revision: 2, status: "entered" });
+      expect(back.json().status).toBe("entered");
     });
 
     it("refuses it once the family has been served", async () => {

@@ -54,7 +54,7 @@ export function Distribution(props: {
                 <strong>#{card.number}</strong> · family of {card.familySize}
               </span>
               <StatusLabel status={card.status} />
-              <button onClick={() => onUpdate(card, { status: "called" })}>Back to queue</button>
+              <button onClick={() => onUpdate(card, { status: "entered" })}>Undo</button>
             </li>
           ))}
         </ul>

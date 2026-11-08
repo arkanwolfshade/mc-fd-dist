@@ -26,9 +26,10 @@ const STATUSES_BY_ROLE: Record<Role, readonly CardStatus[]> = {
 
 export function canChangeStatus(role: Role, from: CardStatus, to: CardStatus): boolean {
   const canRecordLeaving = role === "distribution" || role === "admin";
-  // Any time before the family is served. Undoing it puts them back in the queue.
+  // Any time before the family is served. Undoing it returns the card to the front desk, so
+  // that only the front desk can call the family forward again.
   if (to === LEFT) return canRecordLeaving && from !== "distributed" && from !== LEFT;
-  if (from === LEFT) return canRecordLeaving && to === "called";
+  if (from === LEFT) return canRecordLeaving && to === "entered";
 
   const path: readonly CardStatus[] = CARD_STATUSES;
   const isSingleStep = Math.abs(path.indexOf(from) - path.indexOf(to)) === 1;
