@@ -77,6 +77,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       if (roles.length > 0 && !roles.includes(account.role)) {
         return reply.code(403).send({ error: "Not allowed" });
       }
+      return undefined;
     };
   }
 

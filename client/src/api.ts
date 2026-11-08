@@ -50,14 +50,14 @@ export function connectLive(handlers: {
   function connect() {
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     socket = new WebSocket(`${protocol}//${location.host}/api/live`);
-    socket.onopen = handlers.onOpen;
-    socket.onmessage = (event) => handlers.onMessage(JSON.parse(event.data));
-    socket.onclose = () => {
+    socket.addEventListener("open", handlers.onOpen);
+    socket.addEventListener("message", (event) => handlers.onMessage(JSON.parse(event.data)));
+    socket.addEventListener("close", () => {
       if (!stopped) {
         handlers.onClose();
         setTimeout(connect, RECONNECT_DELAY_MS);
       }
-    };
+    });
   }
 
   connect();

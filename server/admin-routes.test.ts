@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAccount } from "./accounts.js";
 import { buildApp } from "./app.js";
 import { openDatabase } from "./db.js";
-import { PASSWORD, signIn } from "./test-support.js";
+import { messageText, PASSWORD, signIn } from "./test-support.js";
 
 const NEW_PASSWORD = "a-new-password-here";
 
@@ -62,7 +62,7 @@ describe("admin and closing routes", () => {
     it("tells connected stations that a shift opened", async () => {
       const socket = await app.injectWS("/api/live", { headers: { cookie: distribution } });
       const message = new Promise<string>((resolve) => {
-        socket.once("message", (data) => resolve(data.toString()));
+        socket.once("message", (data) => resolve(messageText(data)));
       });
 
       const shiftId = await openShift("2026-11-07");
@@ -127,7 +127,7 @@ describe("admin and closing routes", () => {
       const shiftId = await openShift("2026-11-07");
       const socket = await app.injectWS("/api/live", { headers: { cookie: frontDesk } });
       const message = new Promise<string>((resolve) => {
-        socket.once("message", (data) => resolve(data.toString()));
+        socket.once("message", (data) => resolve(messageText(data)));
       });
 
       await request("POST", `/api/shifts/${shiftId}/close`, distribution);
@@ -242,7 +242,7 @@ describe("admin and closing routes", () => {
       const shiftId = await openShift("2026-11-07");
       const socket = await app.injectWS("/api/live", { headers: { cookie: frontDesk } });
       const messages: string[] = [];
-      socket.on("message", (data) => messages.push(data.toString()));
+      socket.on("message", (data) => messages.push(messageText(data)));
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
 
       await request("PUT", "/api/admin/accounts/front-desk/password", admin, {
@@ -327,7 +327,7 @@ describe("admin and closing routes", () => {
     async function auditEntries() {
       const response = await request("GET", "/api/admin/audit", admin);
       expect(response.statusCode).toBe(200);
-      return response.json() as { actor: string; action: string; detail: string }[];
+      return response.json<{ actor: string; action: string; detail: string }[]>();
     }
 
     it("is limited to admins", async () => {

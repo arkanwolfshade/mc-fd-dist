@@ -19,7 +19,8 @@
     "test:e2e": "vite build && playwright test",
     "demo": "vite build && tsx e2e/demo.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "lint": "oxlint --deny-warnings ."
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -37,6 +38,8 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
+    "oxlint": "^1.92.0",
+    "oxlint-tsgolint": "^7.0.2006",
     "prettier": "3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

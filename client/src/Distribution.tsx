@@ -106,6 +106,8 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
         <>
           <div class="row">
             {loads.map((load, index) => (
+              // Always three loads in a fixed order, so the position is a stable key.
+              // oxlint-disable-next-line react/no-array-index-key
               <label key={index}>
                 Load {index + 1} (lb)
                 <input

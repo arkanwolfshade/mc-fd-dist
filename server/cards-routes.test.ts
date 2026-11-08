@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAccount } from "./accounts.js";
 import { buildApp } from "./app.js";
 import { openDatabase } from "./db.js";
-import { PASSWORD, signIn } from "./test-support.js";
+import { messageText, PASSWORD, signIn } from "./test-support.js";
 
 const DATE = "2026-11-07";
 const DETAILS = {
@@ -294,14 +294,14 @@ describe("shift and card routes", () => {
   describe("live updates", () => {
     it("requires a session to connect", async () => {
       await app.ready();
-      await expect(app.injectWS("/api/live")).rejects.toThrow();
+      await expect(app.injectWS("/api/live")).rejects.toThrow("401");
     });
 
     it("sends a new card to a connected station straight away", async () => {
       const shiftId = await openShift();
       const socket = await app.injectWS("/api/live", { headers: { cookie: distribution } });
       const message = new Promise<string>((resolve) => {
-        socket.once("message", (data) => resolve(data.toString()));
+        socket.once("message", (data) => resolve(messageText(data)));
       });
 
       const card = await addCard(shiftId);
@@ -314,7 +314,7 @@ describe("shift and card routes", () => {
       const card = await addCard(await openShift());
       const socket = await app.injectWS("/api/live", { headers: { cookie: frontDesk } });
       const message = new Promise<string>((resolve) => {
-        socket.once("message", (data) => resolve(data.toString()));
+        socket.once("message", (data) => resolve(messageText(data)));
       });
 
       await patchCard(card.id, distribution, { revision: 1, familySize: 2 });
@@ -333,7 +333,7 @@ describe("shift and card routes", () => {
 
       const socket = await app.injectWS("/api/live", { headers: { cookie: distribution } });
       const messages: string[] = [];
-      socket.on("message", (data) => messages.push(data.toString()));
+      socket.on("message", (data) => messages.push(messageText(data)));
 
       await request("POST", `/api/shifts/${shiftId}/cards`, frontDesk, payload);
       await addCard(shiftId, { number: 2 });

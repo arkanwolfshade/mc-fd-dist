@@ -28,9 +28,12 @@ interface Report {
 }
 
 function Reports(props: { onChanged: () => void }) {
-  const today = new Date();
-  const [from, setFrom] = useState(isoDate(new Date(today.getFullYear(), today.getMonth(), 1)));
-  const [to, setTo] = useState(isoDate(today));
+  // Initializers run once, so the dates are read on the first render only.
+  const [from, setFrom] = useState(() => {
+    const today = new Date();
+    return isoDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  });
+  const [to, setTo] = useState(() => isoDate(new Date()));
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
 

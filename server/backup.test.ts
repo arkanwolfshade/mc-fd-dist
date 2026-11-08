@@ -74,7 +74,7 @@ describe("backups", () => {
     it("leaves no partial file when the source is not a database", async () => {
       writeFileSync(source, "this is not a database, and it is long enough to be read as one");
 
-      await expect(createBackup(source, backup)).rejects.toThrow();
+      await expect(createBackup(source, backup)).rejects.toThrow("file is not a database");
 
       expect(readdirSync(dir)).toEqual(["live.db"]);
     });
@@ -96,7 +96,7 @@ describe("backups", () => {
 
     it("refuses a file that is not a database", () => {
       writeFileSync(backup, "this is not a database, and it is long enough to be read as one");
-      expect(() => describeBackup(backup)).toThrow();
+      expect(() => describeBackup(backup)).toThrow("file is not a database");
     });
 
     it("refuses a database with no schema", () => {
@@ -129,7 +129,7 @@ describe("backups", () => {
       db.close();
       corruptPage(backup, rootpage);
 
-      expect(() => describeBackup(backup)).toThrow();
+      expect(() => describeBackup(backup)).toThrow(/integrity check|malformed/);
     });
   });
 
@@ -161,7 +161,7 @@ describe("backups", () => {
       addShift(source, "2026-11-05");
       writeFileSync(backup, "this is not a database, and it is long enough to be read as one");
 
-      expect(() => restoreBackup(backup, source)).toThrow();
+      expect(() => restoreBackup(backup, source)).toThrow("file is not a database");
 
       // Checked first, because reading a WAL database leaves its side files behind.
       expect(readdirSync(dir).sort()).toEqual(["backup.db", "live.db"]);

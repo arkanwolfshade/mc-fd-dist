@@ -1,3 +1,7 @@
+// A station sets up its outbox, live connection and timers once per sign-in. The callbacks
+// they use read only state setters, refs and values fixed for that sign-in, so listing
+// them as dependencies would only reconnect and resubscribe for no reason.
+/* oxlint-disable react-hooks/exhaustive-deps */
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Role } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";

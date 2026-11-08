@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAccount } from "./accounts.js";
 import { buildApp } from "./app.js";
 import { openDatabase } from "./db.js";
-import { PASSWORD, signIn } from "./test-support.js";
+import { messageText, PASSWORD, signIn } from "./test-support.js";
 
 describe("partner and returned batches", () => {
   let db: Database;
@@ -20,8 +20,8 @@ describe("partner and returned batches", () => {
     app = await buildApp({ db, cookieSecure: true });
     frontDesk = await signIn(app, "front-desk");
     distribution = await signIn(app, "distribution");
-    const shift = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-07" });
-    shiftId = shift.json().id;
+    const created = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-07" });
+    shiftId = created.json().id;
   });
 
   afterEach(async () => {
@@ -131,7 +131,7 @@ describe("partner and returned batches", () => {
   it("sends batch changes to connected stations", async () => {
     const socket = await app.injectWS("/api/live", { headers: { cookie: frontDesk } });
     const message = new Promise<string>((resolve) => {
-      socket.once("message", (data) => resolve(data.toString()));
+      socket.once("message", (data) => resolve(messageText(data)));
     });
 
     await addReturned(distribution);

@@ -80,6 +80,8 @@ export class Outbox {
     let next = this.items[0];
     while (next) {
       try {
+        // One at a time on purpose: writes must reach the server in the order they were made.
+        // oxlint-disable-next-line no-await-in-loop
         const data = await this.options.send(next);
         this.remove(next);
         this.rebaseLaterChanges(next, data);
