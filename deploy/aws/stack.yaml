@@ -73,6 +73,13 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: >-
+              Access logs would need a second bucket. One key writes here, it cannot
+              delete, and versioning keeps every overwritten backup.
     Properties:
       VersioningConfiguration:
         Status: Enabled

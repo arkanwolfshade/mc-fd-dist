@@ -9,9 +9,10 @@
 ## Tests
 
 - Write a failing test before changing behavior, and watch it fail for the expected reason.
-- Run `npm test` and `npm run typecheck` before each commit, and `npm run test:e2e` when a change affects the screens.
+- Before each commit, run `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm run test:coverage`. Run `npm run test:e2e` too when a change affects the screens. `npm run format` fixes formatting.
 - Add an end-to-end test for anything a person does across stations or screens. Unit tests cannot catch a browser refusing a form or a station missing an update.
-- CI runs all three on every push.
+- CI runs these on every push, along with the security scans listed in [ADR 0016](docs/adr/0016-code-health-checks.md). A finding blocks the build. If a rule truly does not apply, turn it off where it applies and say why, rather than ignoring it.
+- Pin any new GitHub Action or scanner image to a full commit or digest, with the version in a comment.
 
 ## Decisions
 

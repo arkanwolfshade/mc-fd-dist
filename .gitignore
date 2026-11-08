@@ -11,3 +11,9 @@ data/
 .DS_Store
 test-results/
 playwright-report/
+coverage/
+deploy/smoke-test.log
+deploy/zap/*.json
+deploy/zap/*.html
+deploy/zap/output.txt
+deploy/zap/*.yaml

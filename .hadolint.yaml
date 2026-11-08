@@ -1,0 +1,4 @@
+ignored:
+  # Pinning Debian package versions breaks the build whenever the archive moves on. These
+  # packages only exist in the build stage, which the final image does not contain.
+  - DL3008
