@@ -2,11 +2,14 @@
 # Run by the deploy workflow to release one commit on the Lightsail server. SSH is opened
 # to this runner's address alone, with a one-time key from Lightsail, and the server's
 # port rules are put back as they were afterwards, whether or not the release worked.
-#   release-on-server.sh <instance name> <git commit>
+#   release-on-server.sh <stack name> <git commit>
 set -euo pipefail
 
-instance="${1:?Usage: release-on-server.sh <instance name> <git commit>}"
-commit="${2:?Usage: release-on-server.sh <instance name> <git commit>}"
+stack="${1:?Usage: release-on-server.sh <stack name> <git commit>}"
+commit="${2:?Usage: release-on-server.sh <stack name> <git commit>}"
+# The server's name changes when it is replaced, so it is read from the stack.
+instance="$(aws cloudformation describe-stacks --stack-name "$stack" \
+  --query "Stacks[0].Outputs[?OutputKey=='ServerName'].OutputValue" --output text)"
 work="$(mktemp -d)"
 chmod 700 "$work"
 

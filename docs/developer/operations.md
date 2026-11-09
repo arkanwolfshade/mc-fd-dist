@@ -105,7 +105,7 @@ One-time set-up of release access, by an administrator with their own AWS sign-i
 **[BUG] A release stops at "Stack change refused"**
 Symptom: The **Update the stack** step lists a resource that would be replaced or removed.
 Cause: The change to `stack.yaml` cannot be made in place. Changing the server's launch script replaces the server, and the live database with it.
-Fix: Back up the database, then make the change by hand. The stack's CloudFormation role cannot delete the server, so an administrator first widens it in `github-deploy.yaml`, applies the change, and narrows it again.
+Fix: Back up the database, then make the change by hand. The stack's CloudFormation role cannot delete the server, so an administrator first widens it in `github-deploy.yaml`, applies the change, and narrows it again. To replace the server, also give the stack's `ServerName` parameter a new value, because CloudFormation cannot replace a resource that keeps its name. The static IP moves to the new server.
 
 **[BUG] A release left SSH open**
 Symptom: The server's networking tab shows port 22 open to an address other than the Lightsail browser client.

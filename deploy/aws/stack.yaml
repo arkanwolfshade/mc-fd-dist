@@ -7,6 +7,13 @@ Parameters:
   InstanceName:
     Type: String
     Default: mc-fd-dist
+    Description: Names the static IP and the budget.
+  ServerName:
+    Type: String
+    Default: mc-fd-dist
+    Description: >-
+      Names the Lightsail server. Give a new name to replace the server, because
+      CloudFormation cannot replace a resource that keeps its name.
   AvailabilityZone:
     Type: String
     Default: us-west-2a
@@ -36,7 +43,7 @@ Resources:
   Server:
     Type: AWS::Lightsail::Instance
     Properties:
-      InstanceName: !Ref InstanceName
+      InstanceName: !Ref ServerName
       AvailabilityZone: !Ref AvailabilityZone
       BlueprintId: ubuntu_24_04
       BundleId: !Ref BundleId
@@ -53,9 +60,10 @@ Resources:
           - { Protocol: udp, FromPort: 443, ToPort: 443, Cidrs: [0.0.0.0/0], Ipv6Cidrs: ["::/0"] }
           # SSH only from the Lightsail console's browser client.
           - { Protocol: tcp, FromPort: 22, ToPort: 22, CidrListAliases: [lightsail-connect] }
+      # Lightsail runs this after its own start-up lines, with sh rather than bash, so it
+      # must work in sh. The set-up script itself runs in bash.
       UserData: !Sub |
-        #!/bin/bash
-        set -euo pipefail
+        set -eu
         curl -fsSL "https://raw.githubusercontent.com/arkanwolfshade/mc-fd-dist/${SetupCommit}/deploy/server-setup.sh" -o /root/server-setup.sh
         bash /root/server-setup.sh "${SetupCommit}"
       Tags:
@@ -178,6 +186,8 @@ Resources:
               Address: !Ref BudgetEmail
 
 Outputs:
+  ServerName:
+    Value: !Ref Server
   StaticIpAddress:
     Description: Point the site's DNS record here.
     Value: !GetAtt StaticIp.IpAddress
