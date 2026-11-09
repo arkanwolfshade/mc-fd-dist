@@ -4,6 +4,8 @@
 # port rules are put back as they were afterwards, whether or not the release worked.
 #   release-on-server.sh <stack name> <git commit>
 set -euo pipefail
+# Every file made here is private, because ssh refuses a key that others can read.
+umask 077
 
 stack="${1:?Usage: release-on-server.sh <stack name> <git commit>}"
 commit="${2:?Usage: release-on-server.sh <stack name> <git commit>}"
@@ -11,7 +13,6 @@ commit="${2:?Usage: release-on-server.sh <stack name> <git commit>}"
 instance="$(aws cloudformation describe-stacks --stack-name "$stack" \
   --query "Stacks[0].Outputs[?OutputKey=='ServerName'].OutputValue" --output text)"
 work="$(mktemp -d)"
-chmod 700 "$work"
 
 # shellcheck disable=SC2016 # The backticks are a JMESPath literal, not a command.
 aws lightsail get-instance-port-states --instance-name "$instance" \
@@ -36,11 +37,8 @@ aws lightsail open-instance-public-ports --instance-name "$instance" \
   --port-info "fromPort=22,toPort=22,protocol=tcp,cidrs=$runner/32" > /dev/null
 
 # The key and certificate expire on their own. They are written to files, never printed.
-(
-  umask 077
-  aws lightsail get-instance-access-details --instance-name "$instance" --protocol ssh \
-    --query accessDetails --output json > "$work/access.json"
-)
+aws lightsail get-instance-access-details --instance-name "$instance" --protocol ssh \
+  --query accessDetails --output json > "$work/access.json"
 jq -r .privateKey "$work/access.json" > "$work/key"
 jq -r .certKey "$work/access.json" > "$work/key-cert.pub"
 host="$(jq -r .ipAddress "$work/access.json")"
