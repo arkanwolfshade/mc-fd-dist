@@ -227,7 +227,9 @@ Resources:
                   - lightsail:GetInstancePortStates
                   - lightsail:OpenInstancePublicPorts
                   - lightsail:PutInstancePublicPorts
-                Resource: !Sub "arn:aws:lightsail:${AWS::Region}:${AWS::AccountId}:Instance/*"
+                # Lightsail checks these against all of its resources in the account and
+                # region, not against the server's own ARN.
+                Resource: !Sub "arn:aws:lightsail:${AWS::Region}:${AWS::AccountId}:*"
 
 Outputs:
   DeployRoleArn:
