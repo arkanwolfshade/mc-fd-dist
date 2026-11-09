@@ -1,3 +1,4 @@
+import argon2 from "argon2";
 import type { Database } from "better-sqlite3";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createAccount, verifyPassword } from "./accounts.js";
@@ -51,5 +52,29 @@ describe("accounts", () => {
 
   it("returns null for an unknown username", async () => {
     expect(await verifyPassword(db, "nobody", PASSWORD)).toBeNull();
+  });
+
+  it("returns null when the password is changed while it is being checked", async () => {
+    await createAccount(db, { username: "front-desk", password: PASSWORD, role: "front_desk" });
+    const newHash = await argon2.hash("a-different-password");
+
+    // The old hash is read at once and verified in the background, so this change lands
+    // while the check is still running.
+    const check = verifyPassword(db, "front-desk", PASSWORD);
+    db.prepare("UPDATE account SET password_hash = ? WHERE username = ?").run(
+      newHash,
+      "front-desk",
+    );
+
+    expect(await check).toBeNull();
+  });
+
+  it("returns null when the account is deleted while it is being checked", async () => {
+    await createAccount(db, { username: "front-desk", password: PASSWORD, role: "front_desk" });
+
+    const check = verifyPassword(db, "front-desk", PASSWORD);
+    db.prepare("DELETE FROM account WHERE username = ?").run("front-desk");
+
+    expect(await check).toBeNull();
   });
 });

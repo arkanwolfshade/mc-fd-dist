@@ -79,6 +79,16 @@ export async function verifyPassword(
   if (!(await argon2.verify(row.password_hash, password))) {
     return null;
   }
+
+  // The check ran in the background, so the password may have been changed, or the account
+  // deleted, since the row was read. A change ends every session (ADR 0007), so one that
+  // finished during the change must not start a new session. Nothing awaits between this
+  // check and the caller creating its session.
+  const current = db.prepare("SELECT password_hash FROM account WHERE id = ?").get(row.id) as
+    { password_hash: string } | undefined;
+  if (current?.password_hash !== row.password_hash) {
+    return null;
+  }
   return { id: row.id, username: row.username, role: row.role };
 }
 
