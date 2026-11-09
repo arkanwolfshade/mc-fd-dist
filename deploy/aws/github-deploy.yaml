@@ -5,9 +5,12 @@ Description: >-
   to change the app's stack. Created once by an administrator, never by GitHub.
 
 Parameters:
+  # GitHub's tokens name the owner and repository with their numeric IDs, so a repository
+  # deleted and created again under the same name cannot deploy.
   Repository:
     Type: String
-    Default: arkanwolfshade/mc-fd-dist
+    Default: arkanwolfshade@23161760/mc-fd-dist@1448960738
+    Description: Owner and repository as GitHub's tokens name them, "owner@id/repo@id".
   Environment:
     Type: String
     Default: production

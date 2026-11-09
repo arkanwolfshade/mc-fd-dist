@@ -12,7 +12,7 @@ The server's SSH port is open only to the Lightsail console's browser client. Th
 ## Decision
 
 - **When:** Each push to main that passes CI starts the deploy workflow. Its job waits in the GitHub `production` environment until a required reviewer approves it. Only main can deploy, and administrators cannot bypass the rules. A release is refused during shift hours unless started by hand with `force`.
-- **Access to AWS:** GitHub signs in through OpenID Connect. No AWS key is stored in GitHub. The deploy role trusts only tokens for `repo:arkanwolfshade/mc-fd-dist:environment:production`.
+- **Access to AWS:** GitHub signs in through OpenID Connect. No AWS key is stored in GitHub. The deploy role trusts only tokens for `repo:arkanwolfshade@23161760/mc-fd-dist@1448960738:environment:production`. GitHub names the owner and repository with their numeric IDs, so a repository deleted and created again under the same name cannot deploy.
 - **What GitHub may do:** The deploy role can create, inspect and run change sets on the app's stack, only as a separate CloudFormation role, and can reach the server. The CloudFormation role:
   - can change Lightsail, the backup bucket and the budget;
   - cannot delete the server, its snapshots or static IP, the bucket, any backup, or the bucket's versioning and public access block;
