@@ -49,6 +49,7 @@ Where settings and credentials live. None of them is in the repository.
 **[?]**
 - The stack and server exist, but the app has not been started on them yet.
 - Still needed: the site's hostname and its DNS record, the backup key in `.env`, a first restore drill.
+- Until the food bank has a hostname, the prototype uses `32-189-213-183.sslip.io`. sslip.io is a free public DNS service that answers with the IP address written in the name, so Caddy can get a real certificate without any DNS set-up. It gives no guarantees, so replace it with the real hostname before going live.
 - Releases from GitHub (section 4) have not run yet. The release access stack has not been created.
 - Alerts for downtime and missing backups have not been set up. Only the monthly budget warning reports anything.
 
