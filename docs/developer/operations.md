@@ -47,10 +47,9 @@ Where settings and credentials live. None of them is in the repository.
 ## 2. Current status
 
 **[?]**
-- The stack and server exist, but the app has not been started on them yet.
-- Still needed: the site's hostname and its DNS record, the backup key in `.env`, a first restore drill.
+- The prototype runs on the Lightsail server, released from GitHub (section 4). The nightly backup timer has run once on its own and reached S3.
 - Until the food bank has a hostname, the prototype uses `32-189-213-183.sslip.io`. sslip.io is a free public DNS service that answers with the IP address written in the name, so Caddy can get a real certificate without any DNS set-up. It gives no guarantees, so replace it with the real hostname before going live.
-- Releases from GitHub (section 4) have not run yet. The release access stack has not been created.
+- A restore drill onto the same server has been done (section 6). A drill onto a new server has not.
 - Alerts for downtime and missing backups have not been set up. Only the monthly budget warning reports anything.
 
 ---
@@ -140,8 +139,15 @@ The backup key on the server can add and read backups, but not list or delete th
 **[SPEC]**
 - To rebuild a lost server: create the stack again, or a new server from a Lightsail snapshot, then follow section 3 and restore the latest backup.
 
+**[SPEC]**
+Restore drill, 2026-11-09, on the running server:
+1. A backup was taken, then an account (`drill-test`) was added after it.
+2. The server's own copy of the backup was deleted, so the restore had to download it from S3 with the server's backup key.
+3. `./restore.sh` restored it. The script reported schema version 5 with no shifts or cards, and the app became healthy.
+4. The `front-desk` account signed in, and `drill-test` could not, which shows the database was replaced.
+
 **[?]**
-- A full restore drill on a new server has not been done yet. It must be done before the app goes live, and then regularly.
+- The drill restored onto the same server. A full drill on a new server has not been done yet: set a server up as in section 3, then restore the latest backup from S3. A new server setting itself up has been seen working (it was replaced on 2026-11-08), and so has a restore from S3, but not both together. Do it before the app goes live, and then regularly.
 
 ---
 
