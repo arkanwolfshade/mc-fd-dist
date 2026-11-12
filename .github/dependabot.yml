@@ -1,20 +1,66 @@
+# Dependabot version updates. Security updates are switched on in the repository settings.
+# Pull requests are reviewed and merged by hand (ADR 0016); nothing here auto-merges.
+#
+# Weekly on Sunday at 03:00 Phoenix time, when no shift is running. Minor and patch updates
+# come as one pull request per ecosystem; a major update arrives as its own pull request.
+# Titles use Conventional Commits. GitHub Actions stay pinned to a commit: Dependabot moves
+# the commit and the version in the comment on the same line.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+      day: sunday
+      time: "03:00"
+      timezone: America/Phoenix
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
     groups:
-      # One pull request for routine updates. Major versions arrive separately.
       minor-and-patch:
         update-types: [minor, patch]
 
+  # The Dockerfile.
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+      day: sunday
+      time: "03:00"
+      timezone: America/Phoenix
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # deploy/compose.yaml: the caddy and aws-cli images. The app image comes from .env.
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "03:00"
+      timezone: America/Phoenix
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: sunday
+      time: "03:00"
+      timezone: America/Phoenix
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

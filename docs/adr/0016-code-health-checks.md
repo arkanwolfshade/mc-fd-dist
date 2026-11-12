@@ -18,7 +18,7 @@ Every push and pull request runs these checks, and any failure blocks the build 
 | Types | `tsc` for the server, client and tests |
 | Tests | Vitest with coverage thresholds set just below the first measurement, plus Playwright |
 | SAST | GitHub CodeQL with the extended security queries, for TypeScript and for the workflows themselves |
-| Dependencies | `npm audit` at high severity, and Dependabot update pull requests for npm, Docker and Actions |
+| Dependencies | `npm audit` at high severity, and Dependabot update pull requests for npm, Docker, Docker Compose and Actions |
 | Container image | Grype, failing on fixable high or critical vulnerabilities |
 | Dockerfile and template | hadolint, Checkov, cfn-lint |
 | Scripts | shellcheck |
