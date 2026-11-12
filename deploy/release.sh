@@ -42,10 +42,16 @@ healthy() {
   return 1
 }
 
+# Caddy waits for a healthy app, so `up` itself fails when the app does not start. That must
+# lead to going back, not end the script, and a container that keeps restarting must not hold
+# the release for ever. Called from an `if`, so `set -e` does not cut it short.
+start() {
+  timeout 180 docker compose up -d --remove-orphans && healthy
+}
+
 set_image "$image"
 docker compose pull --quiet
-docker compose up -d --remove-orphans
-if healthy; then
+if start; then
   echo "$commit" > release-commit
   echo "Released $commit"
   exit 0
@@ -56,7 +62,6 @@ docker compose logs --tail=50 app >&2
 if [ -n "$previous" ]; then
   echo "Going back to ${previous#APP_IMAGE=}" >&2
   set_image "${previous#APP_IMAGE=}"
-  docker compose up -d --remove-orphans
-  healthy || echo "The previous image is not healthy either" >&2
+  start || echo "The previous image is not healthy either" >&2
 fi
 exit 1
