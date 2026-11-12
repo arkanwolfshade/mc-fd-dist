@@ -83,7 +83,8 @@ The `check` job uploads coverage to Codacy:
 
 - It reads the repository's Codacy token from the `CODACY` Actions secret. Where the secret cannot be read, as in Dependabot's runs, the step is skipped with a notice.
 - A failed upload is a warning, not a failure, so that an outage at Codacy cannot hold up a release.
-- It does not use Codacy's own action, which runs a script from Codacy's `master` branch. It fetches the reporter script from a pinned commit and pins the reporter version. When updating either, change both together in `ci.yml`.
+- It runs no downloaded script. It does not use Codacy's own action, which runs a script from Codacy's `master` branch, or Codacy's `get.sh`. A step with no secrets downloads the reporter binary from its GitHub release and checks it against a SHA-512 kept in `ci.yml`, and only then does the upload step get the token.
+- To update the reporter, change the version and the hash together in `ci.yml`. The hash is in the release's `codacy-coverage-reporter-linux.SHA512SUM`.
 
 **[NOTE]**
 Findings from Grype, hadolint and ZAP are written as annotations, because the job logs need a signed-in GitHub session and the annotations do not.
