@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, NetworkError, api } from "./api.js";
+import { ApiError, NetworkError, api, errorText } from "./api.js";
 
 function respondWith(response: Response) {
   vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(response));
@@ -58,5 +58,18 @@ describe("api", () => {
       vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch")),
     );
     await expect(api("GET", "/api/shifts")).rejects.toBeInstanceOf(NetworkError);
+  });
+});
+
+describe("errorText", () => {
+  it("uses the message of an error", () => {
+    expect(errorText(new Error("That card number is already in use"), "Could not save")).toBe(
+      "That card number is already in use",
+    );
+  });
+
+  it("uses the fallback for anything that is not an error", () => {
+    expect(errorText("boom", "Could not save")).toBe("Could not save");
+    expect(errorText(undefined, "Could not save")).toBe("Could not save");
   });
 });

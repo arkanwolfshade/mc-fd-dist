@@ -44,6 +44,20 @@ export function applyLiveMessage(shift: KnownShift, message: LiveMessage): Known
   }));
 }
 
+// The last shift seen, for a reload during an outage. Only used for the same date.
+export function savedShift(
+  storage: Pick<Storage, "getItem">,
+  key: string,
+  date: string,
+): ShiftWithCards | undefined {
+  try {
+    const saved = JSON.parse(storage.getItem(key) ?? "null") as ShiftWithCards | null;
+    return saved?.date === date ? saved : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export type LoadFailure = "no-shift" | "sign-out" | "offline" | "notice";
 
 // What a station does when loading today's shift fails. Anything the outbox would retry

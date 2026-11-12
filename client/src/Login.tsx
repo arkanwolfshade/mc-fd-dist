@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { api } from "./api.js";
+import { api, errorText } from "./api.js";
 import type { Identity } from "./types.js";
 
 export function Login(props: { onSignedIn: (identity: Identity) => void }) {
@@ -13,7 +13,7 @@ export function Login(props: { onSignedIn: (identity: Identity) => void }) {
     try {
       props.onSignedIn(await api<Identity>("POST", "/api/login", { username, password }));
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Could not sign in");
+      setError(errorText(failure, "Could not sign in"));
     }
   }
 

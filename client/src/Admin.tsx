@@ -1,13 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
 import type { AuditEntry } from "../../server/audit.js";
 import type { ShiftSummary } from "../../server/summary.js";
-import { api } from "./api.js";
+import { api, errorText } from "./api.js";
 import { isoDate } from "./state.js";
 import type { Identity, Shift } from "./types.js";
-
-function errorText(failure: unknown): string {
-  return failure instanceof Error ? failure.message : "That did not work";
-}
 
 export function Admin(props: { identity: Identity }) {
   const [activityVersion, setActivityVersion] = useState(0);
@@ -42,7 +38,7 @@ function Reports(props: { onChanged: () => void }) {
     try {
       setReport(await api<Report>("GET", `/api/admin/reports/totals?from=${from}&to=${to}`));
     } catch (failure) {
-      setError(errorText(failure));
+      setError(errorText(failure, "That did not work"));
     }
   }
 
@@ -53,7 +49,7 @@ function Reports(props: { onChanged: () => void }) {
       await load();
       props.onChanged();
     } catch (failure) {
-      setError(errorText(failure));
+      setError(errorText(failure, "That did not work"));
     }
   }
 
@@ -130,7 +126,7 @@ function Accounts(props: { identity: Identity; onChanged: () => void }) {
   }
 
   useEffect(() => {
-    load().catch((failure) => setError(errorText(failure)));
+    load().catch((failure) => setError(errorText(failure, "That did not work")));
   }, []);
 
   async function addAdmin(event: Event) {
@@ -144,7 +140,7 @@ function Accounts(props: { identity: Identity; onChanged: () => void }) {
       await load();
       props.onChanged();
     } catch (failure) {
-      setError(errorText(failure));
+      setError(errorText(failure, "That did not work"));
     }
   }
 
@@ -225,7 +221,7 @@ function AccountRow(props: {
       setChanging(false);
       onPasswordChanged();
     } catch (failure) {
-      onError(errorText(failure));
+      onError(errorText(failure, "That did not work"));
     }
   }
 
@@ -234,7 +230,7 @@ function AccountRow(props: {
       await api("DELETE", `/api/admin/accounts/${encodeURIComponent(account.username)}`);
       await onRemoved();
     } catch (failure) {
-      onError(errorText(failure));
+      onError(errorText(failure, "That did not work"));
     }
   }
 
@@ -282,7 +278,7 @@ function Activity(props: { version: number }) {
   useEffect(() => {
     api<AuditEntry[]>("GET", "/api/admin/audit")
       .then(setEntries)
-      .catch((failure) => setError(errorText(failure)));
+      .catch((failure) => setError(errorText(failure, "That did not work")));
   }, [props.version]);
 
   return (

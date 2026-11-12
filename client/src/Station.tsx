@@ -6,14 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import type { Role } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";
 import { Admin } from "./Admin.js";
-import { ApiError, api, connectLive } from "./api.js";
+import { ApiError, api, connectLive, errorText } from "./api.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
 import { Help } from "./Help.js";
 import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
-import { applyLiveMessage, classifyLoadFailure, isoDate } from "./state.js";
+import { applyLiveMessage, classifyLoadFailure, isoDate, savedShift } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
 
@@ -98,7 +98,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
             await api("DELETE", `/api/cards/${card.id}`);
             removeCard(card.shiftId, card.id);
           } catch (failure) {
-            setNotice(failure instanceof Error ? failure.message : "Could not delete that card");
+            setNotice(errorText(failure, "Could not delete that card"));
           }
         }
       : undefined;
@@ -150,7 +150,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
           break;
         case "offline":
           setConnected(false);
-          setShift((current) => current ?? savedShift(snapshotKey, date.current));
+          setShift((current) => current ?? savedShift(localStorage, snapshotKey, date.current));
           break;
         case "notice":
           setNotice("Could not load the shift. Check the connection.");
@@ -222,7 +222,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       const closed = await api<Shift>("POST", `/api/shifts/${shiftId}/close`);
       setShift((current) => applyLiveMessage(current, { type: "shift", shift: closed }));
     } catch (failure) {
-      setNotice(failure instanceof Error ? failure.message : "Could not close the shift");
+      setNotice(errorText(failure, "Could not close the shift"));
     }
   }
 
@@ -236,7 +236,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       if (failure instanceof ApiError && failure.status === 409) {
         await loadShift();
       } else {
-        setNotice(failure instanceof Error ? failure.message : "Could not open the shift");
+        setNotice(errorText(failure, "Could not open the shift"));
       }
     }
   }
@@ -260,7 +260,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         applyCard(failure.body.card as Card);
         setNotice(`Card ${card.number} was changed at another station. Please review it.`);
       } else {
-        setNotice(failure instanceof Error ? failure.message : "Could not save that change");
+        setNotice(errorText(failure, "Could not save that change"));
       }
     }
   };
@@ -272,7 +272,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       localStorage.removeItem(snapshotKey);
       props.onSignedOut();
     } catch (failure) {
-      setNotice(failure instanceof Error ? failure.message : "Could not sign out");
+      setNotice(errorText(failure, "Could not sign out"));
     }
   }
 
@@ -380,14 +380,4 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       {shiftView?.status === "open" && view === "summary" && <Summary shift={shiftView} />}
     </div>
   );
-}
-
-// The last shift seen, for a reload during an outage. Only used for the same date.
-function savedShift(key: string, date: string): ShiftWithCards | undefined {
-  try {
-    const saved = JSON.parse(localStorage.getItem(key) ?? "null") as ShiftWithCards | null;
-    return saved?.date === date ? saved : undefined;
-  } catch {
-    return undefined;
-  }
 }

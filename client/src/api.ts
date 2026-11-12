@@ -13,6 +13,12 @@ export class NetworkError extends Error {
   }
 }
 
+// What to tell a volunteer about a failure: its own message, or `fallback` for anything
+// that is not an Error.
+export function errorText(failure: unknown, fallback: string): string {
+  return failure instanceof Error ? failure.message : fallback;
+}
+
 export async function api<T>(method: string, url: string, body?: object): Promise<T> {
   let response: Response;
   try {

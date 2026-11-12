@@ -7,6 +7,7 @@ import {
   tefapBags,
 } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
+import { errorText } from "./api.js";
 import { cardDetails, DeleteCardButton, Family, StatusLabel, Ticket } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import { nextCardNumber } from "./state.js";
@@ -124,7 +125,7 @@ export function FrontDesk(props: {
       setSaved({ number: cardNumber, familySize: size, arrivalMethod: method, seniorBox, cheese });
     } catch (failure) {
       setSaved(null);
-      const reason = failure instanceof Error ? failure.message : "please try again";
+      const reason = errorText(failure, "please try again");
       setError(`${label} was not saved: ${reason}`);
       // The details come back for correction, unless the next family is already being typed.
       setForm((current) => (isEmpty(current) ? entry : current));

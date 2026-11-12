@@ -13,6 +13,7 @@ import {
   mergeCard,
   nextCardNumber,
   parseLoads,
+  savedShift,
 } from "./state.js";
 
 function card(overrides: Partial<Card>): Card {
@@ -248,5 +249,42 @@ describe("applyLiveMessage", () => {
     const message = { type: "card", card: card({}) } as const;
     expect(applyLiveMessage(null, message)).toBeNull();
     expect(applyLiveMessage(undefined, message)).toBeUndefined();
+  });
+});
+
+describe("savedShift", () => {
+  const stored = (value: string | null) => ({ getItem: () => value });
+
+  it("returns the shift saved for the same date", () => {
+    const shift = shiftWith([card({})]);
+    expect(savedShift(stored(JSON.stringify(shift)), "shift:pat", "2026-11-07")).toEqual(shift);
+  });
+
+  it("ignores a shift saved for another date", () => {
+    const shift = shiftWith([card({})]);
+    expect(savedShift(stored(JSON.stringify(shift)), "shift:pat", "2026-11-08")).toBeUndefined();
+  });
+
+  it("returns nothing when nothing was saved", () => {
+    expect(savedShift(stored(null), "shift:pat", "2026-11-07")).toBeUndefined();
+  });
+
+  it("returns nothing when the saved copy is damaged", () => {
+    expect(savedShift(stored("{not json"), "shift:pat", "2026-11-07")).toBeUndefined();
+  });
+
+  it("reads the key it is given", () => {
+    const keys: string[] = [];
+    savedShift(
+      {
+        getItem: (key) => {
+          keys.push(key);
+          return null;
+        },
+      },
+      "shift:pat",
+      "2026-11-07",
+    );
+    expect(keys).toEqual(["shift:pat"]);
   });
 });

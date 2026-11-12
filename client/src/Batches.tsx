@@ -9,15 +9,11 @@ import {
 } from "../../server/rules.js";
 import type { PartnerMethod } from "../../server/rules.js";
 import { roundWeight } from "../../server/summary.js";
-import { api } from "./api.js";
+import { api, errorText } from "./api.js";
 import { familyLabel, Ticket } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import { nextCardNumber, parseLoads } from "./state.js";
 import type { Card, Submit } from "./types.js";
-
-function errorText(failure: unknown): string {
-  return failure instanceof Error ? failure.message : "Could not save that";
-}
 
 function totalWeight(loads: readonly (number | null)[]): number {
   return roundWeight(loads.reduce<number>((sum, load) => sum + (load ?? 0), 0));
@@ -41,7 +37,7 @@ export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
       });
       setWeight("");
     } catch (failure) {
-      setError(errorText(failure));
+      setError(errorText(failure, "Could not save that"));
     }
   }
 
@@ -50,7 +46,7 @@ export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
     try {
       await api("DELETE", `/api/returned-batches/${id}`);
     } catch (failure) {
-      setError(errorText(failure));
+      setError(errorText(failure, "Could not save that"));
     }
   }
 
@@ -174,7 +170,7 @@ export function PartnerCards(props: {
       }
       setForm(EMPTY_PARTNER_FORM);
     } catch (failure) {
-      setError(errorText(failure));
+      setError(errorText(failure, "Could not save that"));
     }
   }
 
