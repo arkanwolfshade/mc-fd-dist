@@ -12,7 +12,7 @@ import { roundWeight } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
 import { familyLabel, Ticket } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
-import { nextCardNumber, parseLoads } from "./state.js";
+import { loadsForCarts, nextCardNumber, toggleSeniorBox } from "./state.js";
 import type { Card, Submit } from "./types.js";
 
 function totalWeight(loads: readonly (number | null)[]): number {
@@ -145,7 +145,7 @@ export function PartnerCards(props: {
     setError("");
     const cardNumber = Number(number);
     // Only the carts this Family gets are shown, so any others are sent empty.
-    const parsed = parseLoads(loads).map((load, index) => (index < carts ? load : null));
+    const parsed = loadsForCarts(loads, carts);
     try {
       const result = await submit({
         kind: "card-create",
@@ -226,10 +226,7 @@ export function PartnerCards(props: {
             type="button"
             class={seniorBox ? "selected" : ""}
             aria-pressed={seniorBox}
-            // Cheese comes only with a senior box, so it goes when the box does.
-            onClick={() =>
-              change(seniorBox ? { seniorBox: false, cheese: false } : { seniorBox: true })
-            }
+            onClick={() => change(toggleSeniorBox({ seniorBox, cheese }))}
           >
             Senior Box
           </button>

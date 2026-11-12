@@ -9,11 +9,13 @@ import {
   distributionQueue,
   hasWeight,
   isoDate,
+  loadsForCarts,
   missingBeforeDistribution,
   mergeCard,
   nextCardNumber,
   parseLoads,
   savedShift,
+  toggleSeniorBox,
 } from "./state.js";
 
 function card(overrides: Partial<Card>): Card {
@@ -286,5 +288,46 @@ describe("savedShift", () => {
       "2026-11-07",
     );
     expect(keys).toEqual(["shift:pat"]);
+  });
+});
+
+describe("toggleSeniorBox", () => {
+  it("ticks the Senior Box without offering Cheese yet", () => {
+    expect(toggleSeniorBox({ seniorBox: false, cheese: false })).toEqual({
+      seniorBox: true,
+      cheese: false,
+    });
+  });
+
+  it("clears Cheese along with the Senior Box", () => {
+    expect(toggleSeniorBox({ seniorBox: true, cheese: true })).toEqual({
+      seniorBox: false,
+      cheese: false,
+    });
+  });
+
+  it("leaves Cheese off when the Senior Box goes and Cheese was never ticked", () => {
+    expect(toggleSeniorBox({ seniorBox: true, cheese: false })).toEqual({
+      seniorBox: false,
+      cheese: false,
+    });
+  });
+});
+
+describe("loadsForCarts", () => {
+  it("reads a weight for each cart the Family has", () => {
+    expect(loadsForCarts(["12.5", "8", ""], 2)).toEqual([12.5, 8, null]);
+  });
+
+  it("drops weights typed for carts the Family no longer has", () => {
+    expect(loadsForCarts(["12.5", "8", "3"], 1)).toEqual([12.5, null, null]);
+  });
+
+  it("treats blank fields as no weight", () => {
+    expect(loadsForCarts(["", " ", ""], 3)).toEqual([null, null, null]);
+  });
+
+  it("keeps no weights for a Family with no carts", () => {
+    expect(loadsForCarts(["5", "", ""], 0)).toEqual([null, null, null]);
   });
 });

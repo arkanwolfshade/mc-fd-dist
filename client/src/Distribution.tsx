@@ -18,7 +18,14 @@ import {
   Ticket,
 } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
-import { distributionQueue, hasWeight, missingBeforeDistribution, parseLoads } from "./state.js";
+import {
+  distributionQueue,
+  hasWeight,
+  loadsForCarts,
+  missingBeforeDistribution,
+  parseLoads,
+  toggleSeniorBox,
+} from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
 
 function distributedDetails(card: Card): string {
@@ -147,7 +154,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
   const carts = cartCount(card);
 
   function distribute() {
-    const parsed = parseLoads(loads).map((load, index) => (index < carts ? load : null));
+    const parsed = loadsForCarts(loads, carts);
     void onUpdate(card, { loads: parsed, extrasAdded, extrasNote, status: "distributed" });
   }
 
@@ -289,9 +296,9 @@ function CorrectDetails(props: { card: Card; onUpdate: UpdateCard; onDone: () =>
           class={seniorBox ? "selected" : ""}
           aria-pressed={seniorBox}
           onClick={() => {
-            // Cheese comes only with a senior box, so it goes when the box does.
-            if (seniorBox) setCheese(false);
-            setSeniorBox(!seniorBox);
+            const next = toggleSeniorBox({ seniorBox, cheese });
+            setSeniorBox(next.seniorBox);
+            setCheese(next.cheese);
           }}
         >
           Senior Box

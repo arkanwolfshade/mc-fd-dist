@@ -10,7 +10,7 @@ import type { ArrivalMethod } from "../../server/rules.js";
 import { errorText } from "./api.js";
 import { cardDetails, DeleteCardButton, Family, StatusLabel, Ticket } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
-import { nextCardNumber } from "./state.js";
+import { nextCardNumber, toggleSeniorBox } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
 
 interface CardForm {
@@ -235,10 +235,7 @@ export function FrontDesk(props: {
             type="button"
             class={seniorBox ? "selected" : ""}
             aria-pressed={seniorBox}
-            // Cheese comes only with a Senior Box, so it goes when the box does.
-            onClick={() =>
-              change(seniorBox ? { seniorBox: false, cheese: false } : { seniorBox: true })
-            }
+            onClick={() => change(toggleSeniorBox({ seniorBox, cheese }))}
           >
             Senior Box
           </button>

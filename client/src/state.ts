@@ -95,6 +95,20 @@ export function parseLoads(fields: string[]): (number | null)[] {
   return fields.map((field) => (field.trim() === "" ? null : Number(field)));
 }
 
+// Weights typed for carts the Family does not have, say after the family size was corrected,
+// are dropped.
+export function loadsForCarts(fields: string[], carts: number): (number | null)[] {
+  return parseLoads(fields).map((load, index) => (index < carts ? load : null));
+}
+
+// Cheese comes only with a Senior Box, so it goes when the box does.
+export function toggleSeniorBox(current: { seniorBox: boolean; cheese: boolean }): {
+  seniorBox: boolean;
+  cheese: boolean;
+} {
+  return { seniorBox: !current.seniorBox, cheese: current.seniorBox ? false : current.cheese };
+}
+
 export function hasWeight(loads: readonly (number | null)[]): boolean {
   return loads.some((load) => load !== null);
 }
