@@ -1,5 +1,5 @@
 # Front desk quick card
-**Version 1.0.0** · Food bank shift tracker · 2026-11-08 · Print one per front desk
+**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · Print one per front desk
 
 ---
 
@@ -9,14 +9,15 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the front desk gui
 
 ---
 
-## Each family
+## Each Family
 
 **[SPEC]**
-1. **# in family**: how many people.
-2. **Arrived by**: East, West, Around corner, Bus or Walk.
-3. **Senior box** if it applies, then **Cheese** if it applies. Cheese comes only with a senior box.
-4. **Save card**. The form clears for the next family.
-5. When it is their turn: **Call back**.
+1. **Info from**: tap the intake volunteer's initials, or type new ones. Required.
+2. **# in Family**: how many people.
+3. **Location or transport**: East, West, Around corner, Bus or Walk.
+4. **Senior Box** if it applies, then **Cheese** if it applies. Cheese comes only with a Senior Box.
+5. **Save card**. The form clears for the next Family.
+6. When it is their turn: **Call back**.
 
 ## TEFAP bags
 
@@ -26,8 +27,9 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the front desk gui
 ## If something goes wrong
 
 **[SPEC]**
-- **Choose how the family arrived**: tap an arrival method, then Save card.
-- **Number already in use**: check the family's card number, type it in Card #, Save card.
+- **Choose who the Family's details came from**: tap or type the initials, then Save card.
+- **Choose the Family's location or transport**: tap one, then Save card.
+- **Number already in use**: check the Family's card number, type it in Card #, Save card.
 - **Connection lost**: keep going. Cards wait on the device and send themselves later.
 - **Down for more than a few minutes**: tell staff. Use paper if they say so.
 - More help: tap **Help** at the top of the screen.

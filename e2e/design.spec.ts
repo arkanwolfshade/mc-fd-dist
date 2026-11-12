@@ -38,7 +38,7 @@ test("a saved card is confirmed with its number and details", async ({ signIn })
   const frontDesk = await signIn("front-desk");
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 5, method: "East", seniorBox: true });
-  await expect(frontDesk.locator(".saved")).toHaveText("1 Saved: family of 5, East, senior box");
+  await expect(frontDesk.locator(".saved")).toHaveText("1 Saved: Family of 5, East, Senior Box");
 });
 
 test("each card in the line shows its ticket, family and status", async ({ signIn }) => {
@@ -47,7 +47,7 @@ test("each card in the line shows its ticket, family and status", async ({ signI
   await addCard(frontDesk, { familySize: 9, method: "Walk", seniorBox: true, cheese: true });
   const row = cardRow(frontDesk, 1);
   await expect(row.locator(".family")).toHaveText("Family of 9");
-  await expect(row.locator(".details")).toHaveText("Walk, senior box and cheese");
+  await expect(row.locator(".details")).toHaveText("Walk, Senior Box and Cheese");
   await expect(row.locator(".status")).toHaveText("Waiting");
 });
 
@@ -59,8 +59,9 @@ test("distribution sees what to give on its own line", async ({ signIn }) => {
   await callBack(frontDesk);
 
   const card = queueCard(distribution, 1);
-  await expect(card.locator(".give li")).toHaveText(["2 TEFAP bags", "Senior box", "Cheese"]);
+  await expect(card.locator(".give li")).toHaveText(["2 TEFAP bags", "Senior Box", "Cheese"]);
   await expect(card.getByRole("button", { name: "Confirm card 1" })).toBeVisible();
+  await expect(card.locator(".queue-head")).toContainText("Info from AB");
 });
 
 test("signing out is a quiet link, not a tab", async ({ signIn }) => {

@@ -52,6 +52,7 @@ describe("admin and closing routes", () => {
       number: 1,
       familySize: 5,
       arrivalMethod: "East",
+      intakeInitials: "AB",
       ...overrides,
     });
     expect(response.statusCode).toBe(201);
@@ -231,6 +232,39 @@ describe("admin and closing routes", () => {
       );
       expect(response.body).toContain(",Around corner,");
       expect(response.body).not.toContain(",AC,");
+    });
+
+    it("names carts, extras and intake initials in the cards CSV", async () => {
+      const shiftId = await openShift("2026-11-07");
+      await addCard(shiftId, { intakeInitials: "jq" });
+      const response = await request(
+        "GET",
+        "/api/admin/reports/cards.csv?from=2026-11-01&to=2026-11-30",
+        admin,
+      );
+      const [header, row] = response.body.split("\r\n");
+      expect(header).toContain(",cart_1,cart_2,cart_3,total_weight,other,");
+      expect(header).toMatch(/,extras_added,extras_note,intake_initials$/);
+      expect(header).not.toContain("load_");
+      expect(row).toMatch(/,false,,JQ$/);
+    });
+
+    it("writes partner Families out by name in the cards CSV", async () => {
+      const shiftId = await openShift("2026-11-07");
+      const response = await request("POST", `/api/shifts/${shiftId}/cards`, distribution, {
+        clientId: crypto.randomUUID(),
+        number: 40,
+        familySize: 2,
+        arrivalMethod: "HH",
+        loads: [12, null, null],
+      });
+      expect(response.statusCode).toBe(201);
+      const csv = await request(
+        "GET",
+        "/api/admin/reports/cards.csv?from=2026-11-01&to=2026-11-30",
+        admin,
+      );
+      expect(csv.body).toContain(",Helping Hands,");
     });
 
     it("limits CSV exports to admins", async () => {

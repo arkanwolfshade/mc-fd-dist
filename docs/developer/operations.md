@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.0.0** · mc-fd-dist · 2026-11-08 · For the maintainer and the staff owner
+**Version 1.1.0** · mc-fd-dist · 2026-11-11 · For the maintainer and the staff owner
 
 ---
 
@@ -105,6 +105,11 @@ One-time set-up of release access, by an administrator with their own AWS sign-i
 Symptom: The **Update the stack** step lists a resource that would be replaced or removed.
 Cause: The change to `stack.yaml` cannot be made in place. Changing the server's launch script replaces the server, and the live database with it.
 Fix: Back up the database, then make the change by hand. The stack's CloudFormation role cannot delete the server, so an administrator first widens it in `github-deploy.yaml`, applies the change, and narrows it again. To replace the server, also give the stack's `ServerName` parameter a new value, because CloudFormation cannot replace a resource that keeps its name. The static IP moves to the new server.
+
+**[BUG] A release goes back because partner batches exist**
+Symptom: A release that includes migration 6 (ADR 0023) goes back to the previous image. The app's log says the database holds partner batches, which cannot become cards.
+Cause: Migration 6 drops the old Door Dash and Helping Hands batches and refuses to run while any exist, because a batch has no card numbers or sizes.
+Fix: Stop and decide with the developer before releasing again. The batches must be re-entered by hand as Door Dash or Helping Hands cards, then deleted. The database is not changed by the refused migration.
 
 **[BUG] A release left SSH open**
 Symptom: The server's networking tab shows port 22 open to an address other than the Lightsail browser client.

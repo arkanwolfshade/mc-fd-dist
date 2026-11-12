@@ -1,9 +1,9 @@
 import { addCard, callBack, cardRow, expect, openShift, queueCard, test } from "./fixtures.js";
 
-test("cheese is offered only once a senior box is ticked", async ({ signIn }) => {
+test("Cheese is offered only once a Senior Box is ticked", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
   await openShift(frontDesk);
-  const seniorBox = frontDesk.getByRole("button", { name: "Senior box" });
+  const seniorBox = frontDesk.getByRole("button", { name: "Senior Box" });
   const cheese = frontDesk.getByRole("button", { name: "Cheese" });
 
   await expect(cheese).toBeDisabled();
@@ -12,13 +12,13 @@ test("cheese is offered only once a senior box is ticked", async ({ signIn }) =>
   await cheese.click();
   await expect(cheese).toHaveAttribute("aria-pressed", "true");
 
-  // Taking the senior box away takes the cheese with it.
+  // Taking the Senior Box away takes the Cheese with it.
   await seniorBox.click();
   await expect(cheese).toBeDisabled();
   await expect(cheese).toHaveAttribute("aria-pressed", "false");
 });
 
-test("correcting a card keeps cheese with the senior box", async ({ signIn }) => {
+test("correcting a card keeps Cheese with the Senior Box", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
@@ -28,7 +28,7 @@ test("correcting a card keeps cheese with the senior box", async ({ signIn }) =>
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Correct details" }).click();
   const correct = card.locator(".correct");
-  await correct.getByRole("button", { name: "Senior box" }).click();
+  await correct.getByRole("button", { name: "Senior Box" }).click();
   await expect(correct.getByRole("button", { name: "Cheese" })).toBeDisabled();
   await correct.getByRole("button", { name: "Save correction" }).click();
 

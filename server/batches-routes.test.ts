@@ -6,7 +6,7 @@ import { buildApp } from "./app.js";
 import { openDatabase } from "./db.js";
 import { messageText, PASSWORD, signIn } from "./test-support.js";
 
-describe("partner and returned batches", () => {
+describe("returned batches", () => {
   let db: Database;
   let app: FastifyInstance;
   let frontDesk: string;
@@ -38,16 +38,6 @@ describe("partner and returned batches", () => {
     return app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
   }
 
-  function addPartner(cookie: string, overrides: object = {}) {
-    return request("POST", `/api/shifts/${shiftId}/partner-batches`, cookie, {
-      clientId: crypto.randomUUID(),
-      partner: "Door Dash",
-      familyCount: 3,
-      weight: 40,
-      ...overrides,
-    });
-  }
-
   function addReturned(cookie: string, overrides: object = {}) {
     return request("POST", `/api/shifts/${shiftId}/returned-batches`, cookie, {
       clientId: crypto.randomUUID(),
@@ -60,40 +50,27 @@ describe("partner and returned batches", () => {
     return request("GET", "/api/shifts?date=2026-11-07", distribution);
   }
 
-  it("records several partner batches for one partner in a shift", async () => {
-    expect((await addPartner(distribution)).statusCode).toBe(201);
-    expect((await addPartner(distribution)).statusCode).toBe(201);
-    const { partnerBatches } = (await shift()).json();
-    expect(partnerBatches).toHaveLength(2);
-    expect(partnerBatches[0]).toMatchObject({ partner: "Door Dash", familyCount: 3, weight: 40 });
-  });
-
-  it("keeps partner batches out of the card list", async () => {
-    await addPartner(distribution);
-    expect((await shift()).json().cards).toEqual([]);
-  });
-
-  it("includes batches in the shift summary", async () => {
-    await addPartner(distribution);
+  it("subtracts returned weight in the shift summary", async () => {
     await addReturned(distribution);
     expect((await shift()).json().summary).toMatchObject({
-      families: { total: 3, cards: 0, partners: 3 },
       returnedWeight: 6.5,
-      netWeight: 33.5,
+      netWeight: -6.5,
     });
   });
 
-  it("stops the front desk adding either kind of batch", async () => {
-    expect((await addPartner(frontDesk)).statusCode).toBe(403);
+  it("stops the front desk adding a returned batch", async () => {
     expect((await addReturned(frontDesk)).statusCode).toBe(403);
   });
 
-  it.each([
-    ["an unknown partner", { partner: "Uber" }],
-    ["a family count of zero", { familyCount: 0 }],
-    ["a negative weight", { weight: -1 }],
-  ])("rejects a partner batch with %s", async (_name, overrides) => {
-    expect((await addPartner(distribution, overrides)).statusCode).toBe(400);
+  // Door Dash and Helping Hands Families are cards now. See ADR 0023.
+  it("no longer accepts partner batches", async () => {
+    const response = await request("POST", `/api/shifts/${shiftId}/partner-batches`, distribution, {
+      clientId: crypto.randomUUID(),
+      partner: "Door Dash",
+      familyCount: 3,
+      weight: 40,
+    });
+    expect(response.statusCode).toBe(404);
   });
 
   it("rejects a returned batch with a weight of zero", async () => {
@@ -117,14 +94,13 @@ describe("partner and returned batches", () => {
 
   it("rejects a batch on a closed shift", async () => {
     db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(shiftId);
-    expect((await addPartner(distribution)).statusCode).toBe(409);
     expect((await addReturned(distribution)).statusCode).toBe(409);
   });
 
   it("rejects removing a batch from a closed shift", async () => {
-    const batch = (await addPartner(distribution)).json();
+    const batch = (await addReturned(distribution)).json();
     db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(shiftId);
-    const response = await request("DELETE", `/api/partner-batches/${batch.id}`, distribution);
+    const response = await request("DELETE", `/api/returned-batches/${batch.id}`, distribution);
     expect(response.statusCode).toBe(409);
   });
 
@@ -139,7 +115,6 @@ describe("partner and returned batches", () => {
     expect(JSON.parse(await message)).toMatchObject({
       type: "batches",
       shiftId,
-      partnerBatches: [],
       returnedBatches: [{ weight: 6.5 }],
     });
     socket.terminate();

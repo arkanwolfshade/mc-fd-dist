@@ -1,6 +1,6 @@
 # 0012. Define shift totals in one shared calculation
 
-- **Status:** Accepted; amended by [0019](0019-correcting-unserved-cards.md), which excludes families who left without food
+- **Status:** Accepted; amended by [0019](0019-correcting-unserved-cards.md), which excludes families who left without food, and by [0023](0023-partner-families-carts-and-extras.md), which makes partner families cards
 - **Date:** 2026-11-06
 
 ## Context
@@ -17,6 +17,8 @@ Totals are calculated by one pure function shared by client and server.
 - **TEFAP bags, senior boxes and cheese:** Counted from cards only.
 - **All entered cards count,** whatever their status.
 - **Missing weights:** Marking a card distributed with no weight asks for a one-tap confirmation, and the summary shows how many distributed cards have no weight. A typed zero counts as a weight.
+
+*Amended 2026-11-11:* partner batches are retired ([ADR 0023](0023-partner-families-carts-and-extras.md)). Each Door Dash or Helping Hands Family is now a card. Partner families and weight are counted from those cards and their cart weights, and stay on their own line. Walk-in figures exclude them. TEFAP bags, Senior Boxes and Cheese now include partner cards. A missing cart weight still warns and can be overridden.
 
 ## Alternatives considered
 

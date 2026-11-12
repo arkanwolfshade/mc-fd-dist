@@ -29,6 +29,6 @@ Add an [architecture decision record](docs/adr/README.md) in the same commit as 
 
 ## Data
 
-Never add names, addresses or other personal details without a new decision record. The system is designed to hold no personal data (see [ADR 0002](docs/adr/0002-anonymous-same-day-tickets.md)).
+Never add names, addresses or other personal details without a new decision record. Families stay anonymous (see [ADR 0002](docs/adr/0002-anonymous-same-day-tickets.md)). The only personal data held is each intake volunteer's initials (see [ADR 0024](docs/adr/0024-intake-initials.md)).
 
 Never commit secrets, real passwords or database files.

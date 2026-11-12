@@ -379,6 +379,7 @@ a.button {
   }
 
   .card-row > .status,
+  .card-row > .weight,
   .card-row > .row-actions {
     grid-column: 2;
     justify-self: start;
@@ -418,6 +419,58 @@ a.button {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 16px;
+}
+
+/* Which intake volunteer the details came from: useful, but quieter than the family. */
+span.info-from {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* On the front desk form: the quick buttons, then the box for new initials. */
+fieldset .info-from {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+fieldset .info-from > label {
+  flex: 1 1 130px;
+}
+
+/* Extras added: a real checkbox, sized for a thumb, beside its note. */
+.extras-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 16px;
+}
+
+.extras-check > label {
+  flex: 1 1 200px;
+}
+
+label.check {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  font-size: 18px;
+}
+
+label.check input {
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--go);
+}
+
+.card-row > .weight {
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .give {

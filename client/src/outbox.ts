@@ -1,6 +1,6 @@
 import { ApiError } from "./api.js";
 
-export type WriteKind = "card-create" | "card-update" | "partner" | "returned";
+export type WriteKind = "card-create" | "card-update" | "returned";
 
 export interface QueuedWrite {
   id: string;

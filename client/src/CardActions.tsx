@@ -16,7 +16,7 @@ export function StatusLabel(props: { status: CardStatus }) {
   return <span class={`status ${props.status}`}>{STATUS_LABELS[props.status]}</span>;
 }
 
-// The family's card number, drawn as the claim-check ticket they hold.
+// The Family's card number, drawn as the claim-check ticket they hold.
 export function Ticket(props: { number: number; big?: boolean }) {
   return <span class={props.big ? "ticket big" : "ticket"}>{props.number}</span>;
 }
@@ -25,14 +25,20 @@ export function familyLabel(card: { familySize: number }): string {
   return `Family of ${card.familySize}`;
 }
 
-// For example "Walk, senior box and cheese". Cheese only ever comes with a senior box.
+// For example "Walk, Senior Box and Cheese". Cheese only ever comes with a Senior Box.
 export function cardDetails(card: {
   arrivalMethod: ArrivalMethod;
   seniorBox: boolean;
   cheese: boolean;
 }): string {
-  const extras = card.cheese ? " and cheese" : "";
-  return `${arrivalLabel(card.arrivalMethod)}${card.seniorBox ? `, senior box${extras}` : ""}`;
+  const extras = card.cheese ? " and Cheese" : "";
+  return `${arrivalLabel(card.arrivalMethod)}${card.seniorBox ? `, Senior Box${extras}` : ""}`;
+}
+
+// Who at the front desk took the Family's details. See ADR 0024.
+export function InfoFrom(props: { initials: string | null }) {
+  if (!props.initials) return null;
+  return <span class="info-from">Info from {props.initials}</span>;
 }
 
 // Name and details stacked, as each row and card shows them.

@@ -216,11 +216,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         } else {
           setShift((current) =>
             current && current.id === live.shiftId
-              ? {
-                  ...current,
-                  partnerBatches: live.partnerBatches,
-                  returnedBatches: live.returnedBatches,
-                }
+              ? { ...current, returnedBatches: live.returnedBatches }
               : current,
           );
         }
@@ -256,7 +252,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
     setNotice("");
     try {
       const created = await api<Shift>("POST", "/api/shifts", { date: date.current });
-      setShift({ ...created, cards: [], partnerBatches: [], returnedBatches: [] });
+      setShift({ ...created, cards: [], returnedBatches: [] });
     } catch (failure) {
       // Another station opened it first, which is fine.
       if (failure instanceof ApiError && failure.status === 409) {
@@ -397,6 +393,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         <Distribution
           shift={shiftView}
           submit={(write) => outbox.submit(write)}
+          onSaved={applyCard}
           onUpdate={updateCard}
           onDelete={deleteCard}
           onCloseShift={() => closeShift(shiftView.id)}

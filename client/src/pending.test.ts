@@ -19,6 +19,9 @@ function card(overrides: Partial<Card> = {}): Card {
     loads: [null, null, null],
     totalWeight: 0,
     revision: 2,
+    extrasAdded: false,
+    extrasNote: "",
+    intakeInitials: "AB",
     ...overrides,
   };
 }
@@ -29,7 +32,6 @@ function shift(cards: Card[]): ShiftWithCards {
     date: "2026-11-07",
     status: "open",
     cards,
-    partnerBatches: [],
     returnedBatches: [],
   };
 }
@@ -97,7 +99,7 @@ describe("withPending", () => {
     expect(view.pendingCards).toMatchObject([{ number: 8, familySize: 5, tefapBags: 2 }]);
   });
 
-  it("lists waiting returned and partner batches", () => {
+  it("lists waiting returned batches, and partner Families as waiting cards", () => {
     const view = withPending(shift([]), [
       {
         id: "x",
@@ -109,14 +111,16 @@ describe("withPending", () => {
       },
       {
         id: "y",
-        kind: "partner",
+        kind: "card-create",
         method: "POST",
-        url: "/api/shifts/1/partner-batches",
-        body: { clientId: "p", partner: "Door Dash", familyCount: 4, weight: 40 },
-        label: "Door Dash",
+        url: "/api/shifts/1/cards",
+        body: { clientId: "p", number: 60, familySize: 9, arrivalMethod: "DD", loads: [9, 8, 7] },
+        label: "Door Dash card 60",
       },
     ]);
     expect(view.pendingReturned).toMatchObject([{ weight: 3.5 }]);
-    expect(view.pendingPartners).toMatchObject([{ partner: "Door Dash", familyCount: 4 }]);
+    expect(view.pendingCards).toMatchObject([
+      { number: 60, arrivalMethod: "DD", tefapBags: 3, loads: [9, 8, 7] },
+    ]);
   });
 });

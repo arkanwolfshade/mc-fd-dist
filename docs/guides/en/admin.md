@@ -1,5 +1,5 @@
 # Admin guide
-**Version 1.0.0** · Food bank shift tracker · 2026-11-08 · For food bank staff
+**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · For food bank staff
 
 ---
 
@@ -34,7 +34,13 @@ Station sign-ins are shared, so the app records changes by station, not by perso
 
 **[SPEC]**
 - **Download shift totals (CSV)**: one row per shift, for a spreadsheet.
-- **Download cards (CSV)**: one row per card.
+- **Download cards (CSV)**: one row per card, including Door Dash and Helping Hands Families. Among its columns:
+  - `cart_1`, `cart_2`, `cart_3`: the weight of each cart, in pounds;
+  - `extras_added` and `extras_note`: whether extras were ticked, and what was added;
+  - `intake_initials`: the initials of the intake volunteer the details came from. Door Dash and Helping Hands cards have none.
+
+**[NOTE]**
+The cart columns were called `load_1` to `load_3` before 2026-11-11. A spreadsheet built on the old names needs updating.
 
 **[NOTE]**
 A reopened shift does not close by itself overnight. Remember to close it once the correction is made.
@@ -47,10 +53,10 @@ A reopened shift does not close by itself overnight. Remember to close it once t
 - **Delete** a card entered by mistake, such as a duplicate or a typo. It appears on each card in the **Front desk** list, and in the closing warning on **Distribution**.
 - Deleting asks for confirmation, needs a connection, and only works while the shift is open.
 - Every station loses the card straight away. **Recent activity** keeps a record of what it held.
-- For a family who left before being served, record **Left without food** from the closing warning on **Distribution** instead. That keeps the card and counts the family separately.
+- For a Family who left before being served, record **Left without food** from the closing warning on **Distribution** instead. That keeps the card and counts the Family separately.
 
 **[NOTE]**
-Deleting cannot be undone. When in doubt, record the family as left without food, which can be undone.
+Deleting cannot be undone. When in doubt, record the Family as left without food, which can be undone.
 
 ---
 

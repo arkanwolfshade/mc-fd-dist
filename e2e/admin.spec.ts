@@ -51,7 +51,7 @@ test("closing a fully served shift has nothing to warn about", async ({ signIn }
   await callBack(frontDesk);
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
-  await card.getByLabel("Load 1 (lb)").fill("10");
+  await card.getByLabel("Cart 1 (lb)").fill("10");
   await card.getByRole("button", { name: "Mark distributed" }).click();
   await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
 
@@ -109,12 +109,12 @@ test("an admin sees date-range totals and downloads CSV reports", async ({ signI
   const distribution = await signIn("distribution");
   const admin = await signIn("pat");
   await openShift(frontDesk);
-  await addCard(frontDesk, { familySize: 5, method: "East" });
+  await addCard(frontDesk, { familySize: 4, method: "East" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
   await callBack(frontDesk);
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
-  await card.getByLabel("Load 1 (lb)").fill("12");
+  await card.getByLabel("Cart 1 (lb)").fill("12");
   await card.getByRole("button", { name: "Mark distributed" }).click();
   await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
 
@@ -139,6 +139,11 @@ test("an admin sees date-range totals and downloads CSV reports", async ({ signI
   ]);
   const cardsCsv = readFileSync(await cardsDownload.path(), "utf8");
   expect(cardsCsv).toContain("distributed");
+  const cardsHeader = cardsCsv.split("\r\n")[0];
+  for (const column of ["cart_1", "extras_added", "extras_note", "intake_initials"]) {
+    expect(cardsHeader).toContain(column);
+  }
+  expect(cardsCsv).toContain("AB");
 });
 
 test("changing a station password signs that station out", async ({ signIn }) => {

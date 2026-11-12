@@ -12,12 +12,12 @@ export interface PendingCard {
   seniorBox: boolean;
   cheese: boolean;
   tefapBags: number;
+  loads: (number | null)[];
 }
 
 export interface ShiftView extends ShiftWithCards {
   pendingCards: PendingCard[];
   pendingReturned: { id: string; weight: number }[];
-  pendingPartners: { id: string; partner: string; familyCount: number; weight: number }[];
 }
 
 function applyChange(card: Card, body: Record<string, unknown>): Card {
@@ -52,7 +52,6 @@ export function withPending(shift: ShiftWithCards, items: readonly QueuedWrite[]
     cards: shift.cards,
     pendingCards: [],
     pendingReturned: [],
-    pendingPartners: [],
   };
 
   for (const item of items) {
@@ -70,17 +69,11 @@ export function withPending(shift: ShiftWithCards, items: readonly QueuedWrite[]
         arrivalMethod: body.arrivalMethod as ArrivalMethod,
         seniorBox: Boolean(body.seniorBox),
         cheese: Boolean(body.cheese),
-        tefapBags: tefapBags(familySize),
+        tefapBags: (body.tefapBags as number | undefined) ?? tefapBags(familySize),
+        loads: (body.loads as (number | null)[] | undefined) ?? [],
       });
     } else if (item.kind === "returned") {
       view.pendingReturned.push({ id: item.id, weight: body.weight as number });
-    } else if (item.kind === "partner") {
-      view.pendingPartners.push({
-        id: item.id,
-        partner: body.partner as string,
-        familyCount: body.familyCount as number,
-        weight: body.weight as number,
-      });
     }
   }
   return view;

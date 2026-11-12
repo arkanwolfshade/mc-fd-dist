@@ -1,15 +1,22 @@
-// Walks through one shift in two real browser windows, side by side, for showing the app
+// Walks through one whole shift in real browser windows, side by side, for showing the app
 // to people. It uses the real server and client with made-up data in a temporary database.
+// The front desk is on the left and distribution on the right. An admin window opens over
+// the front desk when an admin is needed.
 //
 //   npm run demo
 //
 // DEMO_STEP_SECONDS sets the shortest time each step is shown before it happens (default 4).
 // DEMO_HEADLESS=true runs it without windows, to check that the script still works.
+// DEMO_VIDEO_DIR=<folder> records each window to a .webm file in that folder. The windows
+// close by themselves at the end, so that the videos are saved.
+// DEMO_VIDEO_SIZE=<width>x<height> sets the video size (default 960x1040, or the window size
+// when headless).
 import { randomBytes } from "node:crypto";
-import { resolve } from "node:path";
+import { mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import type { AddressInfo } from "node:net";
 import { chromium, expect } from "@playwright/test";
-import type { Browser, Locator, Page } from "@playwright/test";
+import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
 import { createAccount } from "../server/accounts.js";
 import { buildApp } from "../server/app.js";
 import { openDatabase } from "../server/db.js";
@@ -18,9 +25,20 @@ const STEP_MS = Number(process.env.DEMO_STEP_SECONDS ?? 4) * 1000;
 const HEADLESS = process.env.DEMO_HEADLESS === "true";
 const SETTLE_MS = STEP_MS > 0 ? 1500 : 0;
 const TYPING_DELAY_MS = STEP_MS > 0 ? 150 : 0;
+const HEADLESS_VIEWPORT = { width: 720, height: 850 };
+const VIDEO_DIR = process.env.DEMO_VIDEO_DIR ? resolve(process.env.DEMO_VIDEO_DIR) : undefined;
+const VIDEO_SIZE = videoSize(process.env.DEMO_VIDEO_SIZE);
+
+function videoSize(setting: string | undefined): { width: number; height: number } {
+  const match = setting?.match(/^(\d+)x(\d+)$/);
+  if (match) return { width: Number(match[1]), height: Number(match[2]) };
+  return HEADLESS ? HEADLESS_VIEWPORT : { width: 960, height: 1040 };
+}
 
 interface Station {
   name: string;
+  file: string;
+  context: BrowserContext;
   page: Page;
 }
 
@@ -44,14 +62,16 @@ async function openStation(
   url: string,
   side: "left" | "right",
 ): Promise<Station> {
-  const context = await browser.newContext(
-    HEADLESS ? { viewport: { width: 720, height: 850 } } : { viewport: null },
-  );
+  const context = await browser.newContext({
+    ...(HEADLESS ? { viewport: HEADLESS_VIEWPORT } : { viewport: null }),
+    ...(VIDEO_DIR ? { recordVideo: { dir: VIDEO_DIR, size: VIDEO_SIZE } } : {}),
+  });
   const page = await context.newPage();
   page.on("pageerror", (error) => console.error(`${name} page error: ${error.message}`));
   if (!HEADLESS) await moveWindow(page, side);
   await page.goto(url);
-  return { name, page };
+  const file = `demo-${name.toLowerCase().replaceAll(" ", "-")}.webm`;
+  return { name, file, context, page };
 }
 
 async function moveWindow(page: Page, side: "left" | "right"): Promise<void> {
@@ -116,15 +136,22 @@ async function clearHighlights(page: Page): Promise<void> {
   });
 }
 
-async function run(frontDesk: Station, distribution: Station, password: string): Promise<void> {
+async function run(
+  frontDesk: Station,
+  distribution: Station,
+  admin: Station,
+  password: string,
+): Promise<void> {
   const fd = frontDesk.page;
   const dist = distribution.page;
+  const adm = admin.page;
   const type = (target: Locator, text: string) =>
     target.pressSequentially(text, { delay: TYPING_DELAY_MS });
   // Cards are found by the number on their ticket.
   const ticket = (page: Page, number: number) =>
     page.locator(".ticket").filter({ hasText: new RegExp(`^${number}$`) });
-  const fdCard = (number: number) => fd.locator(".cards > li").filter({ has: ticket(fd, number) });
+  const fdCard = (number: number, page = fd) =>
+    page.locator(".cards > li").filter({ has: ticket(page, number) });
   const queueCard = (number: number) =>
     dist.locator(".queue-card").filter({ has: ticket(dist, number) });
   const doneCard = (number: number) =>
@@ -132,27 +159,42 @@ async function run(frontDesk: Station, distribution: Station, password: string):
       .locator("section", { hasText: "Distributed (" })
       .locator("li")
       .filter({ has: ticket(dist, number) });
+  const infoFrom = fd.getByRole("group", { name: "Info from" });
   const returned = dist.locator("section", { hasText: "Returned items" });
   const partners = dist.locator("section", { hasText: "End of shift" });
+  const partnerRow = (number: number) =>
+    partners.locator("li").filter({ has: ticket(dist, number) });
+  const finish = dist.locator("section.panel", { hasText: "Finish" });
+  const closing = dist.locator(".confirm");
+  const reports = adm.locator("section.panel", { hasText: "Shifts and reports" });
+  const accounts = adm.locator("section.panel", { hasText: "Accounts" });
+  const newAdmin = accounts.locator("form", { hasText: "Add admin" });
+  const samRow = accounts.locator(".account").filter({ hasText: "sam" });
+  // Set when the card typed during the Wi-Fi dropout is saved on the device.
+  let offlineNumber = 0;
 
-  const signIn = (station: Station, username: string): Step => ({
+  const signIn = (station: Station, username: string, say: string): Step => ({
     station,
-    say: `Each station signs in with its own login, which decides what it can do. Stations stay signed in, so volunteers rarely see this.`,
+    say,
     target: () => station.page.getByRole("button", { name: "Sign in" }),
     act: async () => {
       await type(station.page.getByLabel("Username"), username);
       await station.page.getByLabel("Password").fill(password);
       await station.page.getByRole("button", { name: "Sign in" }).click();
+      await expect(station.page.getByRole("button", { name: "Sign out" })).toBeVisible();
     },
   });
+  const stationSignIn =
+    "Each station signs in with its own login, which decides what it can do. Stations stay signed in, so volunteers rarely see this.";
 
   const steps: Step[] = [
+    // Starting the shift.
     {
       station: frontDesk,
-      say: "This walkthrough uses made-up data. The left window is the front desk and the right window is distribution, as if on two separate devices.",
+      say: "This walkthrough follows one whole shift with made-up data. The left window is the front desk and the right window is distribution, as if on two separate devices.",
     },
-    signIn(frontDesk, "front-desk"),
-    signIn(distribution, "distribution"),
+    signIn(frontDesk, "front-desk", stationSignIn),
+    signIn(distribution, "distribution", stationSignIn),
     {
       station: frontDesk,
       say: "The first station to start opens today's shift. There is one shift per date.",
@@ -164,119 +206,257 @@ async function run(frontDesk: Station, distribution: Station, password: string):
       say: "Distribution sees the shift open by itself, with an empty queue and no reload.",
       target: () => dist.getByRole("heading", { name: "Queue (0)" }),
     },
+
+    // The front desk enters Families.
     {
       station: frontDesk,
-      say: "A family of 5 arrives. The next card number is suggested, and TEFAP bags are worked out from family size: 5 people is 2 bags.",
-      target: () => fd.getByLabel("# in family"),
-      act: () => type(fd.getByLabel("# in family"), "5"),
+      say: "The yellow ticket shows the next card number. Leave Card # blank to use it, or type the number on the Family's card.",
+      target: () => fd.locator(".next-card"),
     },
     {
       station: frontDesk,
-      say: "One tap records how they arrived. A senior box comes with the option of cheese, so both are ticked.",
-      target: () => fd.locator("fieldset"),
+      say: "A Family of 5 arrives. TEFAP bags are worked out from the size: 1 to 4 people get 1 bag, 5 to 8 get 2, and 9 or more get 3.",
+      target: () => fd.getByLabel("# in Family"),
+      act: () => type(fd.getByLabel("# in Family"), "5"),
+    },
+    {
+      station: frontDesk,
+      say: "One tap records the Family's location or transport: East, West, Around corner, Bus or Walk. They parked East.",
+      target: () => fd.getByRole("group", { name: "Location or transport" }),
+      act: () => fd.getByRole("button", { name: "East", exact: true }).click(),
+    },
+    {
+      station: frontDesk,
+      say: "Cheese comes only with a Senior Box, so it can't be tapped until Senior Box is ticked. This Family gets both.",
+      target: () => fd.getByRole("button", { name: "Cheese" }),
       act: async () => {
-        await fd.getByRole("button", { name: "East", exact: true }).click();
-        await fd.getByRole("button", { name: "Senior box" }).click();
+        await fd.getByRole("button", { name: "Senior Box" }).click();
         await fd.getByRole("button", { name: "Cheese" }).click();
       },
     },
     {
       station: frontDesk,
-      say: "Saving enters the card once. Nobody writes these details on a second sheet.",
-      target: () => fd.getByRole("button", { name: "Save card" }),
-      act: () => fd.getByRole("button", { name: "Save card" }).click(),
+      say: "Other is for anything distribution should know. It will stand out on their card as a note from the front desk.",
+      target: () => fd.getByLabel("Other"),
+      act: () => type(fd.getByLabel("Other"), "Needs help carrying to the car"),
     },
     {
       station: frontDesk,
-      say: "When it is their turn, the front desk calls them back to distribution, as on the radio, and the card goes across.",
+      say: "Info from records which intake volunteer gave these details, by their initials only. It is required. AB is new this shift, so it is typed.",
+      target: () => infoFrom,
+      act: () => type(fd.getByLabel("New initials"), "AB"),
+    },
+    {
+      station: frontDesk,
+      say: "Saving enters the card once. The green line confirms what was saved, and the form clears for the next Family.",
+      target: () => fd.getByRole("button", { name: "Save card 1" }),
+      act: async () => {
+        await fd.getByRole("button", { name: "Save card 1" }).click();
+        await expect(fd.locator(".saved")).toBeVisible();
+        await highlight(fd.locator(".saved"));
+      },
+    },
+    {
+      station: frontDesk,
+      say: "A Family of 9 walks in with a Senior Box: 3 TEFAP bags. AB's initials now have a quick button, so one tap fills them in.",
+      target: () => infoFrom,
+      act: async () => {
+        await type(fd.getByLabel("# in Family"), "9");
+        await fd.getByRole("button", { name: "Walk", exact: true }).click();
+        await fd.getByRole("button", { name: "Senior Box" }).click();
+        await infoFrom.getByRole("button", { name: "AB", exact: true }).click();
+        await fd.getByRole("button", { name: "Save card 2" }).click();
+      },
+    },
+    {
+      station: frontDesk,
+      say: "A Family of 6 parked around the corner. Their details came from a second intake volunteer, CD.",
+      target: () => fd.getByLabel("New initials"),
+      act: async () => {
+        await type(fd.getByLabel("# in Family"), "6");
+        await fd.getByRole("button", { name: "Around corner", exact: true }).click();
+        await type(fd.getByLabel("New initials"), "CD");
+        await fd.getByRole("button", { name: "Save card 3" }).click();
+      },
+    },
+    {
+      station: frontDesk,
+      say: "By mistake, the same Family is entered a second time, as card 4. An admin will remove it later.",
+      target: () => infoFrom,
+      act: async () => {
+        await type(fd.getByLabel("# in Family"), "6");
+        await fd.getByRole("button", { name: "Around corner", exact: true }).click();
+        await infoFrom.getByRole("button", { name: "CD", exact: true }).click();
+        await fd.getByRole("button", { name: "Save card 4" }).click();
+        await expect(fd.getByRole("heading", { name: "Cards (4)" })).toBeVisible();
+      },
+    },
+
+    // Calling back.
+    {
+      station: frontDesk,
+      say: "When it is a Family's turn, the front desk taps Call back, as on the radio. Here card 2 is called by mistake.",
+      target: () => fdCard(2).getByRole("button", { name: "Call back" }),
+      act: () => fdCard(2).getByRole("button", { name: "Call back" }).click(),
+    },
+    {
+      station: frontDesk,
+      say: "Undo call back sends the card back to waiting, and it leaves distribution's queue.",
+      target: () => fdCard(2).getByRole("button", { name: "Undo call back" }),
+      act: () => fdCard(2).getByRole("button", { name: "Undo call back" }).click(),
+    },
+    {
+      station: frontDesk,
+      say: "Card 1 is called back instead.",
       target: () => fdCard(1).getByRole("button", { name: "Call back" }),
       act: () => fdCard(1).getByRole("button", { name: "Call back" }).click(),
     },
+
+    // Distribution serves the first Family.
     {
       station: distribution,
-      say: "It appears in the distribution queue straight away, with the family's details already filled in.",
+      say: "The card appears in distribution's queue straight away, with what to give on its own line, who the details came from, and the front desk's note.",
       target: () => queueCard(1),
     },
     {
       station: distribution,
-      say: "Distribution checks the card number and details against the call back, then confirms. The front desk sees it confirmed.",
-      target: () => queueCard(1).getByRole("button", { name: "Confirm" }),
-      act: () => queueCard(1).getByRole("button", { name: "Confirm" }).click(),
+      say: "Distribution checks the card number and details against the call back, then confirms.",
+      target: () => queueCard(1).getByRole("button", { name: "Confirm card 1" }),
+      act: () => queueCard(1).getByRole("button", { name: "Confirm card 1" }).click(),
     },
     {
       station: frontDesk,
-      say: "The front desk can see that progress on its own list.",
+      say: "The front desk sees the card confirmed on its own list.",
       target: () => fdCard(1).locator(".status.confirmed"),
     },
     {
       station: distribution,
-      say: "Distribution enters the weight of each load, up to three per card, and they are added up.",
-      target: () => queueCard(1).getByLabel("Load 1 (lb)"),
+      say: "There is one cart weight for each TEFAP bag, so this Family of 5 has two carts.",
+      target: () => queueCard(1).getByLabel("Cart 1 (lb)"),
       act: async () => {
-        await type(queueCard(1).getByLabel("Load 1 (lb)"), "12.5");
-        await type(queueCard(1).getByLabel("Load 2 (lb)"), "8");
+        await type(queueCard(1).getByLabel("Cart 1 (lb)"), "12.5");
+        await type(queueCard(1).getByLabel("Cart 2 (lb)"), "8");
       },
     },
     {
       station: distribution,
-      say: "The family is marked as distributed.",
+      say: "Families of 5 to 7, 9 to 11, and 13 or more can get extras, such as meat, deli or bakery. Distribution ticks Extras added and notes what was added.",
+      target: () => queueCard(1).getByLabel("Extras added"),
+      act: async () => {
+        await queueCard(1).getByLabel("Extras added").check();
+        await type(queueCard(1).getByLabel("What was added"), "Bakery bread");
+      },
+    },
+    {
+      station: distribution,
+      say: "Everything is filled in, so Mark distributed moves the card straight to the distributed list, with its 20.5 lb and the extras.",
       target: () => queueCard(1).getByRole("button", { name: "Mark distributed" }),
-      act: () => queueCard(1).getByRole("button", { name: "Mark distributed" }).click(),
-    },
-    {
-      station: distribution,
-      say: "The card moves to the distributed list with its total weight of 20.5 lb.",
-      target: () => doneCard(1),
-    },
-    {
-      station: frontDesk,
-      say: "A second family arrives: 9 people, on foot, with a senior box. That is 3 TEFAP bags.",
-      target: () => fd.getByLabel("# in family"),
       act: async () => {
-        await type(fd.getByLabel("# in family"), "9");
-        await fd.getByRole("button", { name: "Walk", exact: true }).click();
-        await fd.getByRole("button", { name: "Senior box" }).click();
+        await queueCard(1).getByRole("button", { name: "Mark distributed" }).click();
+        await highlight(doneCard(1));
       },
     },
+
+    // A correction and the warnings.
     {
       station: frontDesk,
-      say: "The card is saved and the family is called back.",
-      target: () => fd.getByRole("button", { name: "Save card" }),
+      say: "The front desk calls back cards 2 and 3.",
       act: async () => {
-        await fd.getByRole("button", { name: "Save card" }).click();
         await fdCard(2).getByRole("button", { name: "Call back" }).click();
+        await fdCard(3).getByRole("button", { name: "Call back" }).click();
       },
     },
     {
       station: distribution,
-      say: "Suppose the family says there are really 8 of them. Distribution can correct the card.",
+      say: "Card 2's Family says there are really 8 of them, not 9. Distribution can correct the card.",
       target: () => queueCard(2).getByRole("button", { name: "Correct details" }),
       act: async () => {
         await queueCard(2).getByRole("button", { name: "Correct details" }).click();
-        await queueCard(2).locator(".correct").getByLabel("# in family").fill("8");
+        await queueCard(2).locator(".correct").getByLabel("# in Family").fill("8");
       },
     },
     {
       station: distribution,
-      say: "Saving the correction updates the card, and TEFAP bags change from 3 to 2 by themselves.",
+      say: "Saving the correction changes TEFAP bags from 3 to 2 by themselves, and so the number of carts too.",
       target: () => queueCard(2).getByRole("button", { name: "Save correction" }),
       act: () => queueCard(2).getByRole("button", { name: "Save correction" }).click(),
     },
     {
       station: frontDesk,
       say: "The front desk sees the correction too, so both stations always share one record.",
-      target: () => fdCard(2).filter({ hasText: "family of 8" }),
+      target: () => fdCard(2).filter({ hasText: "Family of 8" }),
     },
     {
       station: distribution,
-      say: "Distribution finishes this family with a single load of 30 lb.",
-      target: () => queueCard(2).getByRole("button", { name: "Confirm" }),
+      say: "Distribution confirms card 2 but enters only the first cart before tapping Mark distributed.",
+      target: () => queueCard(2).getByRole("button", { name: "Confirm card 2" }),
       act: async () => {
-        await queueCard(2).getByRole("button", { name: "Confirm" }).click();
-        await type(queueCard(2).getByLabel("Load 1 (lb)"), "30");
+        await queueCard(2).getByRole("button", { name: "Confirm card 2" }).click();
+        await type(queueCard(2).getByLabel("Cart 1 (lb)"), "30");
         await queueCard(2).getByRole("button", { name: "Mark distributed" }).click();
       },
     },
+    {
+      station: distribution,
+      say: "The app names what is missing before the card moves on. Go back keeps the card in the queue.",
+      target: () => queueCard(2).locator(".confirm"),
+      act: () => queueCard(2).getByRole("button", { name: "Go back" }).click(),
+    },
+    {
+      station: distribution,
+      say: "The second cart is weighed, and now the card is marked distributed without a warning.",
+      target: () => queueCard(2).getByLabel("Cart 2 (lb)"),
+      act: async () => {
+        await type(queueCard(2).getByLabel("Cart 2 (lb)"), "12");
+        await queueCard(2).getByRole("button", { name: "Mark distributed" }).click();
+      },
+    },
+    {
+      station: distribution,
+      say: "Card 3, a Family of 6, has both carts weighed, but Extras added is not ticked.",
+      target: () => queueCard(3),
+      act: async () => {
+        await queueCard(3).getByRole("button", { name: "Confirm card 3" }).click();
+        await type(queueCard(3).getByLabel("Cart 1 (lb)"), "15");
+        await type(queueCard(3).getByLabel("Cart 2 (lb)"), "10");
+        await queueCard(3).getByRole("button", { name: "Mark distributed" }).click();
+      },
+    },
+    {
+      station: distribution,
+      say: "If no extras were available this time, Mark distributed anyway goes ahead after all.",
+      target: () => queueCard(3).locator(".confirm"),
+      act: () => queueCard(3).getByRole("button", { name: "Mark distributed anyway" }).click(),
+    },
+
+    // An admin removes the duplicate card.
+    signIn(
+      admin,
+      "pat",
+      "Staff have their own admin sign-in. An admin window opens over the front desk to remove the duplicate card 4.",
+    ),
+    {
+      station: admin,
+      say: "Only an admin sees Delete. It asks once more, because deleting cannot be undone.",
+      target: () => fdCard(4, adm).getByRole("button", { name: "Delete" }),
+      act: async () => {
+        await fdCard(4, adm).getByRole("button", { name: "Delete" }).click();
+        await highlight(fdCard(4, adm));
+      },
+    },
+    {
+      station: admin,
+      say: "Confirming removes the card at every station. Recent activity keeps a record of what it held.",
+      target: () => fdCard(4, adm).getByRole("button", { name: "Yes, delete" }),
+      act: () => fdCard(4, adm).getByRole("button", { name: "Yes, delete" }).click(),
+    },
+    {
+      station: frontDesk,
+      say: "Back at the front desk, card 4 has gone from the list.",
+      target: () => fd.getByRole("heading", { name: "Cards (3)" }),
+    },
+
+    // A Wi-Fi dropout.
     {
       station: frontDesk,
       say: "What if the Wi-Fi drops? Here the front desk loses its connection, and a warning appears.",
@@ -287,12 +467,15 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     },
     {
       station: frontDesk,
-      say: "The line keeps moving. A family of 2 arrives by bus, and the card is saved on this device.",
-      target: () => fd.getByLabel("# in family"),
+      say: "The line keeps moving. A Family of 2 arrives by bus, and the card is saved on this device.",
+      target: () => fd.getByLabel("# in Family"),
       act: async () => {
-        await type(fd.getByLabel("# in family"), "2");
+        await type(fd.getByLabel("# in Family"), "2");
         await fd.getByRole("button", { name: "Bus", exact: true }).click();
+        await infoFrom.getByRole("button", { name: "AB", exact: true }).click();
         await fd.getByRole("button", { name: "Save card" }).click();
+        await expect(fd.locator(".pending-card")).toBeVisible();
+        offlineNumber = Number(await fd.locator(".pending-card .ticket").textContent());
       },
     },
     {
@@ -303,60 +486,156 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     {
       station: frontDesk,
       say: "When the connection returns, waiting entries are sent by themselves, in order and without duplicates.",
-      act: () => fd.context().setOffline(false),
+      act: async () => {
+        await fd.context().setOffline(false);
+        await expect(fd.getByText("waiting to send")).toHaveCount(0, { timeout: 15000 });
+      },
     },
     {
       station: frontDesk,
-      say: "Card 3 is now a normal card on the shared record.",
-      target: () => fdCard(3).locator(".status.entered"),
+      say: "The card is now a normal card on the shared record, waiting to be called back.",
+      target: () => fdCard(offlineNumber).locator(".status.entered"),
     },
+
+    // Returned items.
     {
       station: distribution,
-      say: "Returned items are logged as separate weights through the shift. They are not tied to a card.",
+      say: "Returned items are weighed through the shift and added with Add returned weight. They are not tied to a card.",
       target: () => returned.getByLabel("Weight (lb)"),
       act: async () => {
         await type(returned.getByLabel("Weight (lb)"), "3.5");
-        await returned.getByRole("button", { name: "Add returned batch" }).click();
+        await returned.getByRole("button", { name: "Add returned weight" }).click();
+        // The form clears once the first weight is saved, so the second waits for that.
+        await expect(returned.locator("li").filter({ hasText: /^3\.5 lb/ })).toBeVisible();
+        await type(returned.getByLabel("Weight (lb)"), "2");
+        await returned.getByRole("button", { name: "Add returned weight" }).click();
+        await expect(returned.locator("li").filter({ hasText: /^2 lb/ })).toBeVisible();
       },
     },
     {
       station: distribution,
-      say: "At the end of the shift, Door Dash and Helping Hands are entered as batches: here, 4 families and 40 lb.",
-      target: () => partners.getByRole("button", { name: "Add last cards" }),
+      say: "The 2 lb entry was a mistake, so Remove takes it away.",
+      target: () => returned.locator("li").filter({ hasText: /^2 lb/ }),
+      act: () =>
+        returned
+          .locator("li")
+          .filter({ hasText: /^2 lb/ })
+          .getByRole("button", { name: "Remove" })
+          .click(),
+    },
+
+    // Door Dash and Helping Hands.
+    {
+      station: distribution,
+      say: "At the end of the shift, distribution enters each Door Dash and Helping Hands Family as a card, from the same card stack. This Door Dash Family of 4 has card 50 and one cart.",
+      target: () => partners,
       act: async () => {
-        await partners.getByRole("button", { name: "Door Dash" }).click();
-        await type(partners.getByLabel("# of families"), "4");
-        await type(partners.getByLabel("Weight (lb)"), "40");
-        await partners.getByRole("button", { name: "Add last cards" }).click();
+        await partners.getByRole("button", { name: "Door Dash", exact: true }).click();
+        await type(partners.getByLabel("Card #"), "50");
+        await type(partners.getByLabel("# in Family"), "4");
+        await type(partners.getByLabel("Cart 1 (lb)"), "40");
+        await partners.getByRole("button", { name: "Add partner Family" }).click();
+        await expect(partnerRow(50)).toBeVisible();
+      },
+    },
+    {
+      station: distribution,
+      say: "A Helping Hands Family of 6 has card 51, two carts, and the extras check, as at the queue.",
+      target: () => partners.getByRole("button", { name: "Add partner Family" }),
+      act: async () => {
+        await partners.getByRole("button", { name: "Helping Hands", exact: true }).click();
+        await type(partners.getByLabel("Card #"), "51");
+        await type(partners.getByLabel("# in Family"), "6");
+        await type(partners.getByLabel("Cart 1 (lb)"), "20");
+        await type(partners.getByLabel("Cart 2 (lb)"), "15");
+        await partners.getByLabel("Extras added").check();
+        await type(partners.getByLabel("What was added"), "Meat");
+        await partners.getByRole("button", { name: "Add partner Family" }).click();
+        await expect(partnerRow(51)).toBeVisible();
+      },
+    },
+    {
+      station: distribution,
+      say: "Both partner Families are listed here. They never pass the front desk, so they stay off its list.",
+      target: () => partnerRow(51),
+    },
+
+    // Live totals.
+    {
+      station: frontDesk,
+      say: "Nobody adds up pages by hand any more. Both stations can open the same live totals at any time.",
+      target: () => fd.getByRole("button", { name: "Totals", exact: true }),
+      act: async () => {
+        await fd.getByRole("button", { name: "Totals", exact: true }).click();
+        await dist.getByRole("button", { name: "Totals", exact: true }).click();
       },
     },
     {
       station: frontDesk,
-      say: "Nobody adds up pages by hand any more. Both stations can open the same live totals.",
-      target: () => fd.getByRole("button", { name: "Totals" }),
-      act: async () => {
-        await fd.getByRole("button", { name: "Totals" }).click();
-        await dist.getByRole("button", { name: "Totals" }).click();
-      },
-    },
-    {
-      station: frontDesk,
-      say: "7 families: 3 cards plus 4 from Door Dash. 90.5 lb went out, 3.5 lb came back, so net weight is 87 lb. Bags, senior boxes and cheese are counted too.",
+      say: "Door Dash and Helping Hands have their own lines under Families and weight: 2 Families and 75 lb.",
       target: () => fd.locator(".totals"),
     },
+
+    // Closing: a Family who left, and its undo.
     {
       station: distribution,
-      say: "Distribution sees exactly the same figures, because they come from one shared calculation.",
-      target: () => dist.locator(".totals"),
+      say: "Before closing, distribution taps Close shift. The warning lists every card not yet marked distributed.",
+      act: async () => {
+        await dist.getByRole("button", { name: "Distribution", exact: true }).click();
+        await finish.getByRole("button", { name: "Close shift" }).click();
+        await highlight(closing);
+      },
     },
     {
       station: distribution,
-      say: "Distribution closes the shift at the end of the day. It must be confirmed, and only an admin can reopen it.",
-      target: () => dist.getByRole("button", { name: "Distribution", exact: true }),
+      say: "The Family of 2 left before being served. Left without food records that, and they are counted on their own line.",
+      target: () => closing.getByRole("button", { name: "Left without food" }),
       act: async () => {
-        await dist.getByRole("button", { name: "Distribution", exact: true }).click();
-        await dist.getByRole("button", { name: "Close shift" }).click();
+        await closing.getByRole("button", { name: "Left without food" }).click();
+        await closing.getByRole("button", { name: "Yes, left without food" }).click();
       },
+    },
+    {
+      station: distribution,
+      say: "But the Family comes back after all. Distribution keeps the shift open for them.",
+      target: () => closing.getByRole("button", { name: "Keep it open" }),
+      act: () => closing.getByRole("button", { name: "Keep it open" }).click(),
+    },
+    {
+      station: distribution,
+      say: "Undo on the left-without-food card sends it back to the front desk as waiting.",
+      target: () => dist.locator(".cards > li", { hasText: "Left without food" }),
+      act: () =>
+        dist
+          .locator(".cards > li", { hasText: "Left without food" })
+          .getByRole("button", { name: "Undo" })
+          .click(),
+    },
+    {
+      station: frontDesk,
+      say: "The front desk calls them back again.",
+      act: async () => {
+        await fd.getByRole("button", { name: "Front desk", exact: true }).click();
+        await fdCard(offlineNumber).getByRole("button", { name: "Call back" }).click();
+      },
+    },
+    {
+      station: distribution,
+      say: "Distribution confirms, weighs their one cart at 9 lb, and marks them distributed.",
+      target: () => queueCard(offlineNumber),
+      act: async () => {
+        const card = queueCard(offlineNumber);
+        await card.getByRole("button", { name: `Confirm card ${offlineNumber}` }).click();
+        await type(card.getByLabel("Cart 1 (lb)"), "9");
+        await card.getByRole("button", { name: "Mark distributed" }).click();
+        await expect(dist.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
+      },
+    },
+    {
+      station: distribution,
+      say: "Every Family is served, so closing has nothing to warn about. It must still be confirmed, and only an admin can reopen the shift.",
+      target: () => finish.getByRole("button", { name: "Close shift" }),
+      act: () => finish.getByRole("button", { name: "Close shift" }).click(),
     },
     {
       station: distribution,
@@ -366,13 +645,95 @@ async function run(frontDesk: Station, distribution: Station, password: string):
     },
     {
       station: frontDesk,
-      say: "Both stations lock at once and show the final totals. The record stays saved for reports and spreadsheet exports.",
+      say: "Both stations lock at once and show the final totals: 6 Families, 171.5 lb out, 3.5 lb back, so 168 lb net. TEFAP bags, Senior Boxes and Cheese are counted too.",
       target: () => fd.getByText("This shift is closed"),
+    },
+
+    // The admin screen.
+    {
+      station: admin,
+      say: "The Admin screen gives totals over any range of dates. Show totals lists each shift, and a closed shift can be reopened to correct it.",
+      act: async () => {
+        await adm.getByRole("button", { name: "Admin", exact: true }).click();
+        await reports.getByRole("button", { name: "Show totals" }).click();
+        await expect(reports.getByText("All shifts in range")).toBeVisible();
+        await highlight(reports.locator(".report-combined"));
+      },
+    },
+    {
+      station: admin,
+      say: "Two downloads open in a spreadsheet: one row per shift, or one row per card with its carts, extras and intake initials.",
+      target: () => reports.getByRole("link", { name: "Download cards (CSV)" }),
+    },
+    {
+      station: admin,
+      say: "Admins manage sign-ins. Here a new admin, sam, is added.",
+      target: () => newAdmin,
+      act: async () => {
+        await type(newAdmin.getByLabel("Username"), "sam");
+        await newAdmin.getByLabel("Password").fill(randomBytes(12).toString("base64url"));
+        await newAdmin.getByRole("button", { name: "Add admin" }).click();
+        await expect(samRow).toBeVisible();
+      },
+    },
+    {
+      station: admin,
+      say: "Change password sets a new one. Changing a station's password signs that station out on every device.",
+      target: () => samRow.getByRole("button", { name: "Change password" }),
+      act: async () => {
+        await samRow.getByRole("button", { name: "Change password" }).click();
+        await samRow.getByLabel("New password").fill(randomBytes(12).toString("base64url"));
+        await samRow.getByRole("button", { name: "Save password" }).click();
+        await expect(adm.getByText("Password changed for sam")).toBeVisible();
+      },
+    },
+    {
+      station: admin,
+      say: "Remove takes away an admin who no longer needs access. Nobody can remove themselves.",
+      target: () => samRow.getByRole("button", { name: "Remove" }),
+      act: async () => {
+        await samRow.getByRole("button", { name: "Remove" }).click();
+        await samRow.getByRole("button", { name: "Yes, remove" }).click();
+        await expect(samRow).toHaveCount(0);
+      },
+    },
+    {
+      station: admin,
+      say: "Recent activity shows which station or admin made each change.",
+      target: () => adm.locator("section.panel", { hasText: "Recent activity" }),
+    },
+
+    // Help.
+    {
+      station: frontDesk,
+      say: "Every station has a Help tab with its own guide, which works even during a Wi-Fi dropout.",
+      target: () => fd.getByRole("button", { name: "Help", exact: true }),
+      act: async () => {
+        await fd.getByRole("button", { name: "Help", exact: true }).click();
+        await expect(fd.locator(".guide")).toBeVisible();
+      },
+    },
+    {
+      station: frontDesk,
+      say: "Getting started explains signing in, opening the shift and what to do if the Wi-Fi drops.",
+      target: () => fd.getByRole("button", { name: "Getting started" }),
+      act: () => fd.getByRole("button", { name: "Getting started" }).click(),
+    },
+    {
+      station: distribution,
+      say: "Distribution's Help tab opens the distribution guide.",
+      target: () => dist.getByRole("button", { name: "Help", exact: true }),
+      act: async () => {
+        await dist.getByRole("button", { name: "Help", exact: true }).click();
+        await expect(dist.locator(".guide")).toBeVisible();
+      },
     },
   ];
 
-  const stations = [frontDesk, distribution];
+  const stations = [frontDesk, distribution, admin];
   for (const [index, step] of steps.entries()) {
+    // The admin window covers the front desk, so the acting window comes to the front.
+    if (!HEADLESS) await step.station.page.bringToFront();
     for (const station of stations) {
       const acting = station === step.station;
       await showCaption(station.page, {
@@ -390,29 +751,48 @@ async function run(frontDesk: Station, distribution: Station, password: string):
 
   // Figures the captions state, so that a change to the app can't leave them wrong.
   const expected: [string, string][] = [
-    ["Total # of families", "7"],
-    ["Total weight", "90.5 lb"],
+    ["Total # of families", "6"],
+    ["Total weight", "171.5 lb"],
     ["Total return weight", "3.5 lb"],
-    ["Net weight", "87 lb"],
-    ["Total # of TEFAP bags", "5"],
-    ["Total # of senior boxes", "2"],
-    ["Total # of cheese", "1"],
+    ["Net weight", "168 lb"],
   ];
-  for (const station of stations) {
-    for (const [label, value] of expected) {
-      const row = station.page
+  for (const station of [frontDesk, distribution]) {
+    const page = station.page;
+    const row = (label: string) =>
+      page
         .locator(".totals tr")
-        .filter({ has: station.page.getByRole("rowheader", { name: label, exact: true }) });
-      await expect(row.locator("td")).toHaveText(value);
+        .filter({ has: page.getByRole("rowheader", { name: label, exact: true }) });
+    await page.getByRole("button", { name: "Totals", exact: true }).click();
+    for (const [label, value] of expected) {
+      await expect(row(label).locator("td")).toHaveText(value);
     }
+    await expect(row("Door Dash and Helping Hands").locator("td")).toHaveText(["2", "75 lb"]);
   }
 
   for (const station of stations) {
     await showCaption(station.page, {
       title: `END OF WALKTHROUGH · ${station.name}`,
-      text: "Close either window to finish.",
+      text: VIDEO_DIR ? "The recording is being saved." : "Close any window to finish.",
       acting: false,
     });
+  }
+}
+
+// Closes each window so that its video is written, then names the files by station.
+async function saveVideos(stations: Station[]): Promise<void> {
+  if (!VIDEO_DIR) return;
+  for (const station of stations) {
+    const video = station.page.video();
+    await station.context.close();
+    if (!video) continue;
+    try {
+      const path = join(VIDEO_DIR, station.file);
+      await video.saveAs(path);
+      await video.delete();
+      console.log(`Saved video: ${path}`);
+    } catch (error) {
+      console.error(`Could not save the ${station.name} video: ${String(error)}`);
+    }
   }
 }
 
@@ -421,25 +801,29 @@ const db = openDatabase(":memory:");
 const password = randomBytes(18).toString("base64url");
 await createAccount(db, { username: "front-desk", password, role: "front_desk" });
 await createAccount(db, { username: "distribution", password, role: "distribution" });
+await createAccount(db, { username: "pat", password, role: "admin" });
 const app = await buildApp({ db, cookieSecure: false, clientDir: resolve("dist/client") });
 await app.listen({ port: 0, host: "127.0.0.1" });
 const { port } = app.server.address() as AddressInfo;
 const url = `http://127.0.0.1:${port}/`;
 
+if (VIDEO_DIR) mkdirSync(VIDEO_DIR, { recursive: true });
 const browser = await chromium.launch({
   headless: HEADLESS,
   ignoreDefaultArgs: ["--enable-automation"],
 });
+const stations: Station[] = [];
 let failed = false;
 try {
+  const admin = await openStation(browser, "ADMIN", url, "left");
   const frontDesk = await openStation(browser, "FRONT DESK", url, "left");
   const distribution = await openStation(browser, "DISTRIBUTION", url, "right");
-  await run(frontDesk, distribution, password);
+  stations.push(frontDesk, distribution, admin);
+  await run(frontDesk, distribution, admin, password);
   console.log("Walkthrough finished.");
-  if (!HEADLESS) {
+  if (!HEADLESS && !VIDEO_DIR) {
     await Promise.race([
-      new Promise((done) => frontDesk.page.once("close", done)),
-      new Promise((done) => distribution.page.once("close", done)),
+      ...stations.map((station) => new Promise((done) => station.page.once("close", done))),
       new Promise((done) => browser.once("disconnected", done)),
     ]);
   }
@@ -447,6 +831,7 @@ try {
   failed = true;
   console.error(error);
 } finally {
+  await saveVideos(stations);
   await browser.close();
   await app.close();
   db.close();

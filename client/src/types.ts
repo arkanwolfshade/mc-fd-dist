@@ -1,9 +1,9 @@
 import type { Role } from "../../server/accounts.js";
-import type { PartnerBatch, ReturnedBatch } from "../../server/batches.js";
+import type { ReturnedBatch } from "../../server/batches.js";
 import type { Outbox } from "./outbox.js";
 import type { Card, CardChanges, Shift } from "../../server/cards.js";
 
-export type { Card, CardChanges, PartnerBatch, ReturnedBatch, Shift };
+export type { Card, CardChanges, ReturnedBatch, Shift };
 
 export interface Identity {
   username: string;
@@ -12,7 +12,6 @@ export interface Identity {
 
 export type ShiftWithCards = Shift & {
   cards: Card[];
-  partnerBatches: PartnerBatch[];
   returnedBatches: ReturnedBatch[];
 };
 

@@ -14,6 +14,17 @@ const DETAILS = {
   seniorBox: true,
   cheese: false,
   other: "",
+  intakeInitials: "AB",
+};
+
+// A Door Dash Family, entered by Distribution at the end of a shift. See ADR 0023.
+const PARTNER_DETAILS = {
+  number: 50,
+  familySize: 6,
+  arrivalMethod: "DD",
+  seniorBox: false,
+  cheese: false,
+  loads: [10, 8, null],
 };
 
 describe("shift and card routes", () => {
@@ -208,6 +219,87 @@ describe("shift and card routes", () => {
       });
       expect(response.statusCode).toBe(409);
     });
+
+    it("stores the intake volunteer's initials in capitals", async () => {
+      const card = await addCard(await openShift(), { intakeInitials: "jq" });
+      expect(card.intakeInitials).toBe("JQ");
+    });
+
+    it.each([
+      ["no initials", { intakeInitials: undefined }],
+      ["one letter", { intakeInitials: "A" }],
+      ["five letters", { intakeInitials: "ABCDE" }],
+      ["a digit", { intakeInitials: "A1" }],
+    ])("rejects a card with %s", async (_name, overrides) => {
+      const shiftId = await openShift();
+      const response = await request("POST", `/api/shifts/${shiftId}/cards`, frontDesk, {
+        clientId: crypto.randomUUID(),
+        ...DETAILS,
+        ...overrides,
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("starts a card with no extras", async () => {
+      const card = await addCard(await openShift());
+      expect(card).toMatchObject({ extrasAdded: false, extrasNote: "" });
+    });
+  });
+
+  describe("entering a Door Dash or Helping Hands Family", () => {
+    function addPartnerCard(shiftId: number, cookie: string, overrides: object = {}) {
+      return request("POST", `/api/shifts/${shiftId}/cards`, cookie, {
+        clientId: crypto.randomUUID(),
+        ...PARTNER_DETAILS,
+        ...overrides,
+      });
+    }
+
+    it("lets distribution enter one, already distributed, with its cart weights", async () => {
+      const response = await addPartnerCard(await openShift(), distribution, {
+        extrasAdded: true,
+        extrasNote: "Deli",
+      });
+      expect(response.statusCode).toBe(201);
+      expect(response.json()).toMatchObject({
+        number: 50,
+        arrivalMethod: "DD",
+        status: "distributed",
+        tefapBags: 2,
+        loads: [10, 8, null],
+        totalWeight: 18,
+        extrasAdded: true,
+        extrasNote: "Deli",
+        intakeInitials: null,
+      });
+    });
+
+    it("lets an admin enter one too", async () => {
+      const response = await addPartnerCard(await openShift(), admin, { arrivalMethod: "HH" });
+      expect(response.statusCode).toBe(201);
+    });
+
+    it("draws its number from the same card stack as walk-in Families", async () => {
+      const shiftId = await openShift();
+      await addCard(shiftId, { number: 50 });
+      const response = await addPartnerCard(shiftId, distribution);
+      expect(response.statusCode).toBe(409);
+    });
+
+    it("refuses a weight for a cart the Family does not get", async () => {
+      const response = await addPartnerCard(await openShift(), distribution, {
+        familySize: 3,
+        loads: [5, 5, null],
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("refuses intake initials, which partner Families do not have", async () => {
+      const response = await addPartnerCard(await openShift(), distribution, {
+        intakeInitials: "AB",
+      });
+      expect(response.statusCode).toBe(400);
+    });
   });
 
   describe("updating a card", () => {
@@ -271,6 +363,49 @@ describe("shift and card routes", () => {
       });
       expect(response.statusCode).toBe(200);
       expect(response.json()).toMatchObject({ loads: [12.5, 8, null], totalWeight: 20.5 });
+    });
+
+    it("refuses a weight for a cart the Family does not get", async () => {
+      const card = await addCard(await openShift(), { familySize: 4 });
+      const response = await patchCard(card.id, distribution, {
+        revision: 1,
+        loads: [12, 3, null],
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("refuses a smaller Family while its weights fill more carts", async () => {
+      const card = await addCard(await openShift(), { familySize: 6 });
+      const weighed = await patchCard(card.id, distribution, { revision: 1, loads: [9, 8, null] });
+      expect(weighed.statusCode).toBe(200);
+      const response = await patchCard(card.id, distribution, { revision: 2, familySize: 3 });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("records the extras added and what they were", async () => {
+      const card = await addCard(await openShift());
+      const response = await patchCard(card.id, distribution, {
+        revision: 1,
+        extrasAdded: true,
+        extrasNote: "Meat and bakery",
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ extrasAdded: true, extrasNote: "Meat and bakery" });
+    });
+
+    it("rejects an extras note longer than 200 characters", async () => {
+      const card = await addCard(await openShift());
+      const response = await patchCard(card.id, distribution, {
+        revision: 1,
+        extrasNote: "x".repeat(201),
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("keeps a walk-in Family from becoming a partner Family", async () => {
+      const card = await addCard(await openShift());
+      const response = await patchCard(card.id, distribution, { revision: 1, arrivalMethod: "DD" });
+      expect(response.statusCode).toBe(400);
     });
 
     it("stops the front desk recording weights", async () => {

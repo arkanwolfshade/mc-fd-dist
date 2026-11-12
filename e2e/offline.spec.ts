@@ -1,5 +1,17 @@
 import type { Page } from "@playwright/test";
-import { addCard, callBack, expect, openShift, queueCard, test, totalsRow } from "./fixtures.js";
+import {
+  addCard,
+  addPartnerFamily,
+  callBack,
+  expect,
+  fillCarts,
+  openShift,
+  partnerPanel,
+  partnerRow,
+  queueCard,
+  test,
+  totalsRow,
+} from "./fixtures.js";
 
 // Waits until the service worker controls the page, so that a reload works offline.
 async function waitForOfflineReady(page: Page): Promise<void> {
@@ -58,7 +70,8 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
-  await addCard(frontDesk, { familySize: 5, method: "East" });
+  // A Family of 8 has two carts and no extras check.
+  await addCard(frontDesk, { familySize: 8, method: "East" });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
   await callBack(frontDesk);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
@@ -67,8 +80,7 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
   await expect(card.locator(".status")).toHaveText("Confirmed");
-  await card.getByLabel("Load 1 (lb)").fill("12.5");
-  await card.getByLabel("Load 2 (lb)").fill("8");
+  await fillCarts(card, ["12.5", "8"]);
   await card.getByRole("button", { name: "Mark distributed" }).click();
   await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
   await expect(distribution.getByText("2 entries waiting to send")).toBeVisible();
@@ -86,7 +98,7 @@ test("several changes to one card during an outage all arrive", async ({ signIn 
   await expect(totalsRow(frontDesk, "Total weight")).toContainText("20.5 lb");
 });
 
-test("returned items and last cards entered during an outage are sent later", async ({
+test("returned items and partner Families entered during an outage are sent later", async ({
   signIn,
 }) => {
   const frontDesk = await signIn("front-desk");
@@ -97,21 +109,23 @@ test("returned items and last cards entered during an outage are sent later", as
   await distribution.context().setOffline(true);
   const returned = distribution.locator("section", { hasText: "Returned items" });
   await returned.getByLabel("Weight (lb)").fill("3.5");
-  await returned.getByRole("button", { name: "Add returned batch" }).click();
+  await returned.getByRole("button", { name: "Add returned weight" }).click();
   await expect(returned.getByText("3.5 lb · waiting to send")).toBeVisible();
 
-  const partners = distribution.locator("section", { hasText: "End of shift" });
-  await partners.getByRole("button", { name: "Door Dash" }).click();
-  await partners.getByLabel("# of families").fill("4");
-  await partners.getByLabel("Weight (lb)").fill("40");
-  await partners.getByRole("button", { name: "Add last cards" }).click();
-  await expect(
-    partners.getByText("Door Dash · 4 families · 40 lb · waiting to send"),
-  ).toBeVisible();
+  await addPartnerFamily(distribution, {
+    partner: "Door Dash",
+    number: 1,
+    familySize: 4,
+    carts: ["40"],
+  });
+  const partners = partnerPanel(distribution);
+  await expect(partnerRow(distribution, 1)).toContainText("Door Dash");
+  await expect(partnerRow(distribution, 1)).toContainText("waiting to send");
 
   await distribution.context().setOffline(false);
   await expect(returned.getByRole("button", { name: "Remove" })).toBeVisible({ timeout: 15000 });
-  await expect(partners.getByRole("button", { name: "Remove" })).toBeVisible();
+  await expect(partners).not.toContainText("waiting to send", { timeout: 15000 });
+  await expect(partnerRow(distribution, 1)).toContainText("40 lb");
 
   await frontDesk.getByRole("button", { name: "Totals" }).click();
   await expect(totalsRow(frontDesk, "Total return weight")).toContainText("3.5 lb");
@@ -176,7 +190,7 @@ test("an entry refused after reconnecting is reported with its details", async (
   await first.context().setOffline(false);
   const rejected = first.locator(".rejected");
   await expect(rejected).toContainText("Card 7", { timeout: 15000 });
-  await expect(rejected).toContainText("family of 2");
+  await expect(rejected).toContainText("family of 2", { ignoreCase: true });
   await expect(rejected).toContainText("That card number is already in use");
 
   await rejected.getByRole("button", { name: "Dismiss" }).click();

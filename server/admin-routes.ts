@@ -8,7 +8,7 @@ import {
 } from "./accounts.js";
 import type { Account } from "./accounts.js";
 import { listAudit } from "./audit.js";
-import { listPartnerBatches, listReturnedBatches } from "./batches.js";
+import { listReturnedBatches } from "./batches.js";
 import type { CardRouteContext } from "./card-routes.js";
 import { listCards, listShiftsBetween } from "./cards.js";
 import { toCsv } from "./csv.js";
@@ -40,14 +40,12 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
   function shiftsInRange(from: string, to: string) {
     return listShiftsBetween(db, from, to).map((shift) => {
       const cards = listCards(db, shift.id);
-      const partnerBatches = listPartnerBatches(db, shift.id);
       const returnedBatches = listReturnedBatches(db, shift.id);
       return {
         ...shift,
         cards,
-        partnerBatches,
         returnedBatches,
-        summary: shiftSummary(cards, partnerBatches, returnedBatches),
+        summary: shiftSummary(cards, returnedBatches),
       };
     });
   }
@@ -92,7 +90,6 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
       shifts: shifts.map(({ id, date, status, summary }) => ({ id, date, status, summary })),
       totals: shiftSummary(
         shifts.flatMap((shift) => shift.cards),
-        shifts.flatMap((shift) => shift.partnerBatches),
         shifts.flatMap((shift) => shift.returnedBatches),
       ),
     };
@@ -162,6 +159,9 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
         card.loads[2],
         card.totalWeight,
         card.other,
+        card.extrasAdded,
+        card.extrasNote,
+        card.intakeInitials,
       ]),
     );
     return reply
@@ -179,11 +179,14 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
             "tefap_bags",
             "tefap_override",
             "status",
-            "load_1",
-            "load_2",
-            "load_3",
+            "cart_1",
+            "cart_2",
+            "cart_3",
             "total_weight",
             "other",
+            "extras_added",
+            "extras_note",
+            "intake_initials",
           ],
           rows,
         ),

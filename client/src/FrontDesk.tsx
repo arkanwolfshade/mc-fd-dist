@@ -1,5 +1,11 @@
 import { useState } from "preact/hooks";
-import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js";
+import {
+  ARRIVAL_METHODS,
+  arrivalLabel,
+  isPartnerMethod,
+  normalizeInitials,
+  tefapBags,
+} from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { cardDetails, DeleteCardButton, Family, StatusLabel, Ticket } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
@@ -10,6 +16,10 @@ interface CardForm {
   number: string;
   familySize: string;
   method: ArrivalMethod | null;
+  // Who the Family's details came from, chosen or typed. See ADR 0024.
+  initials: string;
+  // What is in the New initials box, kept apart so a quick button does not overwrite typing.
+  typedInitials: string;
   seniorBox: boolean;
   cheese: boolean;
   other: string;
@@ -19,6 +29,8 @@ const EMPTY_FORM: CardForm = {
   number: "",
   familySize: "",
   method: null,
+  initials: "",
+  typedInitials: "",
   seniorBox: false,
   cheese: false,
   other: "",
@@ -52,13 +64,20 @@ export function FrontDesk(props: {
     cheese: boolean;
   } | null>(null);
 
-  const { number, familySize, method, seniorBox, cheese, other } = form;
+  const { number, familySize, method, initials, typedInitials, seniorBox, cheese, other } = form;
   const size = Number(familySize);
+  // Partner cards share the card stack, so they count here though the list leaves them out.
   const suggested = nextCardNumber([
     ...shift.cards,
     ...shift.pendingCards,
     ...saving.map((pending) => ({ number: pending })),
   ]);
+  // Door Dash and Helping Hands cards are entered at Batches, not here. See ADR 0023.
+  const cards = shift.cards.filter((card) => !isPartnerMethod(card.arrivalMethod));
+  const pendingCards = shift.pendingCards.filter((card) => !isPartnerMethod(card.arrivalMethod));
+  const knownInitials = [
+    ...new Set(shift.cards.flatMap((card) => (card.intakeInitials ? [card.intakeInitials] : []))),
+  ].sort();
 
   function change(changes: Partial<CardForm>) {
     setForm((current) => ({ ...current, ...changes }));
@@ -67,13 +86,18 @@ export function FrontDesk(props: {
   async function submit(event: Event) {
     event.preventDefault();
     if (!method) {
-      setError("Choose how the family arrived.");
+      setError("Choose the Family's location or transport.");
+      return;
+    }
+    const intakeInitials = normalizeInitials(initials);
+    if (!intakeInitials) {
+      setError("Choose who the Family's details came from.");
       return;
     }
     setError("");
     const entry = form;
     const cardNumber = Number(number) || suggested;
-    const label = `Card ${cardNumber} (family of ${size}, ${method})`;
+    const label = `Card ${cardNumber} (Family of ${size}, ${method})`;
     // Cleared at once, so that the next family can be typed while this card saves.
     setForm(EMPTY_FORM);
     setSaving((current) => [...current, cardNumber]);
@@ -87,6 +111,7 @@ export function FrontDesk(props: {
           number: cardNumber,
           familySize: size,
           arrivalMethod: method,
+          intakeInitials,
           seniorBox,
           cheese,
           other,
@@ -137,7 +162,7 @@ export function FrontDesk(props: {
             />
           </label>
           <label>
-            # in family
+            # in Family
             <input
               type="number"
               inputmode="numeric"
@@ -155,7 +180,7 @@ export function FrontDesk(props: {
         </div>
 
         <fieldset>
-          <legend>Arrived by</legend>
+          <legend>Location or transport</legend>
           <div class="choices">
             {ARRIVAL_METHODS.map((option) => (
               <button
@@ -171,17 +196,50 @@ export function FrontDesk(props: {
           </div>
         </fieldset>
 
+        {/* Chosen afresh for each card, since volunteers take turns at intake. See ADR 0024. */}
+        <fieldset>
+          <legend>Info from</legend>
+          <div class="info-from">
+            <div class="choices">
+              {knownInitials.map((option) => (
+                <button
+                  type="button"
+                  key={option}
+                  class={initials === option ? "selected" : ""}
+                  aria-pressed={initials === option}
+                  onClick={() => change({ initials: option, typedInitials: "" })}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <label>
+              New initials
+              <input
+                value={typedInitials}
+                maxLength={4}
+                autocapitalize="characters"
+                autocomplete="off"
+                onInput={(e) => {
+                  const typed = e.currentTarget.value;
+                  change({ typedInitials: typed, initials: typed.trim().toUpperCase() });
+                }}
+              />
+            </label>
+          </div>
+        </fieldset>
+
         <div class="choices extras">
           <button
             type="button"
             class={seniorBox ? "selected" : ""}
             aria-pressed={seniorBox}
-            // Cheese comes only with a senior box, so it goes when the box does.
+            // Cheese comes only with a Senior Box, so it goes when the box does.
             onClick={() =>
               change(seniorBox ? { seniorBox: false, cheese: false } : { seniorBox: true })
             }
           >
-            Senior box
+            Senior Box
           </button>
           <button
             type="button"
@@ -209,23 +267,23 @@ export function FrontDesk(props: {
         </button>
         {saved && (
           <p class="saved" role="status">
-            <Ticket number={saved.number} /> Saved: family of {saved.familySize},{" "}
+            <Ticket number={saved.number} /> Saved: Family of {saved.familySize},{" "}
             {cardDetails(saved)}
           </p>
         )}
       </form>
 
       <section class="panel">
-        <h2>Cards ({shift.cards.length})</h2>
+        <h2>Cards ({cards.length})</h2>
         <ul class="cards">
-          {shift.pendingCards.map((card) => (
+          {pendingCards.map((card) => (
             <li class="card-row pending-card" key={card.id}>
               <Ticket number={card.number} />
               <Family card={card} />
               <span class="status pending">waiting to send</span>
             </li>
           ))}
-          {[...shift.cards].reverse().map((card) => (
+          {[...cards].reverse().map((card) => (
             <li class="card-row" key={card.id}>
               <Ticket number={card.number} />
               <Family card={card} />

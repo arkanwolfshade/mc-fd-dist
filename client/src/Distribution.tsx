@@ -1,32 +1,49 @@
 import { useState } from "preact/hooks";
-import { ARRIVAL_METHODS, arrivalLabel } from "../../server/rules.js";
+import {
+  ARRIVAL_METHODS,
+  arrivalLabel,
+  cartCount,
+  isPartnerMethod,
+  needsExtrasCheck,
+} from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
-import { PartnerBatches, ReturnedBatches } from "./Batches.js";
+import { CartFields, ExtrasFields, PartnerCards, ReturnedBatches } from "./Batches.js";
 import {
   DeleteCardButton,
   Family,
   familyLabel,
+  InfoFrom,
   LeftWithoutFoodButton,
   StatusLabel,
   Ticket,
 } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
-import { distributionQueue, hasWeight, parseLoads } from "./state.js";
+import { distributionQueue, hasWeight, missingBeforeDistribution, parseLoads } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
+
+function distributedDetails(card: Card): string {
+  const weight = hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight";
+  if (!card.extrasAdded) return weight;
+  return `${weight} · ${card.extrasNote ? `Extras: ${card.extrasNote}` : "Extras added"}`;
+}
 
 export function Distribution(props: {
   shift: ShiftView;
   submit: Submit;
+  onSaved: (card: Card) => void;
   onUpdate: UpdateCard;
   // Given only to admins.
   onDelete: ((card: Card) => void) | undefined;
   onCloseShift: () => void;
 }) {
-  const { shift, submit, onUpdate, onDelete, onCloseShift } = props;
+  const { shift, submit, onSaved, onUpdate, onDelete, onCloseShift } = props;
   const [confirmClose, setConfirmClose] = useState(false);
   const { cards } = shift;
   const queue = distributionQueue(cards);
-  const done = cards.filter((card) => card.status === "distributed");
+  // Partner cards are listed in their own panel, where they were entered.
+  const done = cards.filter(
+    (card) => card.status === "distributed" && !isPartnerMethod(card.arrivalMethod),
+  );
   const left = cards.filter((card) => card.status === "left");
   // Still counted as families, but at the end of a shift each one needs correcting.
   const unserved = cards.filter((card) => card.status !== "distributed" && card.status !== "left");
@@ -51,9 +68,7 @@ export function Distribution(props: {
               <Ticket number={card.number} />
               <span class="who">
                 <strong class="family">{familyLabel(card)}</strong>
-                <span class="details">
-                  {hasWeight(card.loads) ? `${card.totalWeight} lb` : "no weight"}
-                </span>
+                <span class="details">{distributedDetails(card)}</span>
               </span>
               <span class="row-actions">
                 <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
@@ -74,7 +89,7 @@ export function Distribution(props: {
       </section>
 
       <ReturnedBatches shift={shift} submit={submit} />
-      <PartnerBatches shift={shift} submit={submit} />
+      <PartnerCards shift={shift} submit={submit} onSaved={onSaved} />
 
       <section class="panel">
         <h2>Finish</h2>
@@ -122,17 +137,27 @@ export function Distribution(props: {
 
 function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
   const { card, onUpdate } = props;
+  // Always three, as stored; only the carts this Family gets are shown. See ADR 0023.
   const [loads, setLoads] = useState(card.loads.map((load) => (load === null ? "" : String(load))));
+  const [extrasAdded, setExtrasAdded] = useState(card.extrasAdded);
+  const [extrasNote, setExtrasNote] = useState(card.extrasNote);
   const [correcting, setCorrecting] = useState(false);
-  const [confirmNoWeight, setConfirmNoWeight] = useState(false);
+  // What the volunteer is warned about before marking the Family distributed anyway.
+  const [missing, setMissing] = useState<string[]>([]);
+  const carts = cartCount(card);
+
+  function distribute() {
+    const parsed = parseLoads(loads).map((load, index) => (index < carts ? load : null));
+    void onUpdate(card, { loads: parsed, extrasAdded, extrasNote, status: "distributed" });
+  }
 
   function markDistributed() {
-    const parsed = parseLoads(loads);
-    if (!hasWeight(parsed)) {
-      setConfirmNoWeight(true);
+    const found = missingBeforeDistribution(card, parseLoads(loads), extrasAdded);
+    if (found.length > 0) {
+      setMissing(found);
       return;
     }
-    void onUpdate(card, { loads: parsed, status: "distributed" });
+    distribute();
   }
 
   return (
@@ -140,6 +165,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
       <div class="queue-head">
         <Ticket number={card.number} big />
         <Family card={card} />
+        <InfoFrom initials={card.intakeInitials} />
         <StatusLabel status={card.status} />
       </div>
       {/* What to hand over is the point of the card, so it has its own line. */}
@@ -149,7 +175,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
           <li>
             {card.tefapBags} TEFAP {card.tefapBags === 1 ? "bag" : "bags"}
           </li>
-          {card.seniorBox && <li>Senior box</li>}
+          {card.seniorBox && <li>Senior Box</li>}
           {card.cheese && <li>Cheese</li>}
         </ul>
       </div>
@@ -171,26 +197,25 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
 
       {card.status === "confirmed" && (
         <>
-          <div class="row">
-            {loads.map((load, index) => (
-              // Always three loads in a fixed order, so the position is a stable key.
-              // oxlint-disable-next-line react/no-array-index-key
-              <label key={index}>
-                Load {index + 1} (lb)
-                <input
-                  type="number"
-                  inputmode="decimal"
-                  min="0"
-                  step="any"
-                  value={load}
-                  onInput={(e) => {
-                    const value = e.currentTarget.value;
-                    setLoads(loads.map((old, i) => (i === index ? value : old)));
-                  }}
-                />
-              </label>
-            ))}
-          </div>
+          <CartFields
+            loads={loads}
+            carts={carts}
+            onChange={(next) => {
+              setLoads(next);
+              setMissing([]);
+            }}
+          />
+          {needsExtrasCheck(card.familySize) && (
+            <ExtrasFields
+              added={extrasAdded}
+              note={extrasNote}
+              onChange={(added, note) => {
+                setExtrasAdded(added);
+                setExtrasNote(note);
+                setMissing([]);
+              }}
+            />
+          )}
           <div class="choices">
             <button class="primary" onClick={markDistributed}>
               Mark distributed
@@ -198,15 +223,15 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
             <button onClick={() => onUpdate(card, { status: "called" })}>Undo confirm</button>
             <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
           </div>
-          {confirmNoWeight && (
+          {missing.length > 0 && (
             <div class="confirm">
-              <p>No weight entered. Mark distributed anyway?</p>
+              {missing.map((message) => (
+                <p key={message}>{message}</p>
+              ))}
               <div class="choices">
-                <button onClick={() => onUpdate(card, { status: "distributed" })}>
-                  Yes, no weight
-                </button>
-                <button class="primary" onClick={() => setConfirmNoWeight(false)}>
-                  Go back and enter weight
+                <button onClick={distribute}>Mark distributed anyway</button>
+                <button class="primary" onClick={() => setMissing([])}>
+                  Go back
                 </button>
               </div>
             </div>
@@ -227,11 +252,13 @@ function CorrectDetails(props: { card: Card; onUpdate: UpdateCard; onDone: () =>
   const [method, setMethod] = useState<ArrivalMethod>(card.arrivalMethod);
   const [seniorBox, setSeniorBox] = useState(card.seniorBox);
   const [cheese, setCheese] = useState(card.cheese);
+  // A partner card stays with its partner: the front desk's choices don't apply to it.
+  const isPartner = isPartnerMethod(card.arrivalMethod);
 
   return (
     <div class="correct">
       <label>
-        # in family
+        # in Family
         <input
           type="number"
           inputmode="numeric"
@@ -240,18 +267,23 @@ function CorrectDetails(props: { card: Card; onUpdate: UpdateCard; onDone: () =>
           onInput={(e) => setFamilySize(e.currentTarget.value)}
         />
       </label>
-      <div class="choices">
-        {ARRIVAL_METHODS.map((option) => (
-          <button
-            key={option}
-            class={method === option ? "selected" : ""}
-            aria-pressed={method === option}
-            onClick={() => setMethod(option)}
-          >
-            {arrivalLabel(option)}
-          </button>
-        ))}
-      </div>
+      {!isPartner && (
+        <fieldset>
+          <legend>Location or transport</legend>
+          <div class="choices">
+            {ARRIVAL_METHODS.map((option) => (
+              <button
+                key={option}
+                class={method === option ? "selected" : ""}
+                aria-pressed={method === option}
+                onClick={() => setMethod(option)}
+              >
+                {arrivalLabel(option)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
       <div class="choices">
         <button
           class={seniorBox ? "selected" : ""}
@@ -262,7 +294,7 @@ function CorrectDetails(props: { card: Card; onUpdate: UpdateCard; onDone: () =>
             setSeniorBox(!seniorBox);
           }}
         >
-          Senior box
+          Senior Box
         </button>
         <button
           class={cheese ? "selected" : ""}

@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.0.0** · mc-fd-dist · 2026-11-08 · For developers
+**Version 1.1.0** · mc-fd-dist · 2026-11-11 · For developers
 
 ---
 
@@ -16,7 +16,7 @@ Read `[NOTE]` only if the reasoning behind a design is needed; the ADRs in `docs
 **[SPEC]**
 - One server, one SQLite database, and an installable web app used by every station.
 - Stations write over HTTP and listen for changes on one WebSocket per station.
-- No personal data is stored. A card number is an anonymous same-day ticket (ADR 0002).
+- No personal data about Families is stored. A card number is an anonymous same-day ticket (ADR 0002). The only personal data is the intake volunteer's initials on walk-in cards (ADR 0024).
 
 | Part | Technology | Where |
 |---|---|---|
@@ -41,9 +41,9 @@ Each server module and what it is responsible for:
 | `app.ts` | Builds the Fastify app: security headers, sign-in, the live socket, route registration, overnight auto-close |
 | `accounts.ts`, `sessions.ts` | Accounts with Argon2 password hashes; session tokens stored as hashes |
 | `cards.ts`, `card-routes.ts` | Cards, their status path, revisions and live broadcasts |
-| `batches.ts`, `batch-routes.ts` | Returned items and Door Dash or Helping Hands batches |
+| `batches.ts`, `batch-routes.ts` | Returned items. Door Dash and Helping Hands Families are cards (ADR 0023) |
 | `admin-routes.ts` | Shift reports, CSV exports, accounts, activity log |
-| `rules.ts` | TEFAP bags, arrival methods, allowed status changes by role |
+| `rules.ts` | TEFAP bags, cart count, extras check, intake initials pattern, arrival and partner methods, allowed status changes by role |
 | `summary.ts` | `shiftSummary`, the one calculation of shift totals (ADR 0012) |
 | `shift-closing.ts` | Closing shifts by hand and automatically overnight (ADR 0013) |
 | `audit.ts`, `csv.ts` | Activity log and spreadsheet-safe CSV |
@@ -62,15 +62,15 @@ The tables and what each holds:
 | `account` | Username, Argon2 hash, role (`front_desk`, `distribution`, `admin`) |
 | `session` | Hash of the session token, account, expiry |
 | `shift` | Date (unique), status (`open`, `closed`), whether it was reopened |
-| `card` | Shift, number (unique per shift), family size, arrival method, senior box, cheese, other, TEFAP bags and override, status, up to three loads, revision, client ID |
-| `partner_batch` | Shift, partner, family count, weight, client ID |
+| `card` | Shift, number (unique per shift), family size, arrival method (including `DD` and `HH` for partner Families), senior box, cheese, other, TEFAP bags and override, status, up to three cart weights (`load_1` to `load_3`, one per TEFAP bag), extras added and note, intake initials, revision, client ID |
 | `returned_batch` | Shift, weight, client ID |
 | `audit_log` | Time, actor (station or admin username), action, detail |
 
 **[SPEC]**
 - Migrations live in `MIGRATIONS` in `server/db.ts`. Each entry's position is its schema version, stored in `user_version`.
 - Never edit or reorder a released migration. Add a new one.
-- SQLite cannot change a CHECK constraint, so changing one means rebuilding the table, as migration 5 does for `card`.
+- SQLite cannot change a CHECK constraint, so changing one means rebuilding the table, as migrations 5 and 6 do for `card`.
+- Migration 6 drops `partner_batch`, and refuses to run while it holds any rows (ADR 0023).
 
 ---
 

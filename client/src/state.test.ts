@@ -4,6 +4,7 @@ import {
   distributionQueue,
   hasWeight,
   isoDate,
+  missingBeforeDistribution,
   mergeCard,
   nextCardNumber,
   parseLoads,
@@ -25,6 +26,9 @@ function card(overrides: Partial<Card>): Card {
     loads: [null, null, null],
     totalWeight: 0,
     revision: 1,
+    extrasAdded: false,
+    extrasNote: "",
+    intakeInitials: "AB",
     ...overrides,
   };
 }
@@ -95,5 +99,44 @@ describe("distributionQueue", () => {
       card({ id: 4, number: 4, status: "distributed" }),
     ]);
     expect(queue.map((c) => c.number)).toEqual([2, 3]);
+  });
+
+  it("leaves out partner cards", () => {
+    const queue = distributionQueue([
+      card({ id: 1, number: 1, status: "called" }),
+      card({ id: 2, number: 2, status: "called", arrivalMethod: "DD", intakeInitials: null }),
+      card({ id: 3, number: 3, status: "confirmed", arrivalMethod: "HH", intakeInitials: null }),
+    ]);
+    expect(queue.map((c) => c.number)).toEqual([1]);
+  });
+});
+
+describe("missingBeforeDistribution", () => {
+  it("names each shown cart without a weight", () => {
+    const missing = missingBeforeDistribution(card({ tefapBags: 3 }), [12, null, null], false);
+    expect(missing).toEqual(["Cart 2 has no weight.", "Cart 3 has no weight."]);
+  });
+
+  it("ignores carts the Family does not get", () => {
+    expect(missingBeforeDistribution(card({ tefapBags: 1 }), [8, null, null], false)).toEqual([]);
+  });
+
+  it("counts a typed zero as a weight", () => {
+    expect(missingBeforeDistribution(card({ tefapBags: 1 }), [0, null, null], false)).toEqual([]);
+  });
+
+  it("asks about extras only for sizes that need the check", () => {
+    const five = card({ familySize: 5, tefapBags: 2 });
+    expect(missingBeforeDistribution(five, [5, 6, null], false)).toEqual([
+      "Extras added is not ticked.",
+    ]);
+    expect(missingBeforeDistribution(five, [5, 6, null], true)).toEqual([]);
+    const eight = card({ familySize: 8, tefapBags: 2 });
+    expect(missingBeforeDistribution(eight, [5, 6, null], false)).toEqual([]);
+  });
+
+  it("follows an override of the bags", () => {
+    const missing = missingBeforeDistribution(card({ tefapBags: 2 }), [4, null, null], false);
+    expect(missing).toEqual(["Cart 2 has no weight."]);
   });
 });

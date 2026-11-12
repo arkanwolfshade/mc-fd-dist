@@ -2,8 +2,8 @@ import { shiftSummary } from "../../server/summary.js";
 import type { ShiftWithCards } from "./types.js";
 
 export function Summary(props: { shift: ShiftWithCards }) {
-  const { cards, partnerBatches, returnedBatches } = props.shift;
-  const summary = shiftSummary(cards, partnerBatches, returnedBatches);
+  const { cards, returnedBatches } = props.shift;
+  const summary = shiftSummary(cards, returnedBatches);
 
   return (
     <div class="columns">

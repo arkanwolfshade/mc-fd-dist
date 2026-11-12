@@ -46,14 +46,34 @@ async function shot(target: Page | Locator, name: string): Promise<void> {
 
 async function addCard(
   page: Page,
-  card: { size: string; method: string; seniorBox?: boolean; cheese?: boolean; other?: string },
+  card: {
+    size: string;
+    method: string;
+    initials: string;
+    seniorBox?: boolean;
+    cheese?: boolean;
+    other?: string;
+  },
 ): Promise<void> {
-  await page.getByLabel("# in family").fill(card.size);
+  await page.getByLabel("# in Family").fill(card.size);
   await page.getByRole("button", { name: card.method, exact: true }).click();
-  if (card.seniorBox) await page.getByRole("button", { name: "Senior box" }).click();
+  if (card.seniorBox) await page.getByRole("button", { name: "Senior Box" }).click();
   if (card.cheese) await page.getByRole("button", { name: "Cheese" }).click();
   if (card.other) await page.getByLabel("Other").fill(card.other);
+  await chooseInitials(page, card.initials);
   await page.getByRole("button", { name: "Save card" }).click();
+}
+
+// Taps the quick button for initials already used this shift, or types new ones.
+async function chooseInitials(page: Page, initials: string): Promise<void> {
+  const quick = page
+    .getByRole("group", { name: "Info from" })
+    .getByRole("button", { name: initials, exact: true });
+  if ((await quick.count()) > 0) {
+    await quick.click();
+  } else {
+    await page.getByLabel("New initials").fill(initials);
+  }
 }
 
 async function run(browser: Browser, url: string, password: string): Promise<void> {
@@ -70,19 +90,23 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await expect(dist.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
 
   // Front desk.
+  const fdCards = fd.locator("section.panel", { hasText: "Cards (" });
   await addCard(fd, {
     size: "5",
     method: "East",
+    initials: "AB",
     seniorBox: true,
     cheese: true,
     other: "Needs help carrying to the car",
   });
-  await addCard(fd, { size: "9", method: "Walk", seniorBox: true });
-  await fd.getByLabel("# in family").fill("2");
+  await addCard(fd, { size: "9", method: "Walk", initials: "CD", seniorBox: true });
+  await expect(fdCards.getByRole("heading", { name: "Cards (2)" })).toBeVisible();
+  // The third card shows the quick buttons for initials already used this shift.
+  await fd.getByLabel("# in Family").fill("2");
   await fd.getByRole("button", { name: "Bus", exact: true }).click();
+  await chooseInitials(fd, "AB");
   await shot(fd.locator("form.panel"), "front-desk-new-card");
   await fd.getByRole("button", { name: "Save card" }).click();
-  const fdCards = fd.locator("section.panel", { hasText: "Cards (" });
   await expect(fdCards.getByRole("heading", { name: "Cards (3)" })).toBeVisible();
   await shot(fd, "front-desk");
   await fdCards
@@ -103,39 +127,64 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await expect(dist.getByRole("heading", { name: "Queue (2)" })).toBeVisible();
   await shot(dist, "distribution");
   await queue(2).getByRole("button", { name: "Correct details" }).click();
-  await queue(2).locator(".correct").getByLabel("# in family").fill("8");
+  await queue(2).locator(".correct").getByLabel("# in Family").fill("8");
   await shot(queue(2), "distribution-correct");
   await queue(2).getByRole("button", { name: "Save correction" }).click();
-  await queue(1).getByRole("button", { name: "Confirm" }).click();
-  await queue(1).getByLabel("Load 1 (lb)").fill("12.5");
-  await queue(1).getByLabel("Load 2 (lb)").fill("8");
+  // A Family of 5 has two carts and the extras check.
+  await queue(1).getByRole("button", { name: "Confirm card 1" }).click();
+  await queue(1).getByLabel("Cart 1 (lb)").fill("12.5");
+  await queue(1).getByLabel("Cart 2 (lb)").fill("8");
+  await queue(1).getByLabel("Extras added").check();
+  await queue(1).getByLabel("What was added").fill("Bakery");
   await shot(queue(1), "distribution-weights");
   await queue(1).getByRole("button", { name: "Mark distributed" }).click();
-  await queue(2).getByRole("button", { name: "Confirm" }).click();
+  // Card 2, corrected to a Family of 8, has two carts and no extras check.
+  await queue(2).getByRole("button", { name: "Confirm card 2" }).click();
+  await queue(2).getByLabel("Cart 1 (lb)").fill("18");
   await queue(2).getByRole("button", { name: "Mark distributed" }).click();
+  await expect(queue(2).locator(".confirm")).toContainText("Cart 2 has no weight.");
   await shot(queue(2).locator(".confirm"), "distribution-no-weight");
-  await queue(2).getByRole("button", { name: "Go back and enter weight" }).click();
-  await queue(2).getByLabel("Load 1 (lb)").fill("30");
+  await queue(2).getByRole("button", { name: "Go back" }).click();
+  await queue(2).getByLabel("Cart 2 (lb)").fill("12");
   await queue(2).getByRole("button", { name: "Mark distributed" }).click();
   await expect(dist.getByRole("heading", { name: "Distributed (2)" })).toBeVisible();
   await shot(dist.locator("section.panel", { hasText: "Distributed (" }), "distribution-done");
 
   const returned = dist.locator("section", { hasText: "Returned items" });
   await returned.getByLabel("Weight (lb)").fill("3.5");
-  await returned.getByRole("button", { name: "Add returned batch" }).click();
+  await returned.getByRole("button", { name: "Add returned weight" }).click();
+  await expect(returned.getByRole("button", { name: "Remove" })).toBeVisible();
   await shot(returned, "distribution-returned");
+
+  // One Door Dash Family is saved, and the next is shown being entered.
   const partners = dist.locator("section", { hasText: "End of shift" });
-  await partners.getByRole("button", { name: "Door Dash" }).click();
-  await partners.getByLabel("# of families").fill("4");
-  await partners.getByLabel("Weight (lb)").fill("40");
-  await partners.getByRole("button", { name: "Add last cards" }).click();
-  await expect(partners.getByRole("button", { name: "Remove" })).toBeVisible();
+  await partners.getByRole("button", { name: "Door Dash", exact: true }).click();
+  await partners.getByLabel("Card #").fill("40");
+  await partners.getByLabel("# in Family").fill("4");
+  await partners.getByLabel("Cart 1 (lb)").fill("40");
+  await partners.getByRole("button", { name: "Add partner Family" }).click();
+  await expect(
+    partners
+      .locator("li")
+      .filter({ has: ticket(dist, 40) })
+      .filter({ hasText: "40 lb" }),
+  ).toBeVisible();
+  await partners.getByRole("button", { name: "Helping Hands", exact: true }).click();
+  await partners.getByLabel("Card #").fill("41");
+  await partners.getByLabel("# in Family").fill("6");
+  await partners.getByLabel("Cart 1 (lb)").fill("15");
+  await partners.getByLabel("Cart 2 (lb)").fill("10");
+  await partners.getByLabel("Extras added").check();
   await shot(partners, "distribution-last-cards");
+  await partners.getByRole("button", { name: "Add partner Family" }).click();
+  await expect(
+    dist.getByRole("heading", { name: "End of shift: Door Dash and Helping Hands (2)" }),
+  ).toBeVisible();
 
   // Dropout.
   await fd.context().setOffline(true);
   await expect(fd.getByText("Connection lost")).toBeVisible();
-  await addCard(fd, { size: "3", method: "West" });
+  await addCard(fd, { size: "3", method: "West", initials: "CD" });
   await expect(fd.locator(".pending-card")).toBeVisible();
   await shot(fd, "front-desk-offline");
   await fd.context().setOffline(false);

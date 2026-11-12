@@ -1,5 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { canChangeStatus, tefapBags } from "./rules.js";
+import {
+  arrivalLabel,
+  canChangeStatus,
+  cartCount,
+  isPartnerMethod,
+  needsExtrasCheck,
+  normalizeInitials,
+  tefapBags,
+} from "./rules.js";
+
+describe("cartCount", () => {
+  it("gives a Family one cart for each TEFAP bag", () => {
+    expect(cartCount({ tefapBags: 1 })).toBe(1);
+    expect(cartCount({ tefapBags: 2 })).toBe(2);
+    expect(cartCount({ tefapBags: 3 })).toBe(3);
+  });
+
+  it("follows bags set by hand rather than the Family's size", () => {
+    const card = { familySize: 2, tefapBags: 3 };
+    expect(cartCount(card)).toBe(3);
+  });
+});
+
+describe("needsExtrasCheck", () => {
+  it.each([
+    [1, false],
+    [4, false],
+    [5, true],
+    [7, true],
+    [8, false],
+    [9, true],
+    [11, true],
+    [12, false],
+    [13, true],
+    [16, true],
+  ])("for a Family of %i is %s", (familySize, expected) => {
+    expect(needsExtrasCheck(familySize)).toBe(expected);
+  });
+});
+
+describe("partner methods", () => {
+  it("marks Door Dash and Helping Hands as partners", () => {
+    expect(isPartnerMethod("DD")).toBe(true);
+    expect(isPartnerMethod("HH")).toBe(true);
+    expect(isPartnerMethod("Walk")).toBe(false);
+  });
+
+  it("names partners in full", () => {
+    expect(arrivalLabel("DD")).toBe("Door Dash");
+    expect(arrivalLabel("HH")).toBe("Helping Hands");
+  });
+});
+
+describe("normalizeInitials", () => {
+  it("accepts 2 to 4 letters and stores them in capitals", () => {
+    expect(normalizeInitials("ab")).toBe("AB");
+    expect(normalizeInitials(" jqp ")).toBe("JQP");
+    expect(normalizeInitials("ABCD")).toBe("ABCD");
+  });
+
+  it("refuses anything else", () => {
+    expect(normalizeInitials("A")).toBeNull();
+    expect(normalizeInitials("ABCDE")).toBeNull();
+    expect(normalizeInitials("A1")).toBeNull();
+    expect(normalizeInitials("")).toBeNull();
+  });
+});
 
 describe("tefapBags", () => {
   it.each([

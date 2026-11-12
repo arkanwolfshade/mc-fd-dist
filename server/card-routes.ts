@@ -1,9 +1,10 @@
 import type { Database } from "better-sqlite3";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Account, Role } from "./accounts.js";
-import { listPartnerBatches, listReturnedBatches } from "./batches.js";
-import type { PartnerBatch, ReturnedBatch } from "./batches.js";
+import { listReturnedBatches } from "./batches.js";
+import type { ReturnedBatch } from "./batches.js";
 import {
+  bagsAfter,
   createCard,
   createShift,
   deleteCard,
@@ -12,25 +13,40 @@ import {
   findShift,
   findShiftByDate,
   listCards,
+  newCardBags,
   updateCard,
 } from "./cards.js";
 import type { Card, CardChanges, NewCard, Shift } from "./cards.js";
 import {
+  ALL_ARRIVAL_METHODS,
   ALL_CARD_STATUSES,
-  ARRIVAL_METHODS,
   breaksCheeseRule,
   canChangeStatus,
+  cartCount,
+  cartRule,
   CHEESE_RULE,
+  fitsCarts,
+  INITIALS_RULE,
+  isPartnerMethod,
+  normalizeInitials,
 } from "./rules.js";
 import { shiftSummary } from "./summary.js";
 
 const CARD_DETAIL_PROPERTIES = {
   number: { type: "integer", minimum: 1 },
   familySize: { type: "integer", minimum: 1, maximum: 100 },
-  arrivalMethod: { type: "string", enum: ARRIVAL_METHODS },
+  arrivalMethod: { type: "string", enum: ALL_ARRIVAL_METHODS },
   seniorBox: { type: "boolean" },
   cheese: { type: "boolean" },
   other: { type: "string", maxLength: 500 },
+  extrasAdded: { type: "boolean" },
+  extrasNote: { type: "string", maxLength: 200 },
+} as const;
+
+const LOADS = {
+  type: "array",
+  maxItems: 3,
+  items: { type: ["number", "null"], minimum: 0 },
 } as const;
 
 export interface CardRouteContext {
@@ -48,12 +64,7 @@ export type LiveMessage =
   | { type: "card"; card: Card }
   | { type: "card-deleted"; shiftId: number; cardId: number }
   | { type: "shift"; shift: Shift }
-  | {
-      type: "batches";
-      shiftId: number;
-      partnerBatches: PartnerBatch[];
-      returnedBatches: ReturnedBatch[];
-    };
+  | { type: "batches"; shiftId: number; returnedBatches: ReturnedBatch[] };
 
 export function registerCardRoutes(app: FastifyInstance, context: CardRouteContext): void {
   const { db, currentAccount, requireRole, broadcast, audit } = context;
@@ -99,22 +110,22 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
         return reply.code(404).send({ error: "No shift for that date" });
       }
       const cards = listCards(db, shift.id);
-      const partnerBatches = listPartnerBatches(db, shift.id);
       const returnedBatches = listReturnedBatches(db, shift.id);
       return {
         ...shift,
         cards,
-        partnerBatches,
         returnedBatches,
-        summary: shiftSummary(cards, partnerBatches, returnedBatches),
+        summary: shiftSummary(cards, returnedBatches),
       };
     },
   );
 
+  // The front desk enters walk-in Families. Distribution enters Door Dash and Helping Hands
+  // Families at the end of a shift, already served. See ADR 0023.
   app.post<{ Params: { shiftId: number }; Body: NewCard }>(
     "/api/shifts/:shiftId/cards",
     {
-      preHandler: requireRole("front_desk", "admin"),
+      preHandler: requireRole(),
       schema: {
         params: {
           type: "object",
@@ -130,11 +141,14 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
             cheese: { type: "boolean", default: false },
             other: { type: "string", maxLength: 500, default: "" },
             tefapBags: { type: "integer", minimum: 0, maximum: 20 },
+            intakeInitials: { type: "string", maxLength: 10 },
+            loads: LOADS,
           },
         },
       },
     },
     async (request, reply) => {
+      const account = currentAccount(request) as Account;
       const retried = findCardByClientId(db, request.body.clientId);
       if (retried) {
         return reply.code(200).send(retried);
@@ -151,7 +165,36 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
         return reply.code(400).send({ error: CHEESE_RULE });
       }
 
-      const card = createCard(db, shift.id, request.body);
+      const input = { ...request.body };
+      if (isPartnerMethod(input.arrivalMethod)) {
+        if (account.role === "front_desk") {
+          return reply
+            .code(400)
+            .send({ error: "Door Dash and Helping Hands Families are entered by Distribution" });
+        }
+        if (input.intakeInitials !== undefined) {
+          return reply.code(400).send({ error: "Partner Families have no intake initials" });
+        }
+        input.status = "distributed";
+      } else {
+        if (account.role === "distribution") {
+          return reply.code(403).send({ error: "Walk-in Families are entered at the front desk" });
+        }
+        if (input.loads || input.extrasAdded !== undefined || input.extrasNote !== undefined) {
+          return reply.code(403).send({ error: "Only distribution can record weights and extras" });
+        }
+        const initials = normalizeInitials(input.intakeInitials ?? "");
+        if (!initials) {
+          return reply.code(400).send({ error: INITIALS_RULE });
+        }
+        input.intakeInitials = initials;
+      }
+      const carts = cartCount({ tefapBags: newCardBags(input) });
+      if (!fitsCarts(input.loads ?? [], carts)) {
+        return reply.code(400).send({ error: cartRule(carts) });
+      }
+
+      const card = createCard(db, shift.id, input);
       if (card === "duplicate") {
         return reply.code(409).send({ error: "That card number is already in use" });
       }
@@ -175,11 +218,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
             ...CARD_DETAIL_PROPERTIES,
             tefapBags: { type: ["integer", "null"], minimum: 0, maximum: 20 },
             status: { type: "string", enum: ALL_CARD_STATUSES },
-            loads: {
-              type: "array",
-              maxItems: 3,
-              items: { type: ["number", "null"], minimum: 0 },
-            },
+            loads: LOADS,
           },
         },
       },
@@ -202,9 +241,23 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (breaksCheeseRule(extras)) {
         return reply.code(400).send({ error: CHEESE_RULE });
       }
+      if (
+        changes.arrivalMethod &&
+        isPartnerMethod(changes.arrivalMethod) !== isPartnerMethod(current.arrivalMethod)
+      ) {
+        return reply
+          .code(400)
+          .send({ error: "A walk-in Family and a partner Family cannot be swapped" });
+      }
+      const carts = cartCount({ tefapBags: bagsAfter(current, changes) });
+      if (!fitsCarts(changes.loads ?? current.loads, carts)) {
+        return reply.code(400).send({ error: cartRule(carts) });
+      }
 
-      if (changes.loads && account.role === "front_desk") {
-        return reply.code(403).send({ error: "Only distribution can record weights" });
+      const recordsDistribution =
+        changes.loads || changes.extrasAdded !== undefined || changes.extrasNote !== undefined;
+      if (recordsDistribution && account.role === "front_desk") {
+        return reply.code(403).send({ error: "Only distribution can record weights and extras" });
       }
       if (
         changes.status &&

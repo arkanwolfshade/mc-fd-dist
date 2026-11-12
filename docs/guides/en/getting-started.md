@@ -1,5 +1,5 @@
 # Getting started
-**Version 1.0.0** · Food bank shift tracker · 2026-11-08 · For volunteers and staff
+**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · For volunteers and staff
 
 ---
 
@@ -16,11 +16,12 @@ Read `[NOTE]` only if the reason behind a step is needed.
 **[SPEC]**
 - The app replaces the two paper sheets: the front desk sheet and the distribution sheet.
 - Each station uses its own device: one at the front desk, one at distribution.
-- A family's details are entered once, at the front desk. Distribution sees them straight away.
+- A Family's details are entered once, at the front desk. Distribution sees them straight away.
+- Door Dash and Helping Hands Families are entered by distribution at the end of the shift.
 - Totals for the shift are worked out for you. Nobody adds up pages by hand.
 
 **[NOTE]**
-Card numbers are tickets for the day only. The app never records a family's name or address.
+Card numbers are tickets for the day only. The app never records a Family's name or address. For each Family entered at the front desk, it records only the initials of the intake volunteer who gave the details.
 
 ---
 

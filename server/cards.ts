@@ -21,6 +21,9 @@ export interface Card {
   loads: Loads;
   totalWeight: number;
   revision: number;
+  extrasAdded: boolean;
+  extrasNote: string;
+  intakeInitials: string | null;
 }
 
 export interface Shift {
@@ -38,6 +41,11 @@ export interface NewCard {
   cheese: boolean;
   other: string;
   tefapBags?: number;
+  intakeInitials?: string | null;
+  status?: CardStatus;
+  loads?: (number | null)[];
+  extrasAdded?: boolean;
+  extrasNote?: string;
 }
 
 export interface CardChanges {
@@ -50,6 +58,8 @@ export interface CardChanges {
   tefapBags?: number | null;
   status?: CardStatus;
   loads?: (number | null)[];
+  extrasAdded?: boolean;
+  extrasNote?: string;
 }
 
 interface CardRow {
@@ -68,6 +78,9 @@ interface CardRow {
   load_2: number | null;
   load_3: number | null;
   revision: number;
+  extras_added: number;
+  extras_note: string;
+  intake_initials: string | null;
 }
 
 function toCard(row: CardRow): Card {
@@ -87,6 +100,9 @@ function toCard(row: CardRow): Card {
     loads,
     totalWeight: roundWeight(loads.reduce<number>((sum, load) => sum + (load ?? 0), 0)),
     revision: row.revision,
+    extrasAdded: row.extras_added === 1,
+    extrasNote: row.extras_note,
+    intakeInitials: row.intake_initials,
   };
 }
 
@@ -142,14 +158,21 @@ export function findCardByClientId(db: Database, clientId: string): Card | null 
   return row ? toCard(row) : null;
 }
 
+// The TEFAP bags a new card gets: the Family's size rule, unless set by hand.
+export function newCardBags(input: Pick<NewCard, "familySize" | "tefapBags">): number {
+  return input.tefapBags ?? tefapBags(input.familySize);
+}
+
 export function createCard(db: Database, shiftId: number, input: NewCard): Card | "duplicate" {
   const isOverride = input.tefapBags !== undefined;
+  const loads = input.loads ?? [];
   try {
     const { lastInsertRowid } = db
       .prepare(
         `INSERT INTO card (shift_id, client_id, number, family_size, arrival_method, senior_box,
-           cheese, other, tefap_bags, tefap_override)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           cheese, other, tefap_bags, tefap_override, status, load_1, load_2, load_3,
+           extras_added, extras_note, intake_initials)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         shiftId,
@@ -160,8 +183,15 @@ export function createCard(db: Database, shiftId: number, input: NewCard): Card 
         input.seniorBox ? 1 : 0,
         input.cheese ? 1 : 0,
         input.other,
-        input.tefapBags ?? tefapBags(input.familySize),
+        newCardBags(input),
         isOverride ? 1 : 0,
+        input.status ?? "entered",
+        loads[0] ?? null,
+        loads[1] ?? null,
+        loads[2] ?? null,
+        input.extrasAdded ? 1 : 0,
+        input.extrasNote ?? "",
+        input.intakeInitials ?? null,
       );
     return findCard(db, Number(lastInsertRowid)) as Card;
   } catch (error) {
@@ -172,6 +202,15 @@ export function createCard(db: Database, shiftId: number, input: NewCard): Card 
 
 export type UpdateResult = Card | "stale" | "duplicate";
 
+// The TEFAP bags a card will have once the changes are made.
+export function bagsAfter(current: Card, changes: CardChanges): number {
+  const tefapOverride =
+    changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
+  return tefapOverride
+    ? (changes.tefapBags ?? current.tefapBags)
+    : tefapBags(changes.familySize ?? current.familySize);
+}
+
 export function updateCard(
   db: Database,
   current: Card,
@@ -181,7 +220,7 @@ export function updateCard(
   const familySize = changes.familySize ?? current.familySize;
   const tefapOverride =
     changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
-  const bags = tefapOverride ? (changes.tefapBags ?? current.tefapBags) : tefapBags(familySize);
+  const bags = bagsAfter(current, changes);
   const loads = changes.loads ?? current.loads;
 
   try {
@@ -189,7 +228,8 @@ export function updateCard(
       .prepare(
         `UPDATE card SET number = ?, family_size = ?, arrival_method = ?, senior_box = ?,
            cheese = ?, other = ?, tefap_bags = ?, tefap_override = ?, status = ?,
-           load_1 = ?, load_2 = ?, load_3 = ?, revision = revision + 1
+           load_1 = ?, load_2 = ?, load_3 = ?, extras_added = ?, extras_note = ?,
+           revision = revision + 1
          WHERE id = ? AND revision = ?`,
       )
       .run(
@@ -205,6 +245,8 @@ export function updateCard(
         loads[0] ?? null,
         loads[1] ?? null,
         loads[2] ?? null,
+        (changes.extrasAdded ?? current.extrasAdded) ? 1 : 0,
+        changes.extrasNote ?? current.extrasNote,
         current.id,
         revision,
       );

@@ -1,6 +1,6 @@
 # 0020. Follow the food bank's own process and words
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [0023](0023-partner-families-carts-and-extras.md), which changes more wording and adds partner methods
 - **Date:** 2026-11-08
 
 ## Context
@@ -20,6 +20,8 @@ Reviewing a design mock-up, the developer described how shifts actually run, and
 - **Around corner:** The arrival method is still stored as `AC`, and shown as "Around corner" on every screen and in the cards CSV.
 - **Note from the front desk:** The "Other" text appears on distribution's card as its own highlighted line, "Note from the front desk".
 - **Left without food:** Offered only in the closing warning, not on the queue cards (amending ADR 0019).
+
+*Amended 2026-11-11:* the food bank asked for more of its own words ([ADR 0023](0023-partner-families-carts-and-extras.md)). "Arrived by" became "Location or transport", "Load" became "Cart", and "Family" and "Senior Box" take capitals. Door Dash (`DD`) and Helping Hands (`HH`) joined the stored arrival methods, for partner cards entered by Distribution only.
 
 ## Alternatives considered
 

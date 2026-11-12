@@ -51,7 +51,7 @@ describe("openDatabase", () => {
     function databaseAtVersion4(): string {
       const path = tempPath();
       const old = new Sqlite(path);
-      MIGRATIONS.slice(0, 4).forEach((sql) => old.exec(sql));
+      MIGRATIONS.slice(0, 4).forEach((sql) => old.exec(sql as string));
       old.pragma("user_version = 4");
       old.prepare("INSERT INTO shift (date) VALUES ('2026-11-07')").run();
       old
@@ -90,6 +90,81 @@ describe("openDatabase", () => {
           )
           .run(),
       ).toThrow("UNIQUE constraint failed");
+      db.close();
+    });
+  });
+
+  describe("when a database from before partner Families became cards is upgraded", () => {
+    function databaseAtVersion5(withPartnerBatch: boolean): string {
+      const path = tempPath();
+      const old = new Sqlite(path);
+      MIGRATIONS.slice(0, 5).forEach((sql) => old.exec(sql as string));
+      old.pragma("user_version = 5");
+      old.prepare("INSERT INTO shift (date) VALUES ('2026-11-07')").run();
+      old
+        .prepare(
+          `INSERT INTO card (shift_id, client_id, number, family_size, arrival_method, tefap_bags,
+             status, load_1)
+           VALUES (1, 'a', 1, 5, 'East', 2, 'distributed', 20)`,
+        )
+        .run();
+      if (withPartnerBatch) {
+        old
+          .prepare(
+            `INSERT INTO partner_batch (shift_id, client_id, partner, family_count, weight)
+             VALUES (1, 'p', 'Door Dash', 4, 40)`,
+          )
+          .run();
+      }
+      old.close();
+      return path;
+    }
+
+    it("refuses to upgrade while partner batches exist, and changes nothing", () => {
+      const path = databaseAtVersion5(true);
+      expect(() => openDatabase(path)).toThrow(/partner batch/i);
+      const db = new Sqlite(path);
+      expect(db.pragma("user_version", { simple: true })).toBe(5);
+      expect(db.prepare("SELECT COUNT(*) AS n FROM partner_batch").get()).toEqual({ n: 1 });
+      db.close();
+    });
+
+    it("keeps existing cards, with no extras and no initials", () => {
+      const db = openDatabase(databaseAtVersion5(false));
+      const card = db
+        .prepare(
+          "SELECT number, status, load_1, extras_added, extras_note, intake_initials FROM card",
+        )
+        .get();
+      expect(card).toEqual({
+        number: 1,
+        status: "distributed",
+        load_1: 20,
+        extras_added: 0,
+        extras_note: "",
+        intake_initials: null,
+      });
+      db.close();
+    });
+
+    it("removes the partner batch table", () => {
+      const db = openDatabase(databaseAtVersion5(false));
+      const table = db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'partner_batch'")
+        .get();
+      expect(table).toBeUndefined();
+      db.close();
+    });
+
+    it("accepts Door Dash and Helping Hands cards, and still rejects unknown methods", () => {
+      const db = openDatabase(databaseAtVersion5(false));
+      const insert = db.prepare(
+        `INSERT INTO card (shift_id, client_id, number, family_size, arrival_method, tefap_bags)
+         VALUES (1, ?, ?, 3, ?, 1)`,
+      );
+      expect(() => insert.run("dd", 2, "DD")).not.toThrow();
+      expect(() => insert.run("hh", 3, "HH")).not.toThrow();
+      expect(() => insert.run("xx", 4, "Taxi")).toThrow("CHECK constraint failed");
       db.close();
     });
   });
