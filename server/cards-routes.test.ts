@@ -240,6 +240,11 @@ describe("shift and card routes", () => {
       expect(response.statusCode).toBe(400);
     });
 
+    it("starts a walk-in card at the entered status whatever status is sent", async () => {
+      const card = await addCard(await openShift(), { status: "distributed" });
+      expect(card.status).toBe("entered");
+    });
+
     it("starts a card with no extras", async () => {
       const card = await addCard(await openShift());
       expect(card).toMatchObject({ extrasAdded: false, extrasNote: "" });

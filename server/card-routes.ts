@@ -134,6 +134,8 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
         body: {
           type: "object",
           required: ["clientId", "number", "familySize", "arrivalMethod"],
+          // Fields not listed here, such as status, are dropped before the handler sees them.
+          additionalProperties: false,
           properties: {
             clientId: { type: "string", minLength: 1, maxLength: 100 },
             ...CARD_DETAIL_PROPERTIES,
@@ -165,7 +167,24 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
         return reply.code(400).send({ error: CHEESE_RULE });
       }
 
-      const input = { ...request.body };
+      // Built from the allowed fields only, so a request cannot set the status or anything else
+      // that the role rules below decide.
+      const body = request.body;
+      const input: NewCard = {
+        clientId: body.clientId,
+        number: body.number,
+        familySize: body.familySize,
+        arrivalMethod: body.arrivalMethod,
+        seniorBox: body.seniorBox,
+        cheese: body.cheese,
+        other: body.other,
+        ...(body.tefapBags !== undefined ? { tefapBags: body.tefapBags } : {}),
+        ...(body.intakeInitials !== undefined ? { intakeInitials: body.intakeInitials } : {}),
+        ...(body.loads !== undefined ? { loads: body.loads } : {}),
+        ...(body.extrasAdded !== undefined ? { extrasAdded: body.extrasAdded } : {}),
+        ...(body.extrasNote !== undefined ? { extrasNote: body.extrasNote } : {}),
+        status: "entered",
+      };
       if (isPartnerMethod(input.arrivalMethod)) {
         if (account.role === "front_desk") {
           return reply
