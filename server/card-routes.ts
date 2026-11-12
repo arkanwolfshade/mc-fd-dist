@@ -32,6 +32,32 @@ import {
 } from "./rules.js";
 import { shiftSummary } from "./summary.js";
 
+export const SHIFT_PARAMS = {
+  type: "object",
+  properties: { shiftId: { type: "integer" } },
+} as const;
+export const ID_PARAMS = { type: "object", properties: { id: { type: "integer" } } } as const;
+
+const DATE_OBJECT = {
+  type: "object",
+  required: ["date"],
+  properties: { date: { type: "string", format: "date" } },
+} as const;
+
+// Sends the error reply and returns false unless the shift exists and accepts changes.
+export function checkShiftOpen(db: Database, shiftId: number, reply: FastifyReply): boolean {
+  const shift = findShift(db, shiftId);
+  if (!shift) {
+    void reply.code(404).send({ error: "Shift not found" });
+    return false;
+  }
+  if (shift.status === "closed") {
+    void reply.code(409).send({ error: "This shift is closed" });
+    return false;
+  }
+  return true;
+}
+
 const CARD_DETAIL_PROPERTIES = {
   number: { type: "integer", minimum: 1 },
   familySize: { type: "integer", minimum: 1, maximum: 100 },
@@ -73,13 +99,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     "/api/shifts",
     {
       preHandler: requireRole(),
-      schema: {
-        body: {
-          type: "object",
-          required: ["date"],
-          properties: { date: { type: "string", format: "date" } },
-        },
-      },
+      schema: { body: DATE_OBJECT },
     },
     async (request, reply) => {
       const shift = createShift(db, request.body.date);
@@ -96,13 +116,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     "/api/shifts",
     {
       preHandler: requireRole(),
-      schema: {
-        querystring: {
-          type: "object",
-          required: ["date"],
-          properties: { date: { type: "string", format: "date" } },
-        },
-      },
+      schema: { querystring: DATE_OBJECT },
     },
     async (request, reply) => {
       const shift = findShiftByDate(db, request.query.date);
@@ -127,10 +141,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     {
       preHandler: requireRole(),
       schema: {
-        params: {
-          type: "object",
-          properties: { shiftId: { type: "integer" } },
-        },
+        params: SHIFT_PARAMS,
         body: {
           type: "object",
           required: ["clientId", "number", "familySize", "arrivalMethod"],
@@ -156,12 +167,9 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
         return reply.code(200).send(retried);
       }
 
-      const shift = findShift(db, request.params.shiftId);
-      if (!shift) {
-        return reply.code(404).send({ error: "Shift not found" });
-      }
-      if (shift.status === "closed") {
-        return reply.code(409).send({ error: "This shift is closed" });
+      const { shiftId } = request.params;
+      if (!checkShiftOpen(db, shiftId, reply)) {
+        return reply;
       }
       if (breaksCheeseRule({ seniorBox: request.body.seniorBox, cheese: request.body.cheese })) {
         return reply.code(400).send({ error: CHEESE_RULE });
@@ -213,11 +221,11 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
         return reply.code(400).send({ error: cartRule(carts) });
       }
 
-      const card = createCard(db, shift.id, input);
+      const card = createCard(db, shiftId, input);
       if (card === "duplicate") {
         return reply.code(409).send({ error: "That card number is already in use" });
       }
-      audit(request, "card.create", { shiftId: shift.id, number: card.number });
+      audit(request, "card.create", { shiftId, number: card.number });
       broadcast({ type: "card", card });
       return reply.code(201).send(card);
     },
@@ -228,7 +236,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     {
       preHandler: requireRole(),
       schema: {
-        params: { type: "object", properties: { id: { type: "integer" } } },
+        params: ID_PARAMS,
         body: {
           type: "object",
           required: ["revision"],
@@ -250,8 +258,8 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (!current) {
         return reply.code(404).send({ error: "Card not found" });
       }
-      if (findShift(db, current.shiftId)?.status === "closed") {
-        return reply.code(409).send({ error: "This shift is closed" });
+      if (!checkShiftOpen(db, current.shiftId, reply)) {
+        return reply;
       }
       const extras = {
         seniorBox: changes.seniorBox ?? current.seniorBox,
@@ -307,15 +315,15 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     "/api/cards/:id",
     {
       preHandler: requireRole("admin"),
-      schema: { params: { type: "object", properties: { id: { type: "integer" } } } },
+      schema: { params: ID_PARAMS },
     },
     async (request, reply) => {
       const card = findCard(db, request.params.id);
       if (!card) {
         return reply.code(404).send({ error: "Card not found" });
       }
-      if (findShift(db, card.shiftId)?.status === "closed") {
-        return reply.code(409).send({ error: "This shift is closed" });
+      if (!checkShiftOpen(db, card.shiftId, reply)) {
+        return reply;
       }
 
       deleteCard(db, card.id);

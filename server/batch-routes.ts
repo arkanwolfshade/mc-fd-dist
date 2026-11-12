@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 import {
   createReturnedBatch,
   deleteReturnedBatch,
@@ -6,11 +6,8 @@ import {
   findReturnedBatchShiftId,
   listReturnedBatches,
 } from "./batches.js";
+import { checkShiftOpen, ID_PARAMS, SHIFT_PARAMS } from "./card-routes.js";
 import type { CardRouteContext } from "./card-routes.js";
-import { findShift } from "./cards.js";
-
-const SHIFT_PARAMS = { type: "object", properties: { shiftId: { type: "integer" } } } as const;
-const ID_PARAMS = { type: "object", properties: { id: { type: "integer" } } } as const;
 
 export function registerBatchRoutes(app: FastifyInstance, context: CardRouteContext): void {
   const { db, requireRole, broadcast, audit } = context;
@@ -18,20 +15,6 @@ export function registerBatchRoutes(app: FastifyInstance, context: CardRouteCont
 
   function broadcastBatches(shiftId: number): void {
     broadcast({ type: "batches", shiftId, returnedBatches: listReturnedBatches(db, shiftId) });
-  }
-
-  // Sends the error reply and returns false unless the shift accepts changes.
-  function checkShiftOpen(shiftId: number, reply: FastifyReply): boolean {
-    const shift = findShift(db, shiftId);
-    if (!shift) {
-      void reply.code(404).send({ error: "Shift not found" });
-      return false;
-    }
-    if (shift.status === "closed") {
-      void reply.code(409).send({ error: "This shift is closed" });
-      return false;
-    }
-    return true;
   }
 
   app.post<{ Params: { shiftId: number }; Body: { clientId: string; weight: number } }>(
@@ -55,7 +38,7 @@ export function registerBatchRoutes(app: FastifyInstance, context: CardRouteCont
       if (retried) {
         return reply.code(200).send(retried);
       }
-      if (!checkShiftOpen(request.params.shiftId, reply)) {
+      if (!checkShiftOpen(db, request.params.shiftId, reply)) {
         return reply;
       }
       const batch = createReturnedBatch(db, request.params.shiftId, request.body);
@@ -73,7 +56,7 @@ export function registerBatchRoutes(app: FastifyInstance, context: CardRouteCont
       if (shiftId === null) {
         return reply.code(404).send({ error: "Batch not found" });
       }
-      if (!checkShiftOpen(shiftId, reply)) {
+      if (!checkShiftOpen(db, shiftId, reply)) {
         return reply;
       }
       deleteReturnedBatch(db, request.params.id);
