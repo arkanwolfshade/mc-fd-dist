@@ -1,47 +1,12 @@
 import { useState } from "preact/hooks";
-import {
-  ARRIVAL_METHODS,
-  arrivalLabel,
-  isPartnerMethod,
-  normalizeInitials,
-  tefapBags,
-} from "../../server/rules.js";
-import type { ArrivalMethod } from "../../server/rules.js";
+import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js";
 import { errorText } from "./api.js";
 import { cardDetails, DeleteCardButton, Family, StatusLabel, Ticket } from "./CardActions.js";
+import { EMPTY_FORM, frontDeskView, isEmpty, prepareCard } from "./forms.js";
+import type { CardForm, SavedCard } from "./forms.js";
 import type { ShiftView } from "./pending.js";
-import { nextCardNumber, toggleSeniorBox } from "./state.js";
+import { toggleSeniorBox } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
-
-interface CardForm {
-  number: string;
-  familySize: string;
-  method: ArrivalMethod | null;
-  // Who the Family's details came from, chosen or typed. See ADR 0024.
-  initials: string;
-  // What is in the New initials box, kept apart so a quick button does not overwrite typing.
-  typedInitials: string;
-  seniorBox: boolean;
-  cheese: boolean;
-  other: string;
-}
-
-const EMPTY_FORM: CardForm = {
-  number: "",
-  familySize: "",
-  method: null,
-  initials: "",
-  typedInitials: "",
-  seniorBox: false,
-  cheese: false,
-  other: "",
-};
-
-function isEmpty(form: CardForm): boolean {
-  return Object.entries(form).every(
-    ([field, value]) => value === EMPTY_FORM[field as keyof CardForm],
-  );
-}
 
 export function FrontDesk(props: {
   shift: ShiftView;
@@ -57,28 +22,11 @@ export function FrontDesk(props: {
   const [saving, setSaving] = useState<number[]>([]);
   const [error, setError] = useState("");
   // The last card saved, confirmed under the form.
-  const [saved, setSaved] = useState<{
-    number: number;
-    familySize: number;
-    arrivalMethod: ArrivalMethod;
-    seniorBox: boolean;
-    cheese: boolean;
-  } | null>(null);
+  const [saved, setSaved] = useState<SavedCard | null>(null);
 
   const { number, familySize, method, initials, typedInitials, seniorBox, cheese, other } = form;
   const size = Number(familySize);
-  // Partner cards share the card stack, so they count here though the list leaves them out.
-  const suggested = nextCardNumber([
-    ...shift.cards,
-    ...shift.pendingCards,
-    ...saving.map((pending) => ({ number: pending })),
-  ]);
-  // Door Dash and Helping Hands cards are entered at Batches, not here. See ADR 0023.
-  const cards = shift.cards.filter((card) => !isPartnerMethod(card.arrivalMethod));
-  const pendingCards = shift.pendingCards.filter((card) => !isPartnerMethod(card.arrivalMethod));
-  const knownInitials = [
-    ...new Set(shift.cards.flatMap((card) => (card.intakeInitials ? [card.intakeInitials] : []))),
-  ].sort();
+  const { suggested, cards, pendingCards, knownInitials } = frontDeskView(shift, saving);
 
   function change(changes: Partial<CardForm>) {
     setForm((current) => ({ ...current, ...changes }));
@@ -86,43 +34,23 @@ export function FrontDesk(props: {
 
   async function submit(event: Event) {
     event.preventDefault();
-    if (!method) {
-      setError("Choose the Family's location or transport.");
-      return;
-    }
-    const intakeInitials = normalizeInitials(initials);
-    if (!intakeInitials) {
-      setError("Choose who the Family's details came from.");
+    const prepared = prepareCard(form, shift.id, suggested);
+    if (!prepared.ok) {
+      setError(prepared.error);
       return;
     }
     setError("");
     const entry = form;
-    const cardNumber = Number(number) || suggested;
-    const label = `Card ${cardNumber} (Family of ${size}, ${method})`;
+    const { cardNumber, label } = prepared;
     // Cleared at once, so that the next family can be typed while this card saves.
     setForm(EMPTY_FORM);
     setSaving((current) => [...current, cardNumber]);
     try {
-      const result = await submitWrite({
-        kind: "card-create",
-        method: "POST",
-        url: `/api/shifts/${shift.id}/cards`,
-        body: {
-          clientId: crypto.randomUUID(),
-          number: cardNumber,
-          familySize: size,
-          arrivalMethod: method,
-          intakeInitials,
-          seniorBox,
-          cheese,
-          other,
-        },
-        label,
-      });
+      const result = await submitWrite(prepared.write);
       if (result.status === "sent") {
         onSaved(result.data as Card);
       }
-      setSaved({ number: cardNumber, familySize: size, arrivalMethod: method, seniorBox, cheese });
+      setSaved(prepared.saved);
     } catch (failure) {
       setSaved(null);
       const reason = errorText(failure, "please try again");
