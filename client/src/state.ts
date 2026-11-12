@@ -122,6 +122,20 @@ export function distributionQueue(cards: Card[]): Card[] {
   );
 }
 
+// How Distribution sorts a shift's cards.
+export function distributionLists(cards: Card[]) {
+  return {
+    queue: distributionQueue(cards),
+    // Partner cards are listed in their own panel, where they were entered.
+    done: cards.filter(
+      (card) => card.status === "distributed" && !isPartnerMethod(card.arrivalMethod),
+    ),
+    left: cards.filter((card) => card.status === "left"),
+    // Still counted as families, but at the end of a shift each one needs correcting.
+    unserved: cards.filter((card) => card.status !== "distributed" && card.status !== "left"),
+  };
+}
+
 // What Distribution is warned about before marking a Family distributed. Each is a warning,
 // not a block: a volunteer can still go ahead. See ADR 0023.
 export function missingBeforeDistribution(

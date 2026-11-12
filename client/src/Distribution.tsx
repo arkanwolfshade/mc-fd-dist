@@ -19,7 +19,7 @@ import {
 } from "./CardActions.js";
 import type { ShiftView } from "./pending.js";
 import {
-  distributionQueue,
+  distributionLists,
   hasWeight,
   loadsForCarts,
   missingBeforeDistribution,
@@ -46,14 +46,7 @@ export function Distribution(props: {
   const { shift, submit, onSaved, onUpdate, onDelete, onCloseShift } = props;
   const [confirmClose, setConfirmClose] = useState(false);
   const { cards } = shift;
-  const queue = distributionQueue(cards);
-  // Partner cards are listed in their own panel, where they were entered.
-  const done = cards.filter(
-    (card) => card.status === "distributed" && !isPartnerMethod(card.arrivalMethod),
-  );
-  const left = cards.filter((card) => card.status === "left");
-  // Still counted as families, but at the end of a shift each one needs correcting.
-  const unserved = cards.filter((card) => card.status !== "distributed" && card.status !== "left");
+  const { queue, done, left, unserved } = distributionLists(cards);
 
   return (
     <div class="columns">
@@ -202,54 +195,86 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
         </div>
       )}
 
+      {/* The weights and extras live here, not in ConfirmedCard, so that undoing the
+          confirmation does not lose what was typed. */}
       {card.status === "confirmed" && (
-        <>
-          <CartFields
-            loads={loads}
-            carts={carts}
-            onChange={(next) => {
-              setLoads(next);
-              setMissing([]);
-            }}
-          />
-          {needsExtrasCheck(card.familySize) && (
-            <ExtrasFields
-              added={extrasAdded}
-              note={extrasNote}
-              onChange={(added, note) => {
-                setExtrasAdded(added);
-                setExtrasNote(note);
-                setMissing([]);
-              }}
-            />
-          )}
-          <div class="choices">
-            <button class="primary" onClick={markDistributed}>
-              Mark distributed
-            </button>
-            <button onClick={() => onUpdate(card, { status: "called" })}>Undo confirm</button>
-            <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
-          </div>
-          {missing.length > 0 && (
-            <div class="confirm">
-              {missing.map((message) => (
-                <p key={message}>{message}</p>
-              ))}
-              <div class="choices">
-                <button onClick={distribute}>Mark distributed anyway</button>
-                <button class="primary" onClick={() => setMissing([])}>
-                  Go back
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+        <ConfirmedCard
+          card={card}
+          carts={carts}
+          loads={loads}
+          extrasAdded={extrasAdded}
+          extrasNote={extrasNote}
+          missing={missing}
+          onLoads={(next) => {
+            setLoads(next);
+            setMissing([]);
+          }}
+          onExtras={(added, note) => {
+            setExtrasAdded(added);
+            setExtrasNote(note);
+            setMissing([]);
+          }}
+          onMarkDistributed={markDistributed}
+          onDistributeAnyway={distribute}
+          onGoBack={() => setMissing([])}
+          onUndoConfirm={() => onUpdate(card, { status: "called" })}
+          onCorrect={() => setCorrecting(!correcting)}
+        />
       )}
 
       {correcting && (
         <CorrectDetails card={card} onUpdate={onUpdate} onDone={() => setCorrecting(false)} />
       )}
     </li>
+  );
+}
+
+interface ConfirmedCardProps {
+  card: Card;
+  carts: number;
+  loads: string[];
+  extrasAdded: boolean;
+  extrasNote: string;
+  missing: string[];
+  onLoads: (loads: string[]) => void;
+  onExtras: (added: boolean, note: string) => void;
+  onMarkDistributed: () => void;
+  onDistributeAnyway: () => void;
+  onGoBack: () => void;
+  onUndoConfirm: () => void;
+  onCorrect: () => void;
+}
+
+// What Distribution fills in once a card is confirmed: the weight of each cart and the extras.
+function ConfirmedCard(props: ConfirmedCardProps) {
+  const { card, missing } = props;
+  return (
+    <>
+      <CartFields loads={props.loads} carts={props.carts} onChange={props.onLoads} />
+      {needsExtrasCheck(card.familySize) && (
+        <ExtrasFields added={props.extrasAdded} note={props.extrasNote} onChange={props.onExtras} />
+      )}
+      <div class="choices">
+        <button class="primary" onClick={props.onMarkDistributed}>
+          Mark distributed
+        </button>
+        <button onClick={props.onUndoConfirm}>Undo confirm</button>
+        <button onClick={props.onCorrect}>Correct details</button>
+      </div>
+      {missing.length > 0 && (
+        <div class="confirm">
+          {missing.map((message) => (
+            <p key={message}>{message}</p>
+          ))}
+          <div class="choices">
+            <button onClick={props.onDistributeAnyway}>Mark distributed anyway</button>
+            <button class="primary" onClick={props.onGoBack}>
+              Go back
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

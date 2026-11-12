@@ -6,6 +6,7 @@ import {
   applyLiveMessage,
   applyToShift,
   classifyLoadFailure,
+  distributionLists,
   distributionQueue,
   hasWeight,
   isoDate,
@@ -329,5 +330,38 @@ describe("loadsForCarts", () => {
 
   it("keeps no weights for a Family with no carts", () => {
     expect(loadsForCarts(["5", "", ""], 0)).toEqual([null, null, null]);
+  });
+});
+
+describe("distributionLists", () => {
+  const cards = [
+    card({ id: 1, number: 1, status: "entered" }),
+    card({ id: 2, number: 2, status: "called" }),
+    card({ id: 3, number: 3, status: "confirmed" }),
+    card({ id: 4, number: 4, status: "distributed" }),
+    card({ id: 5, number: 5, status: "left" }),
+    card({ id: 6, number: 6, status: "distributed", arrivalMethod: "DD" }),
+    card({ id: 7, number: 7, status: "distributed", arrivalMethod: "HH" }),
+  ];
+  const numbers = (list: Card[]) => list.map((c) => c.number);
+
+  it("queues the families called or confirmed, apart from partner cards", () => {
+    expect(numbers(distributionLists(cards).queue)).toEqual([2, 3]);
+  });
+
+  it("lists distributed families, leaving partner cards to their own panel", () => {
+    expect(numbers(distributionLists(cards).done)).toEqual([4]);
+  });
+
+  it("lists the families who left", () => {
+    expect(numbers(distributionLists(cards).left)).toEqual([5]);
+  });
+
+  it("finds the families still to be served or corrected at the end of a shift", () => {
+    expect(numbers(distributionLists(cards).unserved)).toEqual([1, 2, 3]);
+  });
+
+  it("is empty for a shift with no cards", () => {
+    expect(distributionLists([])).toEqual({ queue: [], done: [], left: [], unserved: [] });
   });
 });
