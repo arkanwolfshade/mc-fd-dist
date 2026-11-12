@@ -1,3 +1,7 @@
+# Text files are LF in the repository and in every checkout, so that Prettier and CI see the
+# same bytes on Windows as on Linux. Binary files, such as the guide pictures, are detected.
+* text=auto eol=lf
+
 # Scripts and server configuration run on Linux, even when edited on Windows.
 *.sh text eol=lf
 Dockerfile text eol=lf
