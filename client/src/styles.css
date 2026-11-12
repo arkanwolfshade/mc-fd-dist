@@ -12,6 +12,7 @@
   --called: #8a5a00;
   --font-body: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-number: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", monospace;
+
   color-scheme: light;
 }
 
@@ -102,6 +103,7 @@ legend {
 /* The ticket: a punched claim check, the only bold color on the page. */
 .ticket {
   --notch: 6px;
+
   display: inline-grid;
   flex: none;
   place-items: center;
@@ -122,6 +124,7 @@ legend {
 
 .ticket.big {
   --notch: 9px;
+
   padding: 6px 20px;
   font-size: 38px;
 }
