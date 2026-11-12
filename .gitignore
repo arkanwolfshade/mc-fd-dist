@@ -18,3 +18,7 @@ deploy/zap/*.json
 deploy/zap/*.html
 deploy/zap/output.txt
 deploy/zap/*.yaml
+
+# Local tooling, not part of the project: Codacy's rules for AI tools, and VS Code settings.
+.github/instructions/codacy.instructions.md
+.vscode/
