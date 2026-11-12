@@ -26,7 +26,7 @@ git config --global commit.gpgsign true
 
 Then add the matching public key to your GitHub account (Settings, SSH and GPG keys), with the email you commit with verified on the account. To check a commit, run `git log --show-signature -1`. On GitHub it shows as Verified.
 
-The maintainer's key expires on 2027-04-03. Extend it, and upload the updated public key, before then.
+The maintainer's key expires on 2027-11-12. Before then, extend it with `gpg --quick-set-expire <fingerprint> 1y`, and again for the subkey, then delete the key on GitHub and add the exported public key again: GitHub only picks up a new expiry that way. Commits already verified stay verified.
 
 ## Tests
 

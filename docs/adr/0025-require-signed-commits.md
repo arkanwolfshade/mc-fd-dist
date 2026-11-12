@@ -29,5 +29,5 @@ The history before this decision has two unsigned commits.
 
 - A push with an unsigned commit is rejected. Anyone committing from another machine sets up signing there first and adds their public key to their GitHub account.
 - Losing the private key, with no bypass, means a repository admin has to edit the ruleset before anyone can push again.
-- The key expires on 2027-04-03. After that, signing fails until the expiry is extended and the updated public key is uploaded to GitHub again.
+- The key expires on 2027-11-12 (it was extended from 2027-04-03 on 2026-11-12). After that, signing fails until the expiry is extended and the updated public key is added to GitHub again.
 - *Assumed:* GitHub cannot sign commits made by its rebase-and-merge option, so a pull request must be merged or squashed. This matters when ADR 0008 is revisited and pull requests become the normal route.
