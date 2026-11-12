@@ -5,6 +5,7 @@ import {
   createAccount,
   deleteAccount,
   findAccountByUsername,
+  listAccounts,
 } from "./accounts.js";
 import type { Account } from "./accounts.js";
 import { listAudit } from "./audit.js";
@@ -191,6 +192,10 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
           rows,
         ),
       );
+  });
+
+  app.get("/api/admin/accounts", { preHandler: adminOnly }, async () => {
+    return listAccounts(db);
   });
 
   app.post<{ Body: { username: string; password: string } }>(

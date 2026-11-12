@@ -38,8 +38,9 @@ Each server module and what it is responsible for:
 
 | Module | Responsibility |
 |---|---|
-| `app.ts` | Builds the Fastify app: security headers, sign-in, the live socket, route registration, overnight auto-close |
+| `app.ts` | Builds the Fastify app: security headers, the live socket, the health check, route registration |
 | `accounts.ts`, `sessions.ts` | Accounts with Argon2 password hashes; session tokens stored as hashes |
+| `auth-routes.ts` | Signing in and out, and who is signed in |
 | `cards.ts`, `card-routes.ts` | Cards, their status path, revisions and live broadcasts |
 | `batches.ts`, `batch-routes.ts` | Returned items. Door Dash and Helping Hands Families are cards (ADR 0023) |
 | `admin-routes.ts` | Shift reports, CSV exports, accounts, activity log |
