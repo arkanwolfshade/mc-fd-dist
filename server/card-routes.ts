@@ -92,6 +92,99 @@ export type LiveMessage =
   | { type: "shift"; shift: Shift }
   | { type: "batches"; shiftId: number; returnedBatches: ReturnedBatch[] };
 
+// A request the rules refuse, with the status code to answer it with.
+interface Refusal {
+  code: 400 | 403;
+  error: string;
+}
+
+// Builds the card to create, or says why it cannot be. It is built from the allowed fields
+// only, so a request cannot set the status or anything else that the role rules decide.
+export function newCardFrom(account: Account, body: NewCard): NewCard | Refusal {
+  if (breaksCheeseRule({ seniorBox: body.seniorBox, cheese: body.cheese })) {
+    return { code: 400, error: CHEESE_RULE };
+  }
+  const input: NewCard = {
+    clientId: body.clientId,
+    number: body.number,
+    familySize: body.familySize,
+    arrivalMethod: body.arrivalMethod,
+    seniorBox: body.seniorBox,
+    cheese: body.cheese,
+    other: body.other,
+    ...(body.tefapBags !== undefined ? { tefapBags: body.tefapBags } : {}),
+    ...(body.intakeInitials !== undefined ? { intakeInitials: body.intakeInitials } : {}),
+    ...(body.loads !== undefined ? { loads: body.loads } : {}),
+    ...(body.extrasAdded !== undefined ? { extrasAdded: body.extrasAdded } : {}),
+    ...(body.extrasNote !== undefined ? { extrasNote: body.extrasNote } : {}),
+    status: "entered",
+  };
+  if (isPartnerMethod(input.arrivalMethod)) {
+    if (account.role === "front_desk") {
+      return {
+        code: 400,
+        error: "Door Dash and Helping Hands Families are entered by Distribution",
+      };
+    }
+    if (input.intakeInitials !== undefined) {
+      return { code: 400, error: "Partner Families have no intake initials" };
+    }
+    input.status = "distributed";
+  } else {
+    if (account.role === "distribution") {
+      return { code: 403, error: "Walk-in Families are entered at the front desk" };
+    }
+    if (input.loads || input.extrasAdded !== undefined || input.extrasNote !== undefined) {
+      return { code: 403, error: "Only distribution can record weights and extras" };
+    }
+    const initials = normalizeInitials(input.intakeInitials ?? "");
+    if (!initials) {
+      return { code: 400, error: INITIALS_RULE };
+    }
+    input.intakeInitials = initials;
+  }
+  const carts = cartCount({ tefapBags: newCardBags(input) });
+  if (!fitsCarts(input.loads ?? [], carts)) {
+    return { code: 400, error: cartRule(carts) };
+  }
+  return input;
+}
+
+// Says why `account` may not make `changes` to `current`, or null if it may.
+function refuseChanges(account: Account, current: Card, changes: CardChanges): Refusal | null {
+  const extras = {
+    seniorBox: changes.seniorBox ?? current.seniorBox,
+    cheese: changes.cheese ?? current.cheese,
+  };
+  if (breaksCheeseRule(extras)) {
+    return { code: 400, error: CHEESE_RULE };
+  }
+  if (
+    changes.arrivalMethod &&
+    isPartnerMethod(changes.arrivalMethod) !== isPartnerMethod(current.arrivalMethod)
+  ) {
+    return { code: 400, error: "A walk-in Family and a partner Family cannot be swapped" };
+  }
+  const carts = cartCount({ tefapBags: bagsAfter(current, changes) });
+  if (!fitsCarts(changes.loads ?? current.loads, carts)) {
+    return { code: 400, error: cartRule(carts) };
+  }
+
+  const recordsDistribution =
+    changes.loads || changes.extrasAdded !== undefined || changes.extrasNote !== undefined;
+  if (recordsDistribution && account.role === "front_desk") {
+    return { code: 403, error: "Only distribution can record weights and extras" };
+  }
+  if (
+    changes.status &&
+    changes.status !== current.status &&
+    !canChangeStatus(account.role, current.status, changes.status)
+  ) {
+    return { code: 403, error: "That status change is not allowed" };
+  }
+  return null;
+}
+
 export function registerCardRoutes(app: FastifyInstance, context: CardRouteContext): void {
   const { db, currentAccount, requireRole, broadcast, audit } = context;
 
@@ -171,54 +264,9 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (!checkShiftOpen(db, shiftId, reply)) {
         return reply;
       }
-      if (breaksCheeseRule({ seniorBox: request.body.seniorBox, cheese: request.body.cheese })) {
-        return reply.code(400).send({ error: CHEESE_RULE });
-      }
-
-      // Built from the allowed fields only, so a request cannot set the status or anything else
-      // that the role rules below decide.
-      const body = request.body;
-      const input: NewCard = {
-        clientId: body.clientId,
-        number: body.number,
-        familySize: body.familySize,
-        arrivalMethod: body.arrivalMethod,
-        seniorBox: body.seniorBox,
-        cheese: body.cheese,
-        other: body.other,
-        ...(body.tefapBags !== undefined ? { tefapBags: body.tefapBags } : {}),
-        ...(body.intakeInitials !== undefined ? { intakeInitials: body.intakeInitials } : {}),
-        ...(body.loads !== undefined ? { loads: body.loads } : {}),
-        ...(body.extrasAdded !== undefined ? { extrasAdded: body.extrasAdded } : {}),
-        ...(body.extrasNote !== undefined ? { extrasNote: body.extrasNote } : {}),
-        status: "entered",
-      };
-      if (isPartnerMethod(input.arrivalMethod)) {
-        if (account.role === "front_desk") {
-          return reply
-            .code(400)
-            .send({ error: "Door Dash and Helping Hands Families are entered by Distribution" });
-        }
-        if (input.intakeInitials !== undefined) {
-          return reply.code(400).send({ error: "Partner Families have no intake initials" });
-        }
-        input.status = "distributed";
-      } else {
-        if (account.role === "distribution") {
-          return reply.code(403).send({ error: "Walk-in Families are entered at the front desk" });
-        }
-        if (input.loads || input.extrasAdded !== undefined || input.extrasNote !== undefined) {
-          return reply.code(403).send({ error: "Only distribution can record weights and extras" });
-        }
-        const initials = normalizeInitials(input.intakeInitials ?? "");
-        if (!initials) {
-          return reply.code(400).send({ error: INITIALS_RULE });
-        }
-        input.intakeInitials = initials;
-      }
-      const carts = cartCount({ tefapBags: newCardBags(input) });
-      if (!fitsCarts(input.loads ?? [], carts)) {
-        return reply.code(400).send({ error: cartRule(carts) });
+      const input = newCardFrom(account, request.body);
+      if ("error" in input) {
+        return reply.code(input.code).send({ error: input.error });
       }
 
       const card = createCard(db, shiftId, input);
@@ -261,37 +309,9 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       if (!checkShiftOpen(db, current.shiftId, reply)) {
         return reply;
       }
-      const extras = {
-        seniorBox: changes.seniorBox ?? current.seniorBox,
-        cheese: changes.cheese ?? current.cheese,
-      };
-      if (breaksCheeseRule(extras)) {
-        return reply.code(400).send({ error: CHEESE_RULE });
-      }
-      if (
-        changes.arrivalMethod &&
-        isPartnerMethod(changes.arrivalMethod) !== isPartnerMethod(current.arrivalMethod)
-      ) {
-        return reply
-          .code(400)
-          .send({ error: "A walk-in Family and a partner Family cannot be swapped" });
-      }
-      const carts = cartCount({ tefapBags: bagsAfter(current, changes) });
-      if (!fitsCarts(changes.loads ?? current.loads, carts)) {
-        return reply.code(400).send({ error: cartRule(carts) });
-      }
-
-      const recordsDistribution =
-        changes.loads || changes.extrasAdded !== undefined || changes.extrasNote !== undefined;
-      if (recordsDistribution && account.role === "front_desk") {
-        return reply.code(403).send({ error: "Only distribution can record weights and extras" });
-      }
-      if (
-        changes.status &&
-        changes.status !== current.status &&
-        !canChangeStatus(account.role, current.status, changes.status)
-      ) {
-        return reply.code(403).send({ error: "That status change is not allowed" });
+      const refusal = refuseChanges(account, current, changes);
+      if (refusal) {
+        return reply.code(refusal.code).send({ error: refusal.error });
       }
 
       const result = updateCard(db, current, revision, changes);
