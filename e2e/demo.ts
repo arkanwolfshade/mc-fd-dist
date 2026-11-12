@@ -136,59 +136,39 @@ async function clearHighlights(page: Page): Promise<void> {
   });
 }
 
-async function run(
-  frontDesk: Station,
-  distribution: Station,
-  admin: Station,
-  password: string,
-): Promise<void> {
-  const fd = frontDesk.page;
-  const dist = distribution.page;
-  const adm = admin.page;
-  const type = (target: Locator, text: string) =>
-    target.pressSequentially(text, { delay: TYPING_DELAY_MS });
-  // Cards are found by the number on their ticket.
-  const ticket = (page: Page, number: number) =>
-    page.locator(".ticket").filter({ hasText: new RegExp(`^${number}$`) });
-  const fdCard = (number: number, page = fd) =>
-    page.locator(".cards > li").filter({ has: ticket(page, number) });
-  const queueCard = (number: number) =>
-    dist.locator(".queue-card").filter({ has: ticket(dist, number) });
-  const doneCard = (number: number) =>
-    dist
-      .locator("section", { hasText: "Distributed (" })
-      .locator("li")
-      .filter({ has: ticket(dist, number) });
-  const infoFrom = fd.getByRole("group", { name: "Info from" });
-  const returned = dist.locator("section", { hasText: "Returned items" });
-  const partners = dist.locator("section", { hasText: "End of shift" });
-  const partnerRow = (number: number) =>
-    partners.locator("li").filter({ has: ticket(dist, number) });
-  const finish = dist.locator("section.panel", { hasText: "Finish" });
-  const closing = dist.locator(".confirm");
-  const reports = adm.locator("section.panel", { hasText: "Shifts and reports" });
-  const accounts = adm.locator("section.panel", { hasText: "Accounts" });
-  const newAdmin = accounts.locator("form", { hasText: "Add admin" });
-  const samRow = accounts.locator(".account").filter({ hasText: "sam" });
+// What the sections of the walkthrough share: the three stations, and the ways of finding
+// things on their screens.
+interface Scene {
+  frontDesk: Station;
+  distribution: Station;
+  admin: Station;
+  fd: Page;
+  dist: Page;
+  adm: Page;
+  type: (target: Locator, text: string) => Promise<void>;
+  ticket: (page: Page, number: number) => Locator;
+  fdCard: (number: number, page?: Page) => Locator;
+  queueCard: (number: number) => Locator;
+  doneCard: (number: number) => Locator;
+  infoFrom: Locator;
+  returned: Locator;
+  partners: Locator;
+  partnerRow: (number: number) => Locator;
+  finish: Locator;
+  closing: Locator;
+  reports: Locator;
+  newAdmin: Locator;
+  samRow: Locator;
+  signIn: (station: Station, username: string, say: string) => Step;
+  stationSignIn: string;
   // Set when the card typed during the Wi-Fi dropout is saved on the device.
-  let offlineNumber = 0;
+  offline: { number: number };
+}
 
-  const signIn = (station: Station, username: string, say: string): Step => ({
-    station,
-    say,
-    target: () => station.page.getByRole("button", { name: "Sign in" }),
-    act: async () => {
-      await type(station.page.getByLabel("Username"), username);
-      await station.page.getByLabel("Password").fill(password);
-      await station.page.getByRole("button", { name: "Sign in" }).click();
-      await expect(station.page.getByRole("button", { name: "Sign out" })).toBeVisible();
-    },
-  });
-  const stationSignIn =
-    "Each station signs in with its own login, which decides what it can do. Stations stay signed in, so volunteers rarely see this.";
-
-  const steps: Step[] = [
-    // Starting the shift.
+// Starting the shift.
+function startingTheShift(scene: Scene): Step[] {
+  const { frontDesk, distribution, fd, dist, signIn, stationSignIn } = scene;
+  return [
     {
       station: frontDesk,
       say: "This walkthrough follows one whole shift with made-up data. The left window is the front desk and the right window is distribution, as if on two separate devices.",
@@ -206,8 +186,13 @@ async function run(
       say: "Distribution sees the shift open by itself, with an empty queue and no reload.",
       target: () => dist.getByRole("heading", { name: "Queue (0)" }),
     },
+  ];
+}
 
-    // The front desk enters Families.
+// The front desk enters Families.
+function frontDeskEntersFamilies(scene: Scene): Step[] {
+  const { frontDesk, fd, type, infoFrom } = scene;
+  return [
     {
       station: frontDesk,
       say: "The yellow ticket shows the next card number. Leave Card # blank to use it, or type the number on the Family's card.",
@@ -291,8 +276,13 @@ async function run(
         await expect(fd.getByRole("heading", { name: "Cards (4)" })).toBeVisible();
       },
     },
+  ];
+}
 
-    // Calling back.
+// Calling back.
+function callingBack(scene: Scene): Step[] {
+  const { frontDesk, fdCard } = scene;
+  return [
     {
       station: frontDesk,
       say: "When it is a Family's turn, the front desk taps Call back, as on the radio. Here card 2 is called by mistake.",
@@ -311,8 +301,13 @@ async function run(
       target: () => fdCard(1).getByRole("button", { name: "Call back" }),
       act: () => fdCard(1).getByRole("button", { name: "Call back" }).click(),
     },
+  ];
+}
 
-    // Distribution serves the first Family.
+// Distribution serves the first Family.
+function firstFamilyServed(scene: Scene): Step[] {
+  const { frontDesk, distribution, type, fdCard, queueCard, doneCard } = scene;
+  return [
     {
       station: distribution,
       say: "The card appears in distribution's queue straight away, with what to give on its own line, who the details came from, and the front desk's note.",
@@ -356,8 +351,13 @@ async function run(
         await highlight(doneCard(1));
       },
     },
+  ];
+}
 
-    // A correction and the warnings.
+// A correction and the warnings.
+function correctionAndWarnings(scene: Scene): Step[] {
+  const { frontDesk, distribution, type, fdCard, queueCard } = scene;
+  return [
     {
       station: frontDesk,
       say: "The front desk calls back cards 2 and 3.",
@@ -428,8 +428,13 @@ async function run(
       target: () => queueCard(3).locator(".confirm"),
       act: () => queueCard(3).getByRole("button", { name: "Mark distributed anyway" }).click(),
     },
+  ];
+}
 
-    // An admin removes the duplicate card.
+// An admin removes the duplicate card.
+function adminRemovesDuplicate(scene: Scene): Step[] {
+  const { frontDesk, admin, fd, adm, fdCard, signIn } = scene;
+  return [
     signIn(
       admin,
       "pat",
@@ -455,8 +460,13 @@ async function run(
       say: "Back at the front desk, card 4 has gone from the list.",
       target: () => fd.getByRole("heading", { name: "Cards (3)" }),
     },
+  ];
+}
 
-    // A Wi-Fi dropout.
+// A Wi-Fi dropout.
+function wifiDropout(scene: Scene): Step[] {
+  const { frontDesk, fd, type, fdCard, infoFrom, offline } = scene;
+  return [
     {
       station: frontDesk,
       say: "What if the Wi-Fi drops? Here the front desk loses its connection, and a warning appears.",
@@ -475,7 +485,7 @@ async function run(
         await infoFrom.getByRole("button", { name: "AB", exact: true }).click();
         await fd.getByRole("button", { name: "Save card" }).click();
         await expect(fd.locator(".pending-card")).toBeVisible();
-        offlineNumber = Number(await fd.locator(".pending-card .ticket").textContent());
+        offline.number = Number(await fd.locator(".pending-card .ticket").textContent());
       },
     },
     {
@@ -494,10 +504,15 @@ async function run(
     {
       station: frontDesk,
       say: "The card is now a normal card on the shared record, waiting to be called back.",
-      target: () => fdCard(offlineNumber).locator(".status.entered"),
+      target: () => fdCard(offline.number).locator(".status.entered"),
     },
+  ];
+}
 
-    // Returned items.
+// Returned items.
+function returnedItems(scene: Scene): Step[] {
+  const { distribution, type, returned } = scene;
+  return [
     {
       station: distribution,
       say: "Returned items are weighed through the shift and added with Add returned weight. They are not tied to a card.",
@@ -523,8 +538,13 @@ async function run(
           .getByRole("button", { name: "Remove" })
           .click(),
     },
+  ];
+}
 
-    // Door Dash and Helping Hands.
+// Door Dash and Helping Hands.
+function partnerFamilies(scene: Scene): Step[] {
+  const { distribution, type, partners, partnerRow } = scene;
+  return [
     {
       station: distribution,
       say: "At the end of the shift, distribution enters each Door Dash and Helping Hands Family as a card, from the same card stack. This Door Dash Family of 4 has card 50 and one cart.",
@@ -559,8 +579,13 @@ async function run(
       say: "Both partner Families are listed here. They never pass the front desk, so they stay off its list.",
       target: () => partnerRow(51),
     },
+  ];
+}
 
-    // Live totals.
+// Live totals.
+function liveTotals(scene: Scene): Step[] {
+  const { frontDesk, fd, dist } = scene;
+  return [
     {
       station: frontDesk,
       say: "Nobody adds up pages by hand any more. Both stations can open the same live totals at any time.",
@@ -575,8 +600,14 @@ async function run(
       say: "Door Dash and Helping Hands have their own lines under Families and weight: 2 Families and 75 lb.",
       target: () => fd.locator(".totals"),
     },
+  ];
+}
 
-    // Closing: a Family who left, and its undo.
+// Closing: a Family who left, and its undo.
+function closingTheShift(scene: Scene): Step[] {
+  const { frontDesk, distribution, fd, dist, type, fdCard, queueCard, finish, closing, offline } =
+    scene;
+  return [
     {
       station: distribution,
       say: "Before closing, distribution taps Close shift. The warning lists every card not yet marked distributed.",
@@ -616,16 +647,16 @@ async function run(
       say: "The front desk calls them back again.",
       act: async () => {
         await fd.getByRole("button", { name: "Front desk", exact: true }).click();
-        await fdCard(offlineNumber).getByRole("button", { name: "Call back" }).click();
+        await fdCard(offline.number).getByRole("button", { name: "Call back" }).click();
       },
     },
     {
       station: distribution,
       say: "Distribution confirms, weighs their one cart at 9 lb, and marks them distributed.",
-      target: () => queueCard(offlineNumber),
+      target: () => queueCard(offline.number),
       act: async () => {
-        const card = queueCard(offlineNumber);
-        await card.getByRole("button", { name: `Confirm card ${offlineNumber}` }).click();
+        const card = queueCard(offline.number);
+        await card.getByRole("button", { name: `Confirm card ${offline.number}` }).click();
         await type(card.getByLabel("Cart 1 (lb)"), "9");
         await card.getByRole("button", { name: "Mark distributed" }).click();
         await expect(dist.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
@@ -648,8 +679,13 @@ async function run(
       say: "Both stations lock at once and show the final totals: 6 Families, 171.5 lb out, 3.5 lb back, so 168 lb net. TEFAP bags, Senior Boxes and Cheese are counted too.",
       target: () => fd.getByText("This shift is closed"),
     },
+  ];
+}
 
-    // The admin screen.
+// The admin screen.
+function adminScreen(scene: Scene): Step[] {
+  const { admin, adm, type, reports, newAdmin, samRow } = scene;
+  return [
     {
       station: admin,
       say: "The Admin screen gives totals over any range of dates. Show totals lists each shift, and a closed shift can be reopened to correct it.",
@@ -702,8 +738,13 @@ async function run(
       say: "Recent activity shows which station or admin made each change.",
       target: () => adm.locator("section.panel", { hasText: "Recent activity" }),
     },
+  ];
+}
 
-    // Help.
+// Help.
+function helpScreen(scene: Scene): Step[] {
+  const { frontDesk, distribution, fd, dist } = scene;
+  return [
     {
       station: frontDesk,
       say: "Every station has a Help tab with its own guide, which works even during a Wi-Fi dropout.",
@@ -728,6 +769,99 @@ async function run(
         await expect(dist.locator(".guide")).toBeVisible();
       },
     },
+  ];
+}
+
+async function run(
+  frontDesk: Station,
+  distribution: Station,
+  admin: Station,
+  password: string,
+): Promise<void> {
+  const fd = frontDesk.page;
+  const dist = distribution.page;
+  const adm = admin.page;
+  const type = (target: Locator, text: string) =>
+    target.pressSequentially(text, { delay: TYPING_DELAY_MS });
+  // Cards are found by the number on their ticket.
+  const ticket = (page: Page, number: number) =>
+    page.locator(".ticket").filter({ hasText: new RegExp(`^${number}$`) });
+  const fdCard = (number: number, page = fd) =>
+    page.locator(".cards > li").filter({ has: ticket(page, number) });
+  const queueCard = (number: number) =>
+    dist.locator(".queue-card").filter({ has: ticket(dist, number) });
+  const doneCard = (number: number) =>
+    dist
+      .locator("section", { hasText: "Distributed (" })
+      .locator("li")
+      .filter({ has: ticket(dist, number) });
+  const infoFrom = fd.getByRole("group", { name: "Info from" });
+  const returned = dist.locator("section", { hasText: "Returned items" });
+  const partners = dist.locator("section", { hasText: "End of shift" });
+  const partnerRow = (number: number) =>
+    partners.locator("li").filter({ has: ticket(dist, number) });
+  const finish = dist.locator("section.panel", { hasText: "Finish" });
+  const closing = dist.locator(".confirm");
+  const reports = adm.locator("section.panel", { hasText: "Shifts and reports" });
+  const accounts = adm.locator("section.panel", { hasText: "Accounts" });
+  const newAdmin = accounts.locator("form", { hasText: "Add admin" });
+  const samRow = accounts.locator(".account").filter({ hasText: "sam" });
+  // Set when the card typed during the Wi-Fi dropout is saved on the device.
+  const offline = { number: 0 };
+
+  const signIn = (station: Station, username: string, say: string): Step => ({
+    station,
+    say,
+    target: () => station.page.getByRole("button", { name: "Sign in" }),
+    act: async () => {
+      await type(station.page.getByLabel("Username"), username);
+      await station.page.getByLabel("Password").fill(password);
+      await station.page.getByRole("button", { name: "Sign in" }).click();
+      await expect(station.page.getByRole("button", { name: "Sign out" })).toBeVisible();
+    },
+  });
+  const stationSignIn =
+    "Each station signs in with its own login, which decides what it can do. Stations stay signed in, so volunteers rarely see this.";
+
+  const scene: Scene = {
+    frontDesk,
+    distribution,
+    admin,
+    fd,
+    dist,
+    adm,
+    type,
+    ticket,
+    fdCard,
+    queueCard,
+    doneCard,
+    infoFrom,
+    returned,
+    partners,
+    partnerRow,
+    finish,
+    closing,
+    reports,
+    newAdmin,
+    samRow,
+    signIn,
+    stationSignIn,
+    offline,
+  };
+  const steps: Step[] = [
+    ...startingTheShift(scene),
+    ...frontDeskEntersFamilies(scene),
+    ...callingBack(scene),
+    ...firstFamilyServed(scene),
+    ...correctionAndWarnings(scene),
+    ...adminRemovesDuplicate(scene),
+    ...wifiDropout(scene),
+    ...returnedItems(scene),
+    ...partnerFamilies(scene),
+    ...liveTotals(scene),
+    ...closingTheShift(scene),
+    ...adminScreen(scene),
+    ...helpScreen(scene),
   ];
 
   const stations = [frontDesk, distribution, admin];
