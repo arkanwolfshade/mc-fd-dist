@@ -13,9 +13,10 @@ import { Help } from "./Help.js";
 import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
+import type { ShiftView } from "./pending.js";
 import { applyLiveMessage, classifyLoadFailure, isoDate, savedShift } from "./state.js";
 import { Summary } from "./Summary.js";
-import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
+import type { Card, Identity, Shift, ShiftWithCards, Submit, UpdateCard } from "./types.js";
 
 type View = "front_desk" | "distribution" | "summary" | "admin" | "help";
 
@@ -337,47 +338,90 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       {view === "admin" && <Admin identity={identity} />}
       {view === "help" && <Help role={identity.role} />}
 
-      {SHIFT_VIEWS.has(view) && shiftView === undefined && (
-        <p class="notice">
-          {connected ? "Loading…" : "Today's shift can't be loaded until the connection returns."}
-        </p>
-      )}
-      {SHIFT_VIEWS.has(view) && shiftView === null && (
-        <div class="panel">
-          <p>No shift has been opened for today.</p>
-          <button class="primary" onClick={openShift}>
-            Open today's shift
-          </button>
-        </div>
-      )}
-      {SHIFT_VIEWS.has(view) && shiftView?.status === "closed" && (
-        <>
-          <p class="warning">
-            This shift is closed. An admin can reopen it if something needs correcting.
-          </p>
-          <Summary shift={shiftView} />
-        </>
-      )}
-      {shiftView?.status === "open" && view === "front_desk" && (
-        <FrontDesk
+      {SHIFT_VIEWS.has(view) && (
+        <ShiftScreen
+          view={view}
           shift={shiftView}
+          connected={connected}
           submit={(write) => outbox.submit(write)}
           onSaved={applyCard}
           onUpdate={updateCard}
           onDelete={deleteCard}
+          onOpenShift={openShift}
+          onCloseShift={closeShift}
         />
       )}
-      {shiftView?.status === "open" && view === "distribution" && (
-        <Distribution
-          shift={shiftView}
-          submit={(write) => outbox.submit(write)}
-          onSaved={applyCard}
-          onUpdate={updateCard}
-          onDelete={deleteCard}
-          onCloseShift={() => closeShift(shiftView.id)}
-        />
-      )}
-      {shiftView?.status === "open" && view === "summary" && <Summary shift={shiftView} />}
     </div>
   );
+}
+
+interface ShiftScreenProps {
+  view: View;
+  shift: ShiftView | null | undefined;
+  connected: boolean;
+  submit: Submit;
+  onSaved: (card: Card) => void;
+  onUpdate: UpdateCard;
+  onDelete: ((card: Card) => void) | undefined;
+  onOpenShift: () => void;
+  onCloseShift: (shiftId: number) => void;
+}
+
+// What the tabs that depend on today's shift show: still loading, not opened yet, closed,
+// or the tab itself.
+function ShiftScreen(props: ShiftScreenProps) {
+  const { view, shift } = props;
+  if (shift === undefined) {
+    return (
+      <p class="notice">
+        {props.connected
+          ? "Loading…"
+          : "Today's shift can't be loaded until the connection returns."}
+      </p>
+    );
+  }
+  if (shift === null) {
+    return (
+      <div class="panel">
+        <p>No shift has been opened for today.</p>
+        <button class="primary" onClick={props.onOpenShift}>
+          Open today's shift
+        </button>
+      </div>
+    );
+  }
+  if (shift.status === "closed") {
+    return (
+      <>
+        <p class="warning">
+          This shift is closed. An admin can reopen it if something needs correcting.
+        </p>
+        <Summary shift={shift} />
+      </>
+    );
+  }
+  if (view === "front_desk") {
+    return (
+      <FrontDesk
+        shift={shift}
+        submit={props.submit}
+        onSaved={props.onSaved}
+        onUpdate={props.onUpdate}
+        onDelete={props.onDelete}
+      />
+    );
+  }
+  if (view === "distribution") {
+    return (
+      <Distribution
+        shift={shift}
+        submit={props.submit}
+        onSaved={props.onSaved}
+        onUpdate={props.onUpdate}
+        onDelete={props.onDelete}
+        onCloseShift={() => props.onCloseShift(shift.id)}
+      />
+    );
+  }
+  return <Summary shift={shift} />;
 }
