@@ -186,9 +186,7 @@ export function createCard(db: Database, shiftId: number, input: NewCard): Card 
         newCardBags(input),
         isOverride ? 1 : 0,
         input.status ?? "entered",
-        loads[0] ?? null,
-        loads[1] ?? null,
-        loads[2] ?? null,
+        ...loadColumns(loads),
         input.extrasAdded ? 1 : 0,
         input.extrasNote ?? "",
         input.intakeInitials ?? null,
@@ -202,13 +200,22 @@ export function createCard(db: Database, shiftId: number, input: NewCard): Card 
 
 export type UpdateResult = Card | "stale" | "duplicate";
 
+// Whether the TEFAP bags are set by hand once the changes are made. Setting them to null
+// returns to the size rule.
+function overrideAfter(current: Card, changes: CardChanges): boolean {
+  return changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
+}
+
 // The TEFAP bags a card will have once the changes are made.
 export function bagsAfter(current: Card, changes: CardChanges): number {
-  const tefapOverride =
-    changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
-  return tefapOverride
+  return overrideAfter(current, changes)
     ? (changes.tefapBags ?? current.tefapBags)
     : tefapBags(changes.familySize ?? current.familySize);
+}
+
+// A card's weights fill three columns, one for each cart it can have.
+function loadColumns(loads: readonly (number | null)[]): (number | null)[] {
+  return [loads[0] ?? null, loads[1] ?? null, loads[2] ?? null];
 }
 
 export function updateCard(
@@ -218,9 +225,6 @@ export function updateCard(
   changes: CardChanges,
 ): UpdateResult {
   const familySize = changes.familySize ?? current.familySize;
-  const tefapOverride =
-    changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
-  const bags = bagsAfter(current, changes);
   const loads = changes.loads ?? current.loads;
 
   try {
@@ -239,12 +243,10 @@ export function updateCard(
         (changes.seniorBox ?? current.seniorBox) ? 1 : 0,
         (changes.cheese ?? current.cheese) ? 1 : 0,
         changes.other ?? current.other,
-        bags,
-        tefapOverride ? 1 : 0,
+        bagsAfter(current, changes),
+        overrideAfter(current, changes) ? 1 : 0,
         changes.status ?? current.status,
-        loads[0] ?? null,
-        loads[1] ?? null,
-        loads[2] ?? null,
+        ...loadColumns(loads),
         (changes.extrasAdded ?? current.extrasAdded) ? 1 : 0,
         changes.extrasNote ?? current.extrasNote,
         current.id,

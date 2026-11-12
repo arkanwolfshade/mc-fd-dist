@@ -321,6 +321,16 @@ describe("shift and card routes", () => {
       expect(response.json()).toMatchObject({ tefapBags: 0, tefapOverride: true });
     });
 
+    it("returns to the size rule when a TEFAP override is cleared", async () => {
+      const card = await addCard(await openShift(), { tefapBags: 0 });
+      const response = await patchCard(card.id, distribution, {
+        revision: 1,
+        familySize: 9,
+        tefapBags: null,
+      });
+      expect(response.json()).toMatchObject({ tefapBags: 3, tefapOverride: false });
+    });
+
     it("rejects a stale write and returns the current card", async () => {
       const card = await addCard(await openShift());
       await patchCard(card.id, distribution, { revision: 1, familySize: 2 });
