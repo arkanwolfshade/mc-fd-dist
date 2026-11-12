@@ -26,6 +26,25 @@ jobs:
       - run: npm run typecheck
       - run: npm run docs:check
       - run: npm run test:coverage
+      # Codacy's own action is not used: it runs get.sh from Codacy's master branch, so pinning
+      # the action would pin nothing. The script is fetched from a pinned commit (release
+      # 14.1.3), and the reporter version is pinned to match. The token reaches the reporter
+      # through the environment, not the command line.
+      - name: Upload coverage to Codacy
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY }}
+          CODACY_REPORTER_VERSION: 14.1.3
+          # Pull request runs check out a merge commit that Codacy has never seen.
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        # Codacy being down must not hold up a release, so a failed upload is only a warning.
+        continue-on-error: true
+        run: |
+          if [ -z "$CODACY_PROJECT_TOKEN" ]; then
+            echo "::notice::No Codacy token here, as in Dependabot's runs, so coverage was not uploaded."
+            exit 0
+          fi
+          bash <(curl -fsSL https://raw.githubusercontent.com/codacy/codacy-coverage-reporter/54617baa57421746d0afa3df32127d3dd40f3786/get.sh) \
+            report --commit-uuid "$COMMIT_SHA" -r coverage/lcov.info
       - run: npm audit --audit-level=high
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

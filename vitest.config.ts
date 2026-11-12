@@ -19,7 +19,8 @@ export default defineConfig({
         "tools/guides-pdf.ts",
         "tools/deploy-checks.ts",
       ],
-      reporter: ["text-summary"],
+      // lcov is what Codacy reads; see the upload step in .github/workflows/ci.yml.
+      reporter: ["text-summary", "lcov"],
       // Set just below the level when coverage was first measured, so it cannot fall.
       thresholds: { statements: 92, branches: 84, functions: 93, lines: 92 },
     },
