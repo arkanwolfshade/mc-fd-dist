@@ -15,6 +15,19 @@
 
 gitleaks is not an npm package, so install it separately (on Windows, `winget install Gitleaks.Gitleaks`). Without it the commit hook warns and skips the secret scan, and CI catches secrets only after they reach GitHub.
 
+## Signed commits
+
+GitHub rejects a push to `main` that contains a commit it cannot verify ([ADR 0025](docs/adr/0025-require-signed-commits.md)). Set signing up once on each machine that commits:
+
+```sh
+git config --global user.signingkey <your key ID>
+git config --global commit.gpgsign true
+```
+
+Then add the matching public key to your GitHub account (Settings, SSH and GPG keys), with the email you commit with verified on the account. To check a commit, run `git log --show-signature -1`. On GitHub it shows as Verified.
+
+The maintainer's key expires on 2027-04-03. Extend it, and upload the updated public key, before then.
+
 ## Tests
 
 - Write a failing test before changing behavior, and watch it fail for the expected reason.

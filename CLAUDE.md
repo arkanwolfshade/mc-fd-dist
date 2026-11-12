@@ -68,6 +68,9 @@ Local run: `npm run account -- pat admin` (password from stdin), then
   applies, with the reason.
 - No personal data about Families — cards are anonymous same-day tickets (ADR 0002). The only
   personal data is intake initials (ADR 0024). Adding any needs a new ADR.
+- Commits to `main` must be signed (ADR 0025). The maintainer's global git config signs by
+  default, so never pass `--no-gpg-sign` or turn `commit.gpgsign` off to get past a failure;
+  if signing fails, report it.
 - Add an ADR (`docs/adr/`, see template) in the same commit as any hard-to-reverse or
   cross-cutting decision.
 - Docs in `docs/guides/` and `docs/developer/` follow HADS 1.0.0 (`[SPEC]`/`[NOTE]`/`[BUG]`/`[?]`

@@ -19,7 +19,7 @@ Two rulesets apply to the default branch. Their definitions are kept in `.github
 ## Alternatives considered
 
 - **Require pull requests for every change now:** The safer end state, but it replaces ADR 0008 before the volunteer dry run, which is when that decision is due to be revisited.
-- **Require signed commits:** Worth adding, but every machine that commits needs signing set up first.
+- **Require signed commits:** Worth adding, but every machine that commits needs signing set up first. Added by ADR 0025.
 
 ## Consequences
 
