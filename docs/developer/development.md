@@ -86,6 +86,16 @@ The `check` job uploads coverage to Codacy:
 - It runs no downloaded script. It does not use Codacy's own action, which runs a script from Codacy's `master` branch, or Codacy's `get.sh`. A step with no secrets downloads the reporter binary from its GitHub release and checks it against a SHA-512 kept in `ci.yml`, and only then does the upload step get the token.
 - To update the reporter, change the version and the hash together in `ci.yml`. The hash is in the release's `codacy-coverage-reporter-linux.SHA512SUM`.
 
+**[SPEC]**
+Dependabot (`.github/dependabot.yml`) covers these dependencies:
+
+- Weekly, Sunday 03:00 Phoenix time, so no pull request arrives during a shift. It checks npm (`/`), the Dockerfile (`/`), `deploy/compose.yaml` (`/deploy`, the Caddy and aws-cli images) and GitHub Actions (`/`).
+- Minor and patch updates are one pull request per ecosystem. A major update is its own pull request. Titles are `chore(deps): ...`, or `ci: ...` for Actions.
+- Dependabot rewrites a pinned action's commit and the version in the comment on the same line, so keep that comment on the `uses:` line.
+- It cannot update the gitleaks image digest in `ci.yml`, the ZAP digest in `deploy/dast.sh` or the CloudFormation templates. Bump those by hand.
+- Review and merge by hand, with a merge commit or squash, once CI passes. Nothing auto-merges.
+- Dependabot security alerts and security updates are switched on in the repository settings, not in this file.
+
 **[NOTE]**
 Findings from Grype, hadolint and ZAP are written as annotations, because the job logs need a signed-in GitHub session and the annotations do not.
 
