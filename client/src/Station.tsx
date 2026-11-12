@@ -6,14 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import type { Role } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";
 import { Admin } from "./Admin.js";
-import { ApiError, NetworkError, api, connectLive } from "./api.js";
+import { ApiError, api, connectLive } from "./api.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
 import { Help } from "./Help.js";
 import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
-import { isoDate, mergeCard } from "./state.js";
+import { classifyLoadFailure, isoDate, mergeCard } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
 
@@ -144,16 +144,20 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
       setConnected(true);
     } catch (failure) {
       if (requested !== date.current) return;
-      if (failure instanceof ApiError && failure.status === 404) {
-        setShift(null);
-        setConnected(true);
-      } else if (failure instanceof ApiError && failure.status === 401) {
-        props.onSignedOut();
-      } else if (failure instanceof NetworkError) {
-        setConnected(false);
-        setShift((current) => current ?? savedShift(snapshotKey, date.current));
-      } else {
-        setNotice("Could not load the shift. Check the connection.");
+      switch (classifyLoadFailure(failure)) {
+        case "no-shift":
+          setShift(null);
+          setConnected(true);
+          break;
+        case "sign-out":
+          props.onSignedOut();
+          break;
+        case "offline":
+          setConnected(false);
+          setShift((current) => current ?? savedShift(snapshotKey, date.current));
+          break;
+        case "notice":
+          setNotice("Could not load the shift. Check the connection.");
       }
     }
   }, []);

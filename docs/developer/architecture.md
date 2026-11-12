@@ -97,6 +97,7 @@ The tables and what each holds:
 - Writes go through the outbox (`client/src/outbox.ts`). It sends in order and keeps writes in `localStorage` per login while the connection is down.
 - Later queued changes to a card are rebased on the revision returned by the earlier one.
 - Network errors, 5xx, 408 and 429 retry later. 401 keeps the queue and signs out. Other 4xx drop the write and report it on screen.
+- Loading the shift follows the same rule: a failure the outbox would retry, including an error page that is not JSON, puts the station in offline mode with the shift saved on the device.
 - Stations resync when the socket opens, when the browser comes back online, and every 30 seconds.
 - An answer for a day that has already ended is discarded, so a late resync near midnight cannot bring back yesterday's shift.
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../../server/cards.js";
+import { ApiError, NetworkError } from "./api.js";
 import {
+  classifyLoadFailure,
   distributionQueue,
   hasWeight,
   isoDate,
@@ -138,5 +140,33 @@ describe("missingBeforeDistribution", () => {
   it("follows an override of the bags", () => {
     const missing = missingBeforeDistribution(card({ tefapBags: 2 }), [4, null, null], false);
     expect(missing).toEqual(["Cart 2 has no weight."]);
+  });
+});
+
+describe("classifyLoadFailure", () => {
+  const refused = (status: number) => new ApiError(status, {});
+
+  it("treats 404 as no shift opened yet", () => {
+    expect(classifyLoadFailure(refused(404))).toBe("no-shift");
+  });
+
+  it("signs out on 401", () => {
+    expect(classifyLoadFailure(refused(401))).toBe("sign-out");
+  });
+
+  it("treats an unreachable server as offline", () => {
+    expect(classifyLoadFailure(new NetworkError())).toBe("offline");
+  });
+
+  it.each([408, 429, 500, 502, 503])("treats %i as offline, as the outbox does", (status) => {
+    expect(classifyLoadFailure(refused(status))).toBe("offline");
+  });
+
+  it("treats an answer that is not a shift at all, such as a captive portal's page, as offline", () => {
+    expect(classifyLoadFailure(new SyntaxError("Unexpected token '<'"))).toBe("offline");
+  });
+
+  it.each([400, 403])("shows a notice for other refusals such as %i", (status) => {
+    expect(classifyLoadFailure(refused(status))).toBe("notice");
   });
 });

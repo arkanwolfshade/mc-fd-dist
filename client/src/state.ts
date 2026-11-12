@@ -1,5 +1,18 @@
 import type { Card } from "../../server/cards.js";
 import { cartCount, isPartnerMethod, needsExtrasCheck } from "../../server/rules.js";
+import { ApiError } from "./api.js";
+import { classify } from "./outbox.js";
+
+export type LoadFailure = "no-shift" | "sign-out" | "offline" | "notice";
+
+// What a station does when loading today's shift fails. Anything the outbox would retry
+// later, including a proxy's HTML error page, means the server can't be reached.
+export function classifyLoadFailure(error: unknown): LoadFailure {
+  if (error instanceof ApiError && error.status === 404) return "no-shift";
+  const outcome = classify(error);
+  if (outcome === "session-ended") return "sign-out";
+  return outcome === "retry-later" ? "offline" : "notice";
+}
 
 // Updates can arrive out of order, for example a broadcast overtaking an HTTP
 // response, so a card is only replaced by a newer revision.

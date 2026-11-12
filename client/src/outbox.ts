@@ -25,7 +25,9 @@ export interface OutboxOptions {
 
 type Outcome = "retry-later" | "session-ended" | "rejected";
 
-function classify(error: unknown): Outcome {
+// Also decides how a failed shift load is handled, so a station and its outbox agree on
+// which failures mean "the server can't be reached right now".
+export function classify(error: unknown): Outcome {
   if (!(error instanceof ApiError)) return "retry-later";
   if (error.status === 401) return "session-ended";
   if (error.status >= 500 || error.status === 429 || error.status === 408) return "retry-later";

@@ -247,3 +247,22 @@ test("the app can be installed", async ({ signIn, serverUrl }) => {
   await waitForOfflineReady(frontDesk);
   await expect(frontDesk.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
 });
+
+test("a station reloaded while the server is failing shows the shift it saved", async ({
+  signIn,
+}) => {
+  const frontDesk = await signIn("front-desk");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 2, method: "Walk" });
+  await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
+
+  // A proxy in front of a failing server answers with an HTML page, not the app's JSON.
+  await frontDesk.route(/\/api\/shifts\?date=/, (route) =>
+    route.fulfill({ status: 502, contentType: "text/html", body: "<html>Bad Gateway</html>" }),
+  );
+  await frontDesk.reload();
+
+  await expect(frontDesk.locator(".connection")).toHaveText("Offline");
+  await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
+  await expect(frontDesk.locator(".error")).toHaveCount(0);
+});
