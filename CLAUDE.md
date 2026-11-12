@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Shift tracker for a food bank: replaces the paper MC-FD (front desk) and MC-Dist (distribution)
 sheets with one live record shared by both stations. Not yet in use; commits go straight to
-`main` (ADR 0008) with Conventional Commit messages, one logical change each.
+`main` (ADR 0008; ADRs are the architecture decision records in `docs/adr/`) with Conventional Commit messages, one logical change each.
 
 ## Commands
 
@@ -34,10 +34,10 @@ Local run: `npm run account -- pat admin` (password from stdin), then
   `server/`, client in `client/src/` (Preact, built by Vite with root `client/`).
   `docs/developer/architecture.md` has the module table and data model.
 - **Client and server share rules code.** The client imports `server/rules.ts` and
-  `server/summary.ts` at runtime so TEFAP bags, cart counts, status permissions and shift
+  `server/summary.ts` at runtime so TEFAP (The Emergency Food Assistance Program) bags, cart counts, status permissions and shift
   totals are computed by the same code on both sides. Every other client import from
   `server/` must be `import type` — server modules pull in Node-only deps.
-- **ESM with `.js` import suffixes** in TypeScript source (`from "./rules.js"`).
+- **ECMAScript modules (ESM), with `.js` import suffixes** in TypeScript source (`from "./rules.js"`).
 - **Sync model:** stations write over HTTP and listen on one WebSocket each. Every card has a
   `revision`; a stale write gets `409` plus the current card. Creates carry a client-generated
   `clientId` so retries never duplicate. Status moves one step at a time (entered → called →
@@ -53,7 +53,7 @@ Local run: `npm run account -- pat admin` (password from stdin), then
 ## Testing
 
 - Unit tests sit beside sources as `*.test.ts` under `server/`, `client/`, `tools/`. There is
-  no DOM test environment: `.tsx` screens are covered only by Playwright, so put decision
+  no DOM (document object model) test environment: `.tsx` screens are covered only by Playwright, so put decision
   logic in plain `.ts` modules (e.g. `client/src/state.ts`, `pending.ts`) and unit-test it there.
 - Write the failing test first and watch it fail for the expected reason.
 - Each e2e test starts its own server and in-memory database (`e2e/fixtures.ts`). Anything a
@@ -73,7 +73,7 @@ Local run: `npm run account -- pat admin` (password from stdin), then
   if signing fails, report it.
 - Add an ADR (`docs/adr/`, see template) in the same commit as any hard-to-reverse or
   cross-cutting decision.
-- Docs in `docs/guides/` and `docs/developer/` follow HADS 1.0.0 (`[SPEC]`/`[NOTE]`/`[BUG]`/`[?]`
+- Docs in `docs/guides/` and `docs/developer/` follow the HADS 1.0.0 documentation format from ADR 0018 (`[SPEC]`/`[NOTE]`/`[BUG]`/`[?]`
   blocks); `tools/hads.ts` checks them. When a screen changes, run `npm run docs:screenshots`
   and check the guides still match. Read `[BUG]` blocks in `docs/developer/development.md`
   before touching build, CI or deploy scripts.
