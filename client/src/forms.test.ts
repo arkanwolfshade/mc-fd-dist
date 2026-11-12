@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../../server/cards.js";
-import { EMPTY_FORM, frontDeskView, isEmpty, prepareCard } from "./forms.js";
+import {
+  EMPTY_FORM,
+  EMPTY_PARTNER_FORM,
+  frontDeskView,
+  isEmpty,
+  partnerFormView,
+  prepareCard,
+  preparePartnerCard,
+} from "./forms.js";
 import type { PendingCard, ShiftView } from "./pending.js";
 
 function card(overrides: Partial<Card>): Card {
@@ -163,5 +171,116 @@ describe("prepareCard", () => {
     expect(first.ok && second.ok && first.write.body.clientId).not.toBe(
       second.ok && second.write.body.clientId,
     );
+  });
+});
+
+describe("partnerFormView", () => {
+  const sized = (familySize: string) => ({ ...EMPTY_PARTNER_FORM, familySize });
+  const shift = shiftView([card({})]);
+
+  it("expects nothing until a family size is typed", () => {
+    expect(partnerFormView(sized(""), shift)).toMatchObject({
+      size: 0,
+      bags: 0,
+      carts: 0,
+      checkExtras: false,
+    });
+  });
+
+  it("gives a family of four one bag, one cart and no extras check", () => {
+    expect(partnerFormView(sized("4"), shift)).toMatchObject({
+      size: 4,
+      bags: 1,
+      carts: 1,
+      checkExtras: false,
+    });
+  });
+
+  it("gives a family just past four people a second cart and an extras check", () => {
+    expect(partnerFormView(sized("6"), shift)).toMatchObject({
+      bags: 2,
+      carts: 2,
+      checkExtras: true,
+    });
+  });
+
+  it("asks for no extras check at a full cart", () => {
+    expect(partnerFormView(sized("8"), shift).checkExtras).toBe(false);
+  });
+
+  it("suggests the number after every card, including those waiting to send", () => {
+    const view = partnerFormView(
+      EMPTY_PARTNER_FORM,
+      shiftView([card({ number: 4 })], [pendingCard({ number: 6 })]),
+    );
+    expect(view.suggested).toBe(7);
+  });
+
+  it("counts only partner cards, saved and waiting", () => {
+    const view = partnerFormView(
+      EMPTY_PARTNER_FORM,
+      shiftView(
+        [card({ id: 1, number: 1 }), card({ id: 2, number: 2, arrivalMethod: "DD" })],
+        [pendingCard({ id: "p1", number: 3, arrivalMethod: "HH" }), pendingCard({ number: 4 })],
+      ),
+    );
+    expect(view.partnerCards.map((c) => c.number)).toEqual([2]);
+    expect(view.pendingPartnerCards.map((c) => c.number)).toEqual([3]);
+    expect(view.count).toBe(2);
+  });
+});
+
+describe("preparePartnerCard", () => {
+  const filled = {
+    ...EMPTY_PARTNER_FORM,
+    partner: "DD" as const,
+    number: "9",
+    familySize: "4",
+    seniorBox: true,
+    loads: ["30", "12", ""],
+  };
+
+  it("asks for a partner first", () => {
+    expect(preparePartnerCard({ ...filled, partner: null }, 3)).toEqual({
+      ok: false,
+      error: "Choose a partner.",
+    });
+  });
+
+  it("builds the write, sending empty any cart the family does not get", () => {
+    expect(preparePartnerCard(filled, 3)).toEqual({
+      ok: true,
+      write: {
+        kind: "card-create",
+        method: "POST",
+        url: "/api/shifts/3/cards",
+        label: "Door Dash card 9",
+        body: {
+          clientId: expect.any(String),
+          number: 9,
+          familySize: 4,
+          arrivalMethod: "DD",
+          seniorBox: true,
+          cheese: false,
+          other: "",
+          loads: [30, null, null],
+        },
+      },
+    });
+  });
+
+  it("sends the extras check only for a family that has one", () => {
+    const extras = { extrasAdded: true, extrasNote: "deli meat" };
+    const withCheck = preparePartnerCard({ ...filled, familySize: "6", ...extras }, 3);
+    expect(withCheck.ok && withCheck.write.body).toMatchObject(extras);
+
+    const withoutCheck = preparePartnerCard({ ...filled, ...extras }, 3);
+    expect(withoutCheck.ok && withoutCheck.write.body).not.toHaveProperty("extrasAdded");
+  });
+
+  it("labels a Helping Hands card with its own name", () => {
+    expect(preparePartnerCard({ ...filled, partner: "HH" }, 3)).toMatchObject({
+      write: { label: "Helping Hands card 9" },
+    });
   });
 });

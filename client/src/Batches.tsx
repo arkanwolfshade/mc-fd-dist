@@ -1,18 +1,12 @@
 import { useState } from "preact/hooks";
-import {
-  arrivalLabel,
-  cartCount,
-  isPartnerMethod,
-  needsExtrasCheck,
-  PARTNER_METHODS,
-  tefapBags,
-} from "../../server/rules.js";
-import type { PartnerMethod } from "../../server/rules.js";
+import { arrivalLabel, PARTNER_METHODS } from "../../server/rules.js";
 import { roundWeight } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
 import { familyLabel, Ticket } from "./CardActions.js";
+import { EMPTY_PARTNER_FORM, partnerFormView, preparePartnerCard } from "./forms.js";
+import type { PartnerForm } from "./forms.js";
 import type { ShiftView } from "./pending.js";
-import { loadsForCarts, nextCardNumber, toggleSeniorBox } from "./state.js";
+import { toggleSeniorBox } from "./state.js";
 import type { Card, Submit } from "./types.js";
 
 function totalWeight(loads: readonly (number | null)[]): number {
@@ -86,28 +80,6 @@ export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
   );
 }
 
-interface PartnerForm {
-  partner: PartnerMethod | null;
-  number: string;
-  familySize: string;
-  seniorBox: boolean;
-  cheese: boolean;
-  extrasAdded: boolean;
-  extrasNote: string;
-  loads: string[];
-}
-
-const EMPTY_PARTNER_FORM: PartnerForm = {
-  partner: null,
-  number: "",
-  familySize: "",
-  seniorBox: false,
-  cheese: false,
-  extrasAdded: false,
-  extrasNote: "",
-  loads: ["", "", ""],
-};
-
 // Each Door Dash or Helping Hands Family is its own card, saved as distributed. They never
 // pass the intake computers, so they carry no initials. See ADR 0023.
 export function PartnerCards(props: {
@@ -120,17 +92,8 @@ export function PartnerCards(props: {
   const [error, setError] = useState("");
 
   const { partner, number, familySize, seniorBox, cheese, extrasAdded, extrasNote, loads } = form;
-  const size = Number(familySize);
-  const bags = size > 0 ? tefapBags(size) : 0;
-  const carts = size > 0 ? cartCount({ tefapBags: bags }) : 0;
-  const checkExtras = size > 0 && needsExtrasCheck(size);
-  // Partner cards come from the same card stack as the front desk's.
-  const suggested = nextCardNumber([...shift.cards, ...shift.pendingCards]);
-  const partnerCards = shift.cards.filter((card) => isPartnerMethod(card.arrivalMethod));
-  const pendingPartnerCards = shift.pendingCards.filter((card) =>
-    isPartnerMethod(card.arrivalMethod),
-  );
-  const count = partnerCards.length + pendingPartnerCards.length;
+  const { size, bags, carts, checkExtras, suggested, partnerCards, pendingPartnerCards, count } =
+    partnerFormView(form, shift);
 
   function change(changes: Partial<PartnerForm>) {
     setForm((current) => ({ ...current, ...changes }));
@@ -138,32 +101,14 @@ export function PartnerCards(props: {
 
   async function add(event: Event) {
     event.preventDefault();
-    if (!partner) {
-      setError("Choose a partner.");
+    const prepared = preparePartnerCard(form, shift.id);
+    if (!prepared.ok) {
+      setError(prepared.error);
       return;
     }
     setError("");
-    const cardNumber = Number(number);
-    // Only the carts this Family gets are shown, so any others are sent empty.
-    const parsed = loadsForCarts(loads, carts);
     try {
-      const result = await submit({
-        kind: "card-create",
-        method: "POST",
-        url: `/api/shifts/${shift.id}/cards`,
-        body: {
-          clientId: crypto.randomUUID(),
-          number: cardNumber,
-          familySize: size,
-          arrivalMethod: partner,
-          seniorBox,
-          cheese,
-          other: "",
-          loads: parsed,
-          ...(checkExtras ? { extrasAdded, extrasNote } : {}),
-        },
-        label: `${arrivalLabel(partner)} card ${cardNumber}`,
-      });
+      const result = await submit(prepared.write);
       // Shown at once, as on the front desk, rather than waiting for the live update.
       if (result.status === "sent") {
         onSaved(result.data as Card);
