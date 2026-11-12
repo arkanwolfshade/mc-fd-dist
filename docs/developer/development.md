@@ -72,11 +72,16 @@ The CI jobs and what each runs:
 
 | Job | Runs |
 |---|---|
-| `check` | Formatting, lint, types, documentation check, unit tests with coverage, `npm audit`, browser tests, PDF build |
+| `check` | Formatting, lint, types, documentation check, unit tests with coverage, coverage upload to Codacy, `npm audit`, browser tests, PDF build |
 | `container` | shellcheck, hadolint, cfn-lint, Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
 | `secrets` | gitleaks over the whole history |
 | `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main` |
 | CodeQL | Separate workflow: security analysis of the TypeScript and the workflows |
+
+**[SPEC]**
+- The coverage upload reads the repository's Codacy token from the `CODACY` Actions secret. Where the secret cannot be read, as in Dependabot's runs, the step is skipped with a notice.
+- A failed upload is a warning, not a failure, so that an outage at Codacy cannot hold up a release.
+- The upload does not use Codacy's own action, which runs a script from Codacy's `master` branch. It fetches the reporter script from a pinned commit and pins the reporter version. When updating either, change both together in `ci.yml`.
 
 **[NOTE]**
 Findings from Grype, hadolint and ZAP are written as annotations, because the job logs need a signed-in GitHub session and the annotations do not.
