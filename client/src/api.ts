@@ -28,11 +28,12 @@ export async function api<T>(method: string, url: string, body?: object): Promis
   if (response.status === 204) {
     return undefined as T;
   }
-  const data = await response.json();
   if (!response.ok) {
-    throw new ApiError(response.status, data);
+    // A proxy's error page is not JSON; callers still need the status to decide what to do.
+    const errorBody = await response.json().catch(() => null);
+    throw new ApiError(response.status, errorBody ?? {});
   }
-  return data as T;
+  return (await response.json()) as T;
 }
 
 const RECONNECT_DELAY_MS = 2000;
