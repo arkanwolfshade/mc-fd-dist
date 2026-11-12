@@ -1,7 +1,48 @@
 import type { Card } from "../../server/cards.js";
+import type { LiveMessage } from "../../server/card-routes.js";
 import { cartCount, isPartnerMethod, needsExtrasCheck } from "../../server/rules.js";
 import { ApiError } from "./api.js";
 import { classify } from "./outbox.js";
+import type { ShiftWithCards } from "./types.js";
+
+// null means no shift has been opened today; undefined means it hasn't loaded yet.
+type KnownShift = ShiftWithCards | null | undefined;
+
+// A change only applies to the shift it is about, so a late message about yesterday's shift
+// cannot touch today's.
+export function applyToShift(
+  shift: KnownShift,
+  shiftId: number,
+  patch: (shift: ShiftWithCards) => ShiftWithCards,
+): KnownShift {
+  return shift && shift.id === shiftId ? patch(shift) : shift;
+}
+
+// How a change another station made, or this one's own save, reaches the shift on screen.
+export function applyLiveMessage(shift: KnownShift, message: LiveMessage): KnownShift {
+  if (message.type === "card") {
+    return applyToShift(shift, message.card.shiftId, (current) => ({
+      ...current,
+      cards: mergeCard(current.cards, message.card),
+    }));
+  }
+  if (message.type === "card-deleted") {
+    return applyToShift(shift, message.shiftId, (current) => ({
+      ...current,
+      cards: current.cards.filter((card) => card.id !== message.cardId),
+    }));
+  }
+  if (message.type === "shift") {
+    return applyToShift(shift, message.shift.id, (current) => ({
+      ...current,
+      status: message.shift.status,
+    }));
+  }
+  return applyToShift(shift, message.shiftId, (current) => ({
+    ...current,
+    returnedBatches: message.returnedBatches,
+  }));
+}
 
 export type LoadFailure = "no-shift" | "sign-out" | "offline" | "notice";
 

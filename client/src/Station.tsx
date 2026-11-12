@@ -13,7 +13,7 @@ import { Help } from "./Help.js";
 import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
-import { classifyLoadFailure, isoDate, mergeCard } from "./state.js";
+import { applyLiveMessage, classifyLoadFailure, isoDate } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Identity, Shift, ShiftWithCards, UpdateCard } from "./types.js";
 
@@ -77,20 +77,16 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   const date = useRef(today);
   const snapshotKey = `shift:${identity.username}`;
 
+  // The live connection's callbacks are set up once, so they read the shift through a ref.
+  const latestShift = useRef(shift);
+  latestShift.current = shift;
+
   const applyCard = useCallback((card: Card) => {
-    setShift((current) =>
-      current && current.id === card.shiftId
-        ? { ...current, cards: mergeCard(current.cards, card) }
-        : current,
-    );
+    setShift((current) => applyLiveMessage(current, { type: "card", card }));
   }, []);
 
   const removeCard = useCallback((shiftId: number, cardId: number) => {
-    setShift((current) =>
-      current && current.id === shiftId
-        ? { ...current, cards: current.cards.filter((card) => card.id !== cardId) }
-        : current,
-    );
+    setShift((current) => applyLiveMessage(current, { type: "card-deleted", shiftId, cardId }));
   }, []);
 
   // Admins only, and it needs a connection: a deletion is never queued. See ADR 0019.
@@ -201,29 +197,9 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         });
       },
       onMessage: (message) => {
-        const live = message as LiveMessage;
         // An update can arrive before this station knows the shift was opened.
-        setShift((current) => {
-          if (!current) void loadShift();
-          return current;
-        });
-        if (live.type === "card") {
-          applyCard(live.card);
-        } else if (live.type === "card-deleted") {
-          removeCard(live.shiftId, live.cardId);
-        } else if (live.type === "shift") {
-          setShift((current) =>
-            current && current.id === live.shift.id
-              ? { ...current, status: live.shift.status }
-              : current,
-          );
-        } else {
-          setShift((current) =>
-            current && current.id === live.shiftId
-              ? { ...current, returnedBatches: live.returnedBatches }
-              : current,
-          );
-        }
+        if (!latestShift.current) void loadShift();
+        setShift((current) => applyLiveMessage(current, message as LiveMessage));
       },
     });
   }, []);
@@ -244,9 +220,7 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
     setNotice("");
     try {
       const closed = await api<Shift>("POST", `/api/shifts/${shiftId}/close`);
-      setShift((current) =>
-        current && current.id === closed.id ? { ...current, status: closed.status } : current,
-      );
+      setShift((current) => applyLiveMessage(current, { type: "shift", shift: closed }));
     } catch (failure) {
       setNotice(failure instanceof Error ? failure.message : "Could not close the shift");
     }
