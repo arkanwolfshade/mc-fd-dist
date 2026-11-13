@@ -78,7 +78,7 @@ The CI jobs and what each runs:
 | `check` | Formatting, lint, types, documentation check, license check, unit tests with coverage, coverage upload to Codacy, `npm audit`, browser tests, PDF build |
 | `container` | shellcheck, hadolint, cfn-lint, Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
 | `secrets` | gitleaks over the whole history |
-| `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main` |
+| `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main`, and attests where it was built |
 | CodeQL | Separate workflow: security analysis of the TypeScript and the workflows |
 
 **[SPEC]**
