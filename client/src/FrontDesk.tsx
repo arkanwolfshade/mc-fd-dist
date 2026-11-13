@@ -14,13 +14,15 @@ import type { CardForm, SavedCard } from "./forms.js";
 import type { ShiftView } from "./pending.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
 
-// Chosen afresh for each card, since volunteers take turns at intake. See ADR 0024.
-function InitialsField(props: {
+interface InitialsFieldProps {
   known: string[];
   initials: string;
   typed: string;
   onChange: (changes: Partial<CardForm>) => void;
-}) {
+}
+
+// Chosen afresh for each card, since volunteers take turns at intake. See ADR 0024.
+function InitialsField(props: InitialsFieldProps) {
   const { known, initials, typed, onChange } = props;
   return (
     <fieldset>
