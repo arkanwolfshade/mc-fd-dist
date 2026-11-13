@@ -12,7 +12,8 @@ RUN npm run build && npm prune --omit=dev
 
 FROM node:26.13.0-bookworm-slim
 # Links the published package to the repository on GitHub.
-LABEL org.opencontainers.image.source=https://github.com/arkanwolfshade/mc-fd-dist
+LABEL org.opencontainers.image.source=https://github.com/arkanwolfshade/mc-fd-dist \
+      org.opencontainers.image.licenses=MIT
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
