@@ -28,6 +28,8 @@ Then add the matching public key to your GitHub account (Settings, SSH and GPG k
 
 The maintainer's key expires on 2027-11-12. Before then, extend it with `gpg --quick-set-expire <fingerprint> 1y`, and again for the subkey, then delete the key on GitHub and add the exported public key again: GitHub only picks up a new expiry that way. Commits already verified stay verified.
 
+Merge pull requests with **Squash and merge**. GitHub signs that commit, but not the commits that a rebase merge rewrites, which then land unsigned ([ADR 0025](docs/adr/0025-require-signed-commits.md)).
+
 ## Tests
 
 - Write a failing test before changing behavior, and watch it fail for the expected reason.

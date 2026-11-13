@@ -11,7 +11,7 @@ Changes are committed straight to main (ADR 0008), and Dependabot now opens pull
 
 Two rulesets apply to the default branch. Their definitions are kept in `.github/rulesets/` and imported in the repository's settings.
 
-- **Protect main:** blocks force-pushes and deletion. Nobody can bypass it.
+- **Protect main:** blocks force-pushes and deletion. It has since gained a signed-commits rule (ADR 0025), a pull request rule that allows only squash merges and needs no approvals, and code scanning and code quality rules. Repository admins can bypass it.
 - **Pull requests need CI:** requires the `check`, `container` and `secrets` jobs to pass. Repository admins can bypass it, which is what still allows direct commits under ADR 0008.
 
 `.github/CODEOWNERS` names the maintainer as owner of everything, so that GitHub asks them to review every pull request.
@@ -25,5 +25,5 @@ Two rulesets apply to the default branch. Their definitions are kept in `.github
 
 - History on main can no longer be rewritten or lost by mistake.
 - A direct push by an admin can still land with failing CI. The local hooks are the only check before it.
-- When ADR 0008 is revisited, add a pull request rule and remove the admin bypass.
+- A pull request rule now exists, but the admin bypass is what keeps direct commits possible under ADR 0008. When ADR 0008 is revisited, remove the bypass.
 - The ruleset files in the repository are not applied automatically. Re-import them after editing.

@@ -93,7 +93,7 @@ Dependabot (`.github/dependabot.yml`) covers these dependencies:
 - Minor and patch updates are one pull request per ecosystem. A major update is its own pull request. Titles are `chore(deps): ...`, or `ci: ...` for Actions.
 - Dependabot rewrites a pinned action's commit and the version in the comment on the same line, so keep that comment on the `uses:` line.
 - It cannot update the gitleaks image digest in `ci.yml`, the ZAP digest in `deploy/dast.sh` or the CloudFormation templates. Bump those by hand.
-- Review and merge by hand, with a merge commit or squash, once CI passes. Nothing auto-merges.
+- Review and merge by hand with Squash and merge, which is the only method the repository allows, once CI passes. Nothing auto-merges.
 - Dependabot security alerts and security updates are switched on in the repository settings, not in this file.
 
 **[NOTE]**
