@@ -20,7 +20,6 @@ if [ "${1:-}" != "--local-only" ]; then
   docker compose run --rm -T aws s3 cp "/backups/$name" "s3://$BACKUP_BUCKET/nightly/$name"
 fi
 
-# Copies on the server are for quick restores. S3 keeps the longer history. The app's image
-# has no find, so the aws container, which sees the same volume, does the pruning.
-docker compose run --rm --no-deps -T --entrypoint find aws /backups -name 'mc-fd-dist-*.db' -mtime +7 -delete
+# Copies on the server are for quick restores. S3 keeps the longer history.
+docker compose exec -T app find /data/backups -name 'mc-fd-dist-*.db' -mtime +7 -delete
 echo "Backed up $name"

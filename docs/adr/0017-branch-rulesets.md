@@ -11,7 +11,7 @@ Changes are committed straight to main (ADR 0008), and Dependabot now opens pull
 
 Two rulesets apply to the default branch. Their definitions are kept in `.github/rulesets/` and imported in the repository's settings.
 
-- **Protect main:** blocks force-pushes and deletion. It has since gained a signed-commits rule (ADR 0025), a pull request rule that allows only squash merges and needs no approvals, and code scanning and code quality rules. Repository admins can bypass it.
+- **Protect main:** blocks force-pushes and deletion. It has since gained a signed-commits rule (ADR 0025), a pull request rule that allows only squash merges and needs no approvals beyond the code owner's review, code scanning and code quality rules, and, since 2026-11-13, the three Codacy checks (Static Code Analysis, Coverage Variation, Diff Coverage) with branches kept up to date. Repository admins can bypass it.
 - **Pull requests need CI:** requires the `check`, `container` and `secrets` jobs to pass. Repository admins can bypass it, which is what still allows direct commits under ADR 0008.
 
 `.github/CODEOWNERS` names the maintainer as owner of everything, so that GitHub asks them to review every pull request.
