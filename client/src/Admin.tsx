@@ -23,6 +23,41 @@ interface Report {
   totals: ShiftSummary;
 }
 
+// The combined totals and each shift in the range, with a button to close or reopen it.
+function ReportResults(props: { report: Report; onChange: (url: string) => void }) {
+  const { report, onChange } = props;
+  return (
+    <>
+      <p class="report-combined">
+        <strong>All shifts in range:</strong> {report.totals.families.total}{" "}
+        {report.totals.families.total === 1 ? "family" : "families"} · {report.totals.weight.total}{" "}
+        lb · {report.totals.returnedWeight} lb returned · {report.totals.netWeight} lb net ·{" "}
+        {report.totals.tefapBags} TEFAP bags · {report.totals.seniorBoxes} senior boxes ·{" "}
+        {report.totals.cheese} cheese · {report.totals.families.left} left without food
+      </p>
+      {report.shifts.length === 0 && <p class="notice">No shifts in that range.</p>}
+      <ul class="cards">
+        {report.shifts.map((shift) => (
+          <li key={shift.id}>
+            <span>
+              <strong>{shift.date}</strong> · {shift.summary.families.total} families ·{" "}
+              {shift.summary.netWeight} lb net
+              <span class="status">{shift.status}</span>
+            </span>
+            {shift.status === "closed" ? (
+              <button onClick={() => onChange(`/api/admin/shifts/${shift.id}/reopen`)}>
+                Reopen
+              </button>
+            ) : (
+              <button onClick={() => onChange(`/api/shifts/${shift.id}/close`)}>Close</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 function Reports(props: { onChanged: () => void }) {
   // Initializers run once, so the dates are read on the first render only.
   const [from, setFrom] = useState(() => {
@@ -71,37 +106,7 @@ function Reports(props: { onChanged: () => void }) {
         </button>
       </div>
       {error && <p class="error">{error}</p>}
-      {report && (
-        <>
-          <p class="report-combined">
-            <strong>All shifts in range:</strong> {report.totals.families.total}{" "}
-            {report.totals.families.total === 1 ? "family" : "families"} ·{" "}
-            {report.totals.weight.total} lb · {report.totals.returnedWeight} lb returned ·{" "}
-            {report.totals.netWeight} lb net · {report.totals.tefapBags} TEFAP bags ·{" "}
-            {report.totals.seniorBoxes} senior boxes · {report.totals.cheese} cheese ·{" "}
-            {report.totals.families.left} left without food
-          </p>
-          {report.shifts.length === 0 && <p class="notice">No shifts in that range.</p>}
-          <ul class="cards">
-            {report.shifts.map((shift) => (
-              <li key={shift.id}>
-                <span>
-                  <strong>{shift.date}</strong> · {shift.summary.families.total} families ·{" "}
-                  {shift.summary.netWeight} lb net
-                  <span class="status">{shift.status}</span>
-                </span>
-                {shift.status === "closed" ? (
-                  <button onClick={() => change(`/api/admin/shifts/${shift.id}/reopen`)}>
-                    Reopen
-                  </button>
-                ) : (
-                  <button onClick={() => change(`/api/shifts/${shift.id}/close`)}>Close</button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      {report && <ReportResults report={report} onChange={change} />}
       <div class="choices">
         <a class="button" href={`/api/admin/reports/shifts.csv?${range}`} download>
           Download shift totals (CSV)
