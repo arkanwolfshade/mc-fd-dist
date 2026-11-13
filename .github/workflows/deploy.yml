@@ -1,64 +1,101 @@
 name: Deploy
 
-# Releases to the Lightsail server after CI passes on main, once a reviewer approves the
-# job in the production environment. An approval during shift hours waits for the shift to
-# end (or fails at once if that is too far off); "force" releases without waiting. See ADR 0022.
+# Deploys a published release to the Lightsail server, once a reviewer approves the job in the
+# production environment. The Release workflow starts it after publishing; it can also be run
+# by hand with a version, which is how to go back to an earlier release. An approval during
+# shift hours waits for the shift to end (or fails at once if that is too far off); "force"
+# deploys without waiting. See ADRs 0022 and 0029.
+# checkov:skip=CKV_GHA_7: the version only selects which release to deploy. It must be a
+# published release that verifies, naming an image that CI attested, and a reviewer must
+# approve every run. "force" only skips the shift-hours guard.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
+      version:
+        description: Release to deploy, for example 0.2.0
+        type: string
+        required: true
       force:
-        description: Release even though a shift is running
+        description: Deploy even though a shift is running
         type: boolean
         default: false
 
 permissions:
   contents: read
 
-# One release at a time. A newer release waiting for approval replaces an older one.
+# One deploy at a time. A newer deploy waiting for approval replaces an older one that is also waiting.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
 jobs:
   deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 360 # the most GitHub allows; the wait is capped to leave room for the release
     environment: production
     permissions:
       contents: read
       id-token: write
+      attestations: read # checks the image's build attestation
     env:
-      COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
       STACK: mc-fd-dist
       AWS_REGION: us-west-2
     steps:
+      # The tools that check a release come from main, so that they can check any release.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.COMMIT }}
+          fetch-depth: 0 # every tag
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: npm
       - run: npm ci
+
+      - name: Check the release
+        id: release
+        run: |
+          tag="$(npx tsx tools/release-checks.ts version "$VERSION")"
+          gh release verify "$tag"
+          gh release download "$tag" --pattern image.txt --output image.txt
+          reference="$(cat image.txt)"
+          digest="${reference##*@}"
+          expected="$(npx tsx tools/release-checks.ts image "$GITHUB_REPOSITORY" "$digest")"
+          if [ "$reference" != "$expected" ]; then
+            echo "::error title=Release refused::image.txt does not name this repository's image by digest"
+            exit 1
+          fi
+          gh attestation verify "oci://$reference" --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml"
+          {
+            echo "tag=$tag"
+            echo "digest=$digest"
+            echo "commit=$(git rev-list -n 1 "refs/tags/$tag")"
+          } >> "$GITHUB_OUTPUT"
+
+      # The release's own scripts and templates deploy it, as they were when it was cut.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.release.outputs.commit }}
+          persist-credentials: false
+      - run: npm ci
       - name: Wait for a window outside shift hours
         if: ${{ !inputs.force }}
         run: npx tsx tools/deploy-checks.ts wait
-      - name: Check that CI published this commit's image
-        run: docker manifest inspect "ghcr.io/${GITHUB_REPOSITORY,,}:$COMMIT" > /dev/null
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           role-session-name: release-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
       - name: Update the stack
+        env:
+          COMMIT: ${{ steps.release.outputs.commit }}
         run: deploy/aws/update-stack.sh "$STACK" "release-${COMMIT:0:12}-$GITHUB_RUN_ID"
       - name: Release on the server
-        run: deploy/aws/release-on-server.sh "$STACK" "$COMMIT"
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          DIGEST: ${{ steps.release.outputs.digest }}
+        run: deploy/aws/release-on-server.sh "$STACK" "$TAG" "$DIGEST"

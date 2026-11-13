@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.2.0** · mc-fd-dist · 2026-11-13 · For the maintainer and the staff owner
+**Version 1.3.0** · mc-fd-dist · 2026-11-13 · For the maintainer and the staff owner
 
 ---
 
@@ -75,22 +75,26 @@ The server's launch script already installed Docker, swap, automatic security up
 ## 4. Updating the app
 
 **[SPEC]**
-GitHub releases each commit on main after CI passes (ADR 0022):
-1. The **Deploy** workflow waits for approval. Open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**.
-2. It does not release during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. While a job waits, it holds the release slot: a newer commit's **Deploy** queues behind it, so the older commit goes out first and the newer one then needs its own approval. To release during a shift, run **Deploy** by hand from the Actions tab with **force** ticked.
-3. It applies `deploy/aws/stack.yaml` to the stack, and stops if any resource would be replaced or removed.
-4. On the server, `release.sh` backs the database up to S3, runs the image for that commit, and goes back to the previous image if the new one is not healthy.
+A release is cut, then deployed (ADRs 0022 and 0029):
+1. In the Actions tab, run **Release** from `main` with the new version, for example `0.2.0`. Leave **Dry run** ticked the first time: it publishes nothing and shows the release notes. Run it again with **Dry run** unticked to publish. A published release and its version can never be changed or reused.
+2. Publishing starts **Deploy** for that version, which waits for approval. Open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**. The job first checks the release and that its image carries this repository's build attestation.
+3. It does not deploy during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. While a job waits, it holds the release slot: a newer commit's **Deploy** queues behind it, so the older commit goes out first and the newer one then needs its own approval. To deploy during a shift, run **Deploy** by hand from the Actions tab with the version and **force** ticked.
+4. It applies `deploy/aws/stack.yaml` to the stack, and stops if any resource would be replaced or removed.
+5. On the server, `release.sh` backs the database up to S3, runs the release's image by its digest, and goes back to the previous image if the new one is not healthy.
 
 **[SPEC]**
-- To go back to an earlier version, re-run that commit's **Deploy** run from the Actions tab.
-- `/opt/mc-fd-dist/release-commit` holds the commit now running.
+- To go back to an earlier version, run **Deploy** by hand with that release's version. Only releases cut after the deploy workflow changed to use versions can be deployed.
+- `/opt/mc-fd-dist/release-version` holds the version and image digest now running.
 
 **[SPEC]**
 To release by hand, for example when GitHub is down, use the Lightsail browser SSH client:
 ```sh
 cd /opt/mc-fd-dist
-sudo ./release.sh <full commit hash>
+sudo ./release.sh <version> <image digest>   # for example v0.2.0 sha256:...
 ```
+
+**[SPEC]**
+The image digest is in the release's `image.txt`, on its page under Releases.
 
 **[SPEC]**
 One-time set-up of release access, by an administrator with their own AWS sign-in:

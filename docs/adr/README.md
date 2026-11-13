@@ -29,7 +29,7 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0019](0019-correcting-unserved-cards.md) | Correct unserved cards by recording them as left, or by deleting them | Accepted; amended by 0020 |
 | [0020](0020-food-bank-process-rules.md) | Follow the food bank's own process and words | Accepted; amended by 0023 |
 | [0021](0021-visual-design.md) | Give the screens a quiet design with the card number as a ticket | Accepted |
-| [0022](0022-github-deployments.md) | Release from GitHub Actions after approval, through narrow AWS roles | Accepted |
+| [0022](0022-github-deployments.md) | Release from GitHub Actions after approval, through narrow AWS roles | Accepted; amended by 0029 |
 | [0023](0023-partner-families-carts-and-extras.md) | Enter partner Families as cards, and match carts and extras to the Family | Accepted |
 | [0024](0024-intake-initials.md) | Record the intake volunteer's initials on each walk-in card | Accepted |
 | [0025](0025-require-signed-commits.md) | Require signed commits on main | Accepted |

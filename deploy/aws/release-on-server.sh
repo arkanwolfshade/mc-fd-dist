@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
-# Run by the deploy workflow to release one commit on the Lightsail server. SSH is opened
+# Run by the deploy workflow to release one version on the Lightsail server. SSH is opened
 # to this runner's address alone, with a one-time key from Lightsail, and the server's
 # port rules are put back as they were afterwards, whether or not the release worked.
-#   release-on-server.sh <stack name> <git commit>
+#   release-on-server.sh <stack name> <version> <image digest>
 set -euo pipefail
 # Every file made here is private, because ssh refuses a key that others can read.
 umask 077
 
-stack="${1:?Usage: release-on-server.sh <stack name> <git commit>}"
-commit="${2:?Usage: release-on-server.sh <stack name> <git commit>}"
+stack="${1:?Usage: release-on-server.sh <stack name> <version> <image digest>}"
+version="${2:?Usage: release-on-server.sh <stack name> <version> <image digest>}"
+digest="${3:?Usage: release-on-server.sh <stack name> <version> <image digest>}"
+# Checked before anything is opened, because both are passed on to a command run as root.
+if ! [[ "$version" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "Not a version like v0.2.0: $version" >&2
+  exit 2
+fi
+if ! [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+  echo "Not an image digest: $digest" >&2
+  exit 2
+fi
 # The server's name changes when it is replaced, so it is read from the stack.
 instance="$(aws cloudformation describe-stacks --stack-name "$stack" \
   --query "Stacks[0].Outputs[?OutputKey=='ServerName'].OutputValue" --output text)"
@@ -61,7 +71,7 @@ done
 
 scp "${ssh_options[@]}" deploy/compose.yaml deploy/Caddyfile deploy/backup.sh deploy/restore.sh \
   deploy/release.sh deploy/.env.example "$user@$host:/tmp/"
-# shellcheck disable=SC2087 # $commit is meant to expand here, on the runner.
+# shellcheck disable=SC2087 # $version and $digest are meant to expand here, on the runner.
 ssh "${ssh_options[@]}" "$user@$host" bash -s <<EOF
 set -euo pipefail
 cd /opt/mc-fd-dist
@@ -70,5 +80,5 @@ for file in compose.yaml Caddyfile backup.sh restore.sh release.sh .env.example;
   rm "/tmp/\$file"
 done
 sudo chmod 755 ./*.sh
-sudo ./release.sh "$commit"
+sudo ./release.sh "$version" "$digest"
 EOF

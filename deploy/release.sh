@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
-# Runs on the server to release the image published for one commit. It backs the live
-# database up to S3 first, and goes back to the previous image if the new one is not healthy.
-#   sudo ./release.sh <git commit>
+# Runs on the server to release one version of the app. The image is named by its digest,
+# which no one can move, unlike a tag. It backs the live database up to S3 first, and goes
+# back to the previous image if the new one is not healthy.
+#   sudo ./release.sh <version> <image digest>      for example: v0.2.0 sha256:...
 set -euo pipefail
 cd "$(dirname "$0")"
 
-commit="${1:?Usage: release.sh <git commit>}"
-if ! [[ "$commit" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "Not a full commit hash: $commit" >&2
+version="${1:?Usage: release.sh <version> <image digest>}"
+digest="${2:?Usage: release.sh <version> <image digest>}"
+if ! [[ "$version" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "Not a version like v0.2.0: $version" >&2
   exit 2
 fi
-image="ghcr.io/arkanwolfshade/mc-fd-dist:$commit"
+if ! [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+  echo "Not an image digest: $digest" >&2
+  exit 2
+fi
+image="ghcr.io/arkanwolfshade/mc-fd-dist@$digest"
 
 if [ ! -f .env ]; then
   echo "No .env here. Set the server up first (docs/developer/operations.md)." >&2
@@ -52,8 +58,9 @@ start() {
 set_image "$image"
 docker compose pull --quiet
 if start; then
-  echo "$commit" > release-commit
-  echo "Released $commit"
+  echo "$version $digest" > release-version
+  rm -f release-commit
+  echo "Released $version"
   exit 0
 fi
 

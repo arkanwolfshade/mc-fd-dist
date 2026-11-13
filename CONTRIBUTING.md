@@ -40,7 +40,7 @@ Merge pull requests with **Squash and merge**. GitHub signs that commit, but not
 
 ## Releases
 
-The maintainer cuts a release ([ADR 0029](docs/adr/0029-immutable-versioned-releases.md)). In the Actions tab, run **Release** from `main` with the version, for example `0.2.0`. It starts as a dry run that publishes nothing and shows the release notes. Run it again with **dry run** unticked to publish. A published release and its version can never be changed or reused, so check the dry run first.
+The maintainer cuts a release ([ADR 0029](docs/adr/0029-immutable-versioned-releases.md)). In the Actions tab, run **Release** from `main` with the version, for example `0.2.0`. It starts as a dry run that publishes nothing and shows the release notes. Run it again with **dry run** unticked to publish, which also starts a **Deploy** for that version that waits for the maintainer's approval. A published release and its version can never be changed or reused, so check the dry run first.
 
 ## Decisions
 
