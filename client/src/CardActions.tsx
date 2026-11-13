@@ -1,3 +1,4 @@
+import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import { arrivalLabel } from "../../server/rules.js";
 import type { ArrivalMethod, CardStatus } from "../../server/rules.js";
@@ -15,6 +16,24 @@ const STATUS_LABELS: Record<CardStatus, string> = {
 
 export function StatusLabel(props: { status: CardStatus }) {
   return <span class={`status ${props.status}`}>{STATUS_LABELS[props.status]}</span>;
+}
+
+// A button that is either picked or not, as one choice among several.
+export function ChoiceButton(props: {
+  selected: boolean;
+  onClick: () => void;
+  children: ComponentChildren;
+}) {
+  return (
+    <button
+      type="button"
+      class={props.selected ? "selected" : ""}
+      aria-pressed={props.selected}
+      onClick={props.onClick}
+    >
+      {props.children}
+    </button>
+  );
 }
 
 // Cheese comes only with a Senior Box, so its button stays off until the box is ticked.
