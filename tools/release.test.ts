@@ -39,6 +39,13 @@ case "$1 $2" in
 esac
 `;
 
+// Every path written here is inside the temporary folder this test has just made, and none comes
+// from outside it.
+function put(path: string, text: string) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- paths are in the test's own temp folder
+  writeFileSync(path, text);
+}
+
 interface Run {
   failing: string;
   previous?: string;
@@ -50,12 +57,12 @@ function release({ failing, previous = PREVIOUS, version = VERSION, digest = REL
   const dir = mkdtempSync(join(tmpdir(), "release-")).replaceAll("\\", "/");
   const bin = `${dir}/bin`;
   mkdirSync(bin);
-  writeFileSync(`${bin}/docker`, DOCKER);
+  put(`${bin}/docker`, DOCKER);
   chmodSync(`${bin}/docker`, 0o755);
   copyFileSync("deploy/release.sh", `${dir}/release.sh`);
-  writeFileSync(`${dir}/.env`, `APP_IMAGE=${previous}\n`);
+  put(`${dir}/.env`, `APP_IMAGE=${previous}\n`);
   // Left by a release made before versions.
-  writeFileSync(`${dir}/release-commit`, `${"c".repeat(40)}\n`);
+  put(`${dir}/release-commit`, `${"c".repeat(40)}\n`);
 
   const path = [bin, WINDOWS ? GIT_TOOLS : "", process.env.PATH ?? ""]
     .filter(Boolean)
