@@ -39,6 +39,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
   const adminOnly = requireRole("admin");
 
   function shiftsInRange(from: string, to: string) {
+    // nosemgrep: rules_lgpl_javascript_dos_rule-layer7-object-dos -- loops over rows from our own database, which the date range only selects
     return listShiftsBetween(db, from, to).map((shift) => {
       const cards = listCards(db, shift.id);
       const returnedBatches = listReturnedBatches(db, shift.id);
@@ -88,6 +89,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
     }
     const shifts = shiftsInRange(from, to);
     return {
+      // nosemgrep: rules_lgpl_javascript_dos_rule-layer7-object-dos -- loops over rows from our own database, which the date range only selects
       shifts: shifts.map(({ id, date, status, summary }) => ({ id, date, status, summary })),
       totals: shiftSummary(
         shifts.flatMap((shift) => shift.cards),
@@ -98,6 +100,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
 
   app.get<RangeQuery>("/api/admin/reports/shifts.csv", rangeRoute, async (request, reply) => {
     const { from, to } = request.query;
+    // nosemgrep: rules_lgpl_javascript_dos_rule-layer7-object-dos -- loops over rows from our own database, which the date range only selects
     const rows = shiftsInRange(from, to).map(({ date, status, summary }) => [
       date,
       status,
@@ -145,6 +148,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
   app.get<RangeQuery>("/api/admin/reports/cards.csv", rangeRoute, async (request, reply) => {
     const { from, to } = request.query;
     const rows = shiftsInRange(from, to).flatMap((shift) =>
+      // nosemgrep: rules_lgpl_javascript_dos_rule-layer7-object-dos -- loops over rows from our own database, which the date range only selects
       shift.cards.map((card) => [
         shift.date,
         card.number,

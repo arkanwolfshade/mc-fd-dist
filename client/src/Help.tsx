@@ -42,7 +42,7 @@ export function Help(props: { role: Role }) {
       </nav>
       {/* Written in this repository and converted at build time, never user input. */}
       {/* oxlint-disable-next-line react/no-danger */}
-      {/* nosemgrep: this one line only. More than one Semgrep rule flags it, for the same reason. */}
+      {/* nosemgrep: javascript_react_rule-dangerouslysetinnerhtml, react-dangerouslysetinnerhtml -- the HTML is converted from this repository's guides at build time */}
       <article class="guide panel" dangerouslySetInnerHTML={{ __html: shown.html }} />
     </div>
   );

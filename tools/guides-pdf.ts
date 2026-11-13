@@ -46,6 +46,7 @@ try {
       const file = join(SOURCE, language, name);
       const body = guideToHtml(readFileSync(file, "utf8"), pictureAsData(file));
       await page.setContent(
+        // nosemgrep: html-in-template-string -- builds a print page from this repository's own guides, never from user input
         `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><style>${PRINT_CSS}</style></head><body>${body}</body></html>`,
       );
       const pdf = await page.pdf({
