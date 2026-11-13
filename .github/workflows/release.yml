@@ -149,5 +149,11 @@ jobs:
           TAG: ${{ steps.plan.outputs.tag }}
         run: |
           gh release edit "$TAG" --draft=false --latest
+          # GitHub writes the release's attestation a moment after publishing, so the first
+          # checks can fail. Try for two minutes, then run it once more to show the outcome.
+          for _ in $(seq 12); do
+            gh release verify "$TAG" > /dev/null 2>&1 && break
+            sleep 10
+          done
           gh release verify "$TAG"
           echo "Published $TAG: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
