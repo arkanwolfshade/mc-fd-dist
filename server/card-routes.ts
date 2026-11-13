@@ -75,6 +75,35 @@ const LOADS = {
   items: { type: ["number", "null"], minimum: 0 },
 } as const;
 
+const NEW_CARD_BODY = {
+  type: "object",
+  required: ["clientId", "number", "familySize", "arrivalMethod"],
+  // Fields not listed here, such as status, are dropped before the handler sees them.
+  additionalProperties: false,
+  properties: {
+    clientId: { type: "string", minLength: 1, maxLength: 100 },
+    ...CARD_DETAIL_PROPERTIES,
+    seniorBox: { type: "boolean", default: false },
+    cheese: { type: "boolean", default: false },
+    other: { type: "string", maxLength: 500, default: "" },
+    tefapBags: { type: "integer", minimum: 0, maximum: 20 },
+    intakeInitials: { type: "string", maxLength: 10 },
+    loads: LOADS,
+  },
+} as const;
+
+const CARD_CHANGES_BODY = {
+  type: "object",
+  required: ["revision"],
+  properties: {
+    revision: { type: "integer", minimum: 1 },
+    ...CARD_DETAIL_PROPERTIES,
+    tefapBags: { type: ["integer", "null"], minimum: 0, maximum: 20 },
+    status: { type: "string", enum: ALL_CARD_STATUSES },
+    loads: LOADS,
+  },
+} as const;
+
 export interface CardRouteContext {
   db: Database;
   currentAccount: (request: FastifyRequest) => Account | null;
@@ -98,13 +127,10 @@ interface Refusal {
   error: string;
 }
 
-// Builds the card to create, or says why it cannot be. It is built from the allowed fields
-// only, so a request cannot set the status or anything else that the role rules decide.
-export function newCardFrom(account: Account, body: NewCard): NewCard | Refusal {
-  if (breaksCheeseRule({ seniorBox: body.seniorBox, cheese: body.cheese })) {
-    return { code: 400, error: CHEESE_RULE };
-  }
-  const input: NewCard = {
+// The fields of a new card that a request may set. Anything else it carries, such as the
+// status, is left out, because the role rules below decide that.
+function allowedFields(body: NewCard): NewCard {
+  return {
     clientId: body.clientId,
     number: body.number,
     familySize: body.familySize,
@@ -119,29 +145,47 @@ export function newCardFrom(account: Account, body: NewCard): NewCard | Refusal 
     ...(body.extrasNote !== undefined ? { extrasNote: body.extrasNote } : {}),
     status: "entered",
   };
-  if (isPartnerMethod(input.arrivalMethod)) {
-    if (account.role === "front_desk") {
-      return {
-        code: 400,
-        error: "Door Dash and Helping Hands Families are entered by Distribution",
-      };
-    }
-    if (input.intakeInitials !== undefined) {
-      return { code: 400, error: "Partner Families have no intake initials" };
-    }
-    input.status = "distributed";
-  } else {
-    if (account.role === "distribution") {
-      return { code: 403, error: "Walk-in Families are entered at the front desk" };
-    }
-    if (input.loads || input.extrasAdded !== undefined || input.extrasNote !== undefined) {
-      return { code: 403, error: "Only distribution can record weights and extras" };
-    }
-    const initials = normalizeInitials(input.intakeInitials ?? "");
-    if (!initials) {
-      return { code: 400, error: INITIALS_RULE };
-    }
-    input.intakeInitials = initials;
+}
+
+// A Door Dash or Helping Hands Family: entered by Distribution, already served, no initials.
+function settlePartner(account: Account, input: NewCard): Refusal | null {
+  if (account.role === "front_desk") {
+    return { code: 400, error: "Door Dash and Helping Hands Families are entered by Distribution" };
+  }
+  if (input.intakeInitials !== undefined) {
+    return { code: 400, error: "Partner Families have no intake initials" };
+  }
+  input.status = "distributed";
+  return null;
+}
+
+// A walk-in Family: entered at the front desk, with the initials of who gave the details.
+function settleWalkIn(account: Account, input: NewCard): Refusal | null {
+  if (account.role === "distribution") {
+    return { code: 403, error: "Walk-in Families are entered at the front desk" };
+  }
+  if (input.loads || input.extrasAdded !== undefined || input.extrasNote !== undefined) {
+    return { code: 403, error: "Only distribution can record weights and extras" };
+  }
+  const initials = normalizeInitials(input.intakeInitials ?? "");
+  if (!initials) {
+    return { code: 400, error: INITIALS_RULE };
+  }
+  input.intakeInitials = initials;
+  return null;
+}
+
+// Builds the card to create, or says why it cannot be.
+export function newCardFrom(account: Account, body: NewCard): NewCard | Refusal {
+  if (breaksCheeseRule({ seniorBox: body.seniorBox, cheese: body.cheese })) {
+    return { code: 400, error: CHEESE_RULE };
+  }
+  const input = allowedFields(body);
+  const refusal = isPartnerMethod(input.arrivalMethod)
+    ? settlePartner(account, input)
+    : settleWalkIn(account, input);
+  if (refusal) {
+    return refusal;
   }
   const carts = cartCount({ tefapBags: newCardBags(input) });
   if (!fitsCarts(input.loads ?? [], carts)) {
@@ -150,8 +194,8 @@ export function newCardFrom(account: Account, body: NewCard): NewCard | Refusal 
   return input;
 }
 
-// Says why `account` may not make `changes` to `current`, or null if it may.
-function refuseChanges(account: Account, current: Card, changes: CardChanges): Refusal | null {
+// The rules about the card itself, whoever makes the change.
+function refuseByRules(current: Card, changes: CardChanges): Refusal | null {
   const extras = {
     seniorBox: changes.seniorBox ?? current.seniorBox,
     cheese: changes.cheese ?? current.cheese,
@@ -169,7 +213,11 @@ function refuseChanges(account: Account, current: Card, changes: CardChanges): R
   if (!fitsCarts(changes.loads ?? current.loads, carts)) {
     return { code: 400, error: cartRule(carts) };
   }
+  return null;
+}
 
+// The rules about who may make which change.
+function refuseByRole(account: Account, current: Card, changes: CardChanges): Refusal | null {
   const recordsDistribution =
     changes.loads || changes.extrasAdded !== undefined || changes.extrasNote !== undefined;
   if (recordsDistribution && account.role === "front_desk") {
@@ -183,6 +231,11 @@ function refuseChanges(account: Account, current: Card, changes: CardChanges): R
     return { code: 403, error: "That status change is not allowed" };
   }
   return null;
+}
+
+// Says why `account` may not make `changes` to `current`, or null if it may.
+function refuseChanges(account: Account, current: Card, changes: CardChanges): Refusal | null {
+  return refuseByRules(current, changes) ?? refuseByRole(account, current, changes);
 }
 
 export function registerCardRoutes(app: FastifyInstance, context: CardRouteContext): void {
@@ -233,25 +286,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     "/api/shifts/:shiftId/cards",
     {
       preHandler: requireRole(),
-      schema: {
-        params: SHIFT_PARAMS,
-        body: {
-          type: "object",
-          required: ["clientId", "number", "familySize", "arrivalMethod"],
-          // Fields not listed here, such as status, are dropped before the handler sees them.
-          additionalProperties: false,
-          properties: {
-            clientId: { type: "string", minLength: 1, maxLength: 100 },
-            ...CARD_DETAIL_PROPERTIES,
-            seniorBox: { type: "boolean", default: false },
-            cheese: { type: "boolean", default: false },
-            other: { type: "string", maxLength: 500, default: "" },
-            tefapBags: { type: "integer", minimum: 0, maximum: 20 },
-            intakeInitials: { type: "string", maxLength: 10 },
-            loads: LOADS,
-          },
-        },
-      },
+      schema: { params: SHIFT_PARAMS, body: NEW_CARD_BODY },
     },
     async (request, reply) => {
       const account = currentAccount(request) as Account;
@@ -283,20 +318,7 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
     "/api/cards/:id",
     {
       preHandler: requireRole(),
-      schema: {
-        params: ID_PARAMS,
-        body: {
-          type: "object",
-          required: ["revision"],
-          properties: {
-            revision: { type: "integer", minimum: 1 },
-            ...CARD_DETAIL_PROPERTIES,
-            tefapBags: { type: ["integer", "null"], minimum: 0, maximum: 20 },
-            status: { type: "string", enum: ALL_CARD_STATUSES },
-            loads: LOADS,
-          },
-        },
-      },
+      schema: { params: ID_PARAMS, body: CARD_CHANGES_BODY },
     },
     async (request, reply) => {
       const account = currentAccount(request) as Account;
