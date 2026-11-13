@@ -1,5 +1,5 @@
 # Development
-**Version 1.2.0** · mc-fd-dist · 2026-11-13 · For developers
+**Version 1.2.1** · mc-fd-dist · 2026-11-13 · For developers
 
 ---
 
@@ -64,6 +64,7 @@ The npm scripts:
 - Two rulesets guard `main` (ADR 0017). One requires a pull request, signed commits, the code owner's review, clean CodeQL results and the three Codacy checks. The other requires the `check`, `container` and `secrets` jobs. Repository administrators can bypass both. That is kept for repairing `main`, not for routine changes. Their definitions are in `.github/rulesets/` and are applied by hand, so keep the files in step with the settings page.
 - The commit hook formats and lints staged files and scans them for secrets. The push hook runs the type checks and unit tests.
 - Add an ADR in the same commit as any decision that is hard to reverse or crosses parts of the system.
+- Dependencies in `package.json` are pinned to exact versions, and `.npmrc` sets `save-exact` so that `npm install <package>` records one. Dependabot raises the pins.
 - When a screen changes, run `npm run docs:screenshots` and check the guides still describe it.
 
 ---
@@ -157,6 +158,11 @@ Fix: Set `MSYS_NO_PATHCONV=1` for the command. CI runs on Linux and is not affec
 Symptom: A commit is not formatted or linted, or a push with a failing test goes through, and CI finds the problem instead.
 Cause: `git config core.hooksPath` prints nothing, so git runs no hooks. Husky installs them when `npm install` runs the `prepare` script, which did not happen in this checkout.
 Fix: Run `npx husky`, then check that `git config core.hooksPath` prints `.husky/_`.
+
+**[BUG] `npm ci` fails on Windows while building better-sqlite3**
+Symptom: `npm ci` ends with `gyp ERR! find VS` and `node-gyp rebuild` failing for `better-sqlite3`, and leaves `node_modules` empty.
+Cause: npm runs `node-gyp rebuild` for the package because it has a `binding.gyp`, and that needs Visual Studio's C++ tools. The package already contains prebuilt binaries for Windows, macOS and Linux, so the build is not needed.
+Fix: Run `npm ci --ignore-scripts`, which installs everything and uses the prebuilt binary. CI and the container build compile it on Linux, where the compiler is present.
 
 **[BUG] A new shell script fails in CI with exit code 126**
 Symptom: CI reports exit code 126 when running a script in `deploy/`.
