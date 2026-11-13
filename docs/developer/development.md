@@ -51,6 +51,7 @@ The npm scripts:
 | `npm run docs:screenshots` | Retakes the guide screenshots |
 | `npm run docs:pdf` | Builds printable guides into `dist/guides/` |
 | `npm run docs:check` | Checks HADS format, links and pictures |
+| `npm run licenses:check` | Checks that every installed package has an allowed license (ADR 0026) |
 
 ---
 
@@ -72,7 +73,7 @@ The CI jobs and what each runs:
 
 | Job | Runs |
 |---|---|
-| `check` | Formatting, lint, types, documentation check, unit tests with coverage, coverage upload to Codacy, `npm audit`, browser tests, PDF build |
+| `check` | Formatting, lint, types, documentation check, license check, unit tests with coverage, coverage upload to Codacy, `npm audit`, browser tests, PDF build |
 | `container` | shellcheck, hadolint, cfn-lint, Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
 | `secrets` | gitleaks over the whole history |
 | `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main` |

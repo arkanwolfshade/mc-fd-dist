@@ -16,6 +16,7 @@ export default defineConfig({
         "server/main.ts",
         "server/cli/**",
         "tools/check-docs.ts",
+        "tools/check-licenses.ts",
         "tools/guides-pdf.ts",
         "tools/deploy-checks.ts",
       ],
