@@ -16,7 +16,10 @@ if (command === "wait") {
   const result = await waitForWindow({
     now: () => new Date(),
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-    log: (line) => console.log(line),
+    log: (line) => {
+      process.stdout.write(`${line}
+`);
+    },
     maxWaitMs: MAX_WAIT_MS,
   });
   if (result.status === "too-far") {
@@ -37,6 +40,6 @@ if (command === "wait") {
   }
   console.log("The stack changes are all made in place.");
 } else {
-  console.error("Usage: deploy-checks.ts wait | change-set <file>");
+  console.error("Usage: deploy-checks.ts wait | change-set FILE");
   process.exit(2);
 }
