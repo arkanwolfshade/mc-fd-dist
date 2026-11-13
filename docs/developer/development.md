@@ -1,5 +1,5 @@
 # Development
-**Version 1.1.0** · mc-fd-dist · 2026-11-13 · For developers
+**Version 1.2.0** · mc-fd-dist · 2026-11-13 · For developers
 
 ---
 
@@ -106,11 +106,11 @@ Dependabot has not yet been seen moving a `cgr.dev` digest in the Dockerfile. If
 Codacy analyses every pull request and reads `.codacy.yaml` from the default branch. Each exclusion there says why. Its Lizard tool flags a function over 55 lines of code or with a complexity over 10, so keep functions small.
 
 **[SPEC]**
-The Deploy workflow (`.github/workflows/deploy.yml`) starts when CI passes on `main`. It is not part of CI. Section 4 of `docs/developer/operations.md` describes using it. It does this:
+The Deploy workflow (`.github/workflows/deploy.yml`) is started by the Release workflow after it publishes, or by hand with a version. It is not part of CI. Section 4 of `docs/developer/operations.md` describes using it. It does this:
 
 - It runs in the GitHub `production` environment, so a reviewer must approve it before the job starts.
 - It then waits for a window outside shift hours, and fails at once if the window is more than 340 minutes away (ADR 0022).
-- It checks that CI published the commit's image, applies the stack, and releases on the server.
+- Before the wait, it checks the release with `gh release verify` and the image's build attestation, and takes the image's digest from the release's `image.txt`. It then checks out the release's own commit, so the release's scripts and templates do the deploy, applies the stack, and releases the image on the server.
 
 **[SPEC]**
 The Release workflow (`.github/workflows/release.yml`) is run by hand from `main` (ADR 0029):
@@ -118,7 +118,7 @@ The Release workflow (`.github/workflows/release.yml`) is run by hand from `main
 - It takes a version such as `0.2.0`, and refuses one that is not higher than every existing `v` tag. The rules are in `tools/release-version.ts`.
 - It takes the latest commit on `main`, or a full commit hash you give, and requires that CI passed for it and that its image carries this repository's build attestation.
 - **Dry run** is ticked by default. It runs every check, builds the SBOM and shows the release notes in the job summary, and publishes nothing.
-- Unticked, it creates a draft release with `image.txt` (the image's name by digest) and `sbom.spdx.json`, adds the version tag to the image, publishes the release and verifies it with `gh release verify`, retrying for two minutes because GitHub writes the release's attestation a moment after publishing. Publishing makes the tag and files permanent.
+- Unticked, it creates a draft release with `image.txt` (the image's name by digest) and `sbom.spdx.json`, adds the version tag to the image, publishes the release and verifies it with `gh release verify`, retrying for two minutes because GitHub writes the release's attestation a moment after publishing. Publishing makes the tag and files permanent. It then starts Deploy for the version, which waits for approval.
 - To check a release yourself: `gh release verify v0.2.0`, and `gh attestation verify oci://<image from image.txt> --repo arkanwolfshade/mc-fd-dist`.
 
 **[NOTE]**
