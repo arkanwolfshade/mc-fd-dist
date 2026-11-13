@@ -107,15 +107,24 @@ function Reports(props: { onChanged: () => void }) {
       </div>
       {error && <p class="error">{error}</p>}
       {report && <ReportResults report={report} onChange={change} />}
-      <div class="choices">
-        <a class="button" href={`/api/admin/reports/shifts.csv?${range}`} download>
-          Download shift totals (CSV)
-        </a>
-        <a class="button" href={`/api/admin/reports/cards.csv?${range}`} download>
-          Download cards (CSV)
-        </a>
-      </div>
+      <CsvLinks range={range} />
     </section>
+  );
+}
+
+// Downloads of the same range as CSV files for a spreadsheet.
+function CsvLinks(props: { range: string }) {
+  const shiftsCsv = `/api/admin/reports/shifts.csv?${props.range}`;
+  const cardsCsv = `/api/admin/reports/cards.csv?${props.range}`;
+  return (
+    <div class="choices">
+      <a class="button" href={shiftsCsv} download>
+        Download shift totals (CSV)
+      </a>
+      <a class="button" href={cardsCsv} download>
+        Download cards (CSV)
+      </a>
+    </div>
   );
 }
 
