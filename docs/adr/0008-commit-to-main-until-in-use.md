@@ -1,6 +1,6 @@
 # 0008. Commit directly to main until the app is in use
 
-- **Status:** Accepted
+- **Status:** Superseded by 0028
 - **Date:** 2026-11-06
 
 ## Context

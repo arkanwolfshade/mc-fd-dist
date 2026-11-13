@@ -2,7 +2,7 @@
 
 ## Workflow
 
-- Work on a branch and open a pull request, then merge it with **Squash and merge**. The rulesets on `main` require this, along with signed commits and passing checks ([ADR 0017](docs/adr/0017-branch-rulesets.md)). [ADR 0008](docs/adr/0008-commit-to-main-until-in-use.md) still lets the administrator commit straight to `main` through the rulesets' bypass, and is due to be revisited before the volunteer dry run.
+- Work on a branch and open a pull request, then merge it with **Squash and merge**. The rulesets on `main` require this, along with signed commits and passing checks ([ADR 0017](docs/adr/0017-branch-rulesets.md), [ADR 0028](docs/adr/0028-change-main-only-through-pull-requests.md)). The administrator's bypass of the rulesets stays for repairing `main`, not for routine changes.
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for the pull request title, which becomes the commit message, for example `feat: add card entry form` or `fix: correct TEFAP count at nine people`.
 - Keep each pull request to one logical change.
 

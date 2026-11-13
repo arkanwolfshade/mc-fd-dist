@@ -28,9 +28,9 @@ working branch and run the checks. The maintainer can change any of this during 
 ## About the app
 
 Shift tracker for a food bank: replaces the two paper sheets (one for the front desk, one for
-distribution) with one live record shared by both stations. Not yet in use; commits go straight to
-`main` (see Architecture Decision Record (ADR) 0008 in `docs/adr/`) with Conventional Commit
-messages, one logical change each.
+distribution) with one live record shared by both stations. Not yet in use; changes reach
+`main` through pull requests, squash-merged (see Architecture Decision Record (ADR) 0028 in `docs/adr/`),
+with Conventional Commit titles, one logical change each.
 
 ## Commands
 
