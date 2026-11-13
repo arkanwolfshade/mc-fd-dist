@@ -1,6 +1,42 @@
 import { shiftSummary } from "../../server/summary.js";
 import type { ShiftWithCards } from "./types.js";
 
+interface TotalsRow {
+  key: string;
+  label: string;
+  value: string | number;
+  // A breakdown of the row above it.
+  detail?: boolean;
+}
+
+function totalsRows(summary: ReturnType<typeof shiftSummary>): TotalsRow[] {
+  const { families, weight } = summary;
+  return [
+    { key: "families", label: "Total # of families", value: families.total },
+    { key: "families-cards", label: "Cards", value: families.cards, detail: true },
+    {
+      key: "families-partners",
+      label: "Door Dash and Helping Hands",
+      value: families.partners,
+      detail: true,
+    },
+    { key: "left", label: "Left without food", value: families.left },
+    { key: "weight", label: "Total weight", value: `${weight.total} lb` },
+    { key: "weight-cards", label: "Cards", value: `${weight.cards} lb`, detail: true },
+    {
+      key: "weight-partners",
+      label: "Door Dash and Helping Hands",
+      value: `${weight.partners} lb`,
+      detail: true,
+    },
+    { key: "returned", label: "Total return weight", value: `${summary.returnedWeight} lb` },
+    { key: "net", label: "Net weight", value: `${summary.netWeight} lb` },
+    { key: "tefap", label: "Total # of TEFAP bags", value: summary.tefapBags },
+    { key: "senior", label: "Total # of senior boxes", value: summary.seniorBoxes },
+    { key: "cheese", label: "Total # of cheese", value: summary.cheese },
+  ];
+}
+
 export function Summary(props: { shift: ShiftWithCards }) {
   const { cards, returnedBatches } = props.shift;
   const summary = shiftSummary(cards, returnedBatches);
@@ -11,54 +47,12 @@ export function Summary(props: { shift: ShiftWithCards }) {
         <h2>Shift totals</h2>
         <table class="totals">
           <tbody>
-            <tr>
-              <th>Total # of families</th>
-              <td>{summary.families.total}</td>
-            </tr>
-            <tr class="detail">
-              <th>Cards</th>
-              <td>{summary.families.cards}</td>
-            </tr>
-            <tr class="detail">
-              <th>Door Dash and Helping Hands</th>
-              <td>{summary.families.partners}</td>
-            </tr>
-            <tr>
-              <th>Left without food</th>
-              <td>{summary.families.left}</td>
-            </tr>
-            <tr>
-              <th>Total weight</th>
-              <td>{summary.weight.total} lb</td>
-            </tr>
-            <tr class="detail">
-              <th>Cards</th>
-              <td>{summary.weight.cards} lb</td>
-            </tr>
-            <tr class="detail">
-              <th>Door Dash and Helping Hands</th>
-              <td>{summary.weight.partners} lb</td>
-            </tr>
-            <tr>
-              <th>Total return weight</th>
-              <td>{summary.returnedWeight} lb</td>
-            </tr>
-            <tr>
-              <th>Net weight</th>
-              <td>{summary.netWeight} lb</td>
-            </tr>
-            <tr>
-              <th>Total # of TEFAP bags</th>
-              <td>{summary.tefapBags}</td>
-            </tr>
-            <tr>
-              <th>Total # of senior boxes</th>
-              <td>{summary.seniorBoxes}</td>
-            </tr>
-            <tr>
-              <th>Total # of cheese</th>
-              <td>{summary.cheese}</td>
-            </tr>
+            {totalsRows(summary).map((row) => (
+              <tr key={row.key} class={row.detail ? "detail" : undefined}>
+                <th>{row.label}</th>
+                <td>{row.value}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
         {summary.distributedWithoutWeight > 0 && (
