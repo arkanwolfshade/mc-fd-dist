@@ -15,9 +15,10 @@ function refuse(title: string, problem: string): never {
 }
 
 if (command === "version" && first) {
+  const version = parseVersion(first);
   const problems = versionProblems(first, args.slice(1));
-  if (problems.length > 0) refuse("Release version refused", problems.join("; "));
-  process.stdout.write(`${formatVersion(parseVersion(first)!)}\n`);
+  if (!version || problems.length > 0) refuse("Release version refused", problems.join("; "));
+  process.stdout.write(`${formatVersion(version)}\n`);
 } else if (command === "image" && args.length === 2) {
   try {
     process.stdout.write(`${imageReference(first, second)}\n`);

@@ -6,6 +6,7 @@ import {
   isImageDigest,
   parseVersion,
   versionProblems,
+  type Version,
 } from "./release-version.js";
 
 const DIGEST = `sha256:${"a1".repeat(32)}`;
@@ -38,7 +39,11 @@ describe("parseVersion", () => {
 });
 
 describe("compareVersions", () => {
-  const v = (text: string) => parseVersion(text)!;
+  const v = (text: string): Version => {
+    const version = parseVersion(text);
+    if (!version) throw new Error(`${text} is not a version`);
+    return version;
+  };
 
   it("orders by major, then minor, then patch, as numbers", () => {
     expect(compareVersions(v("1.0.0"), v("0.9.9"))).toBeGreaterThan(0);
