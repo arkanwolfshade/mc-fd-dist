@@ -60,8 +60,8 @@ The npm scripts:
 
 **[SPEC]**
 - Write a failing test first and watch it fail, then make it pass (CONTRIBUTING.md).
-- Work on a branch and open a pull request with a Conventional Commit title, and merge it with **Squash and merge**, the only method allowed. The title becomes the commit message on `main`, which GitHub signs (ADR 0025).
-- Two rulesets guard `main` (ADR 0017). One requires a pull request, signed commits, the code owner's review, clean CodeQL results and the three Codacy checks. The other requires the `check`, `container` and `secrets` jobs. Repository administrators can bypass both, which is how ADR 0008's direct commits to `main` remain possible. Their definitions are in `.github/rulesets/` and are applied by hand, so keep the files in step with the settings page.
+- Work on a branch and open a pull request with a Conventional Commit title, and merge it with **Squash and merge**, the only method allowed (ADR 0028). The title becomes the commit message on `main`, which GitHub signs (ADR 0025).
+- Two rulesets guard `main` (ADR 0017). One requires a pull request, signed commits, the code owner's review, clean CodeQL results and the three Codacy checks. The other requires the `check`, `container` and `secrets` jobs. Repository administrators can bypass both. That is kept for repairing `main`, not for routine changes. Their definitions are in `.github/rulesets/` and are applied by hand, so keep the files in step with the settings page.
 - The commit hook formats and lints staged files and scans them for secrets. The push hook runs the type checks and unit tests.
 - Add an ADR in the same commit as any decision that is hard to reverse or crosses parts of the system.
 - When a screen changes, run `npm run docs:screenshots` and check the guides still describe it.
