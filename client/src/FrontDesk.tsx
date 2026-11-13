@@ -3,6 +3,7 @@ import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js"
 import { errorText } from "./api.js";
 import {
   cardDetails,
+  ChoiceButton,
   DeleteCardButton,
   Family,
   SeniorBoxAndCheese,
@@ -30,15 +31,13 @@ function InitialsField(props: InitialsFieldProps) {
       <div class="info-from">
         <div class="choices">
           {known.map((option) => (
-            <button
-              type="button"
+            <ChoiceButton
               key={option}
-              class={initials === option ? "selected" : ""}
-              aria-pressed={initials === option}
+              selected={initials === option}
               onClick={() => onChange({ initials: option, typedInitials: "" })}
             >
               {option}
-            </button>
+            </ChoiceButton>
           ))}
         </div>
         <label>
