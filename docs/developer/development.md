@@ -112,6 +112,15 @@ The Deploy workflow (`.github/workflows/deploy.yml`) starts when CI passes on `m
 - It then waits for a window outside shift hours, and fails at once if the window is more than 340 minutes away (ADR 0022).
 - It checks that CI published the commit's image, applies the stack, and releases on the server.
 
+**[SPEC]**
+The Release workflow (`.github/workflows/release.yml`) is run by hand from `main` (ADR 0029):
+
+- It takes a version such as `0.2.0`, and refuses one that is not higher than every existing `v` tag. The rules are in `tools/release-version.ts`.
+- It takes the latest commit on `main`, or a full commit hash you give, and requires that CI passed for it and that its image carries this repository's build attestation.
+- **Dry run** is ticked by default. It runs every check, builds the SBOM and shows the release notes in the job summary, and publishes nothing.
+- Unticked, it creates a draft release with `image.txt` (the image's name by digest) and `sbom.spdx.json`, adds the version tag to the image, publishes the release and verifies it with `gh release verify`. Publishing makes the tag and files permanent.
+- To check a release yourself: `gh release verify v0.2.0`, and `gh attestation verify oci://<image from image.txt> --repo arkanwolfshade/mc-fd-dist`.
+
 **[NOTE]**
 Findings from Grype, hadolint and ZAP are written as annotations, because the job logs need a signed-in GitHub session and the annotations do not.
 

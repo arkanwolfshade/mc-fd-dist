@@ -1,0 +1,153 @@
+name: Release
+
+# Publishes an immutable GitHub Release for a commit on main whose image CI has built and
+# attested. Run by hand from the Actions tab; "dry run" is on by default and publishes nothing.
+# A published release's tag and files can never be changed, and its version can never be used
+# again, so check the dry run first. See ADR 0029.
+# checkov:skip=CKV_GHA_7: the inputs only choose which commit CI already built and tested to
+# release. The version is checked against the existing tags, the commit must be on main with a
+# passing CI run, and the image must carry this repository's build attestation.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, for example 0.2.0
+        type: string
+        required: true
+      commit:
+        description: Full commit hash to release. Leave empty for the latest commit on main.
+        type: string
+        default: ""
+      dry_run:
+        description: Check everything and show the release notes, but publish nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One release at a time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # creates the release and its tag
+      packages: write # adds the version tag to the image
+      actions: read # finds the commit's CI run
+      attestations: read # checks the image's build attestation
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+      COMMIT_INPUT: ${{ inputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # every tag, to find the highest version
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+
+      - name: Check the version and the commit
+        id: plan
+        run: |
+          # shortcut: xargs would split a very long tag list into several runs; fine for hundreds of tags.
+          tag="$(git tag --list | xargs npx tsx tools/release-checks.ts version "$VERSION")"
+          commit="${COMMIT_INPUT:-$GITHUB_SHA}"
+          if ! [[ "$commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error title=Commit refused::Give the full 40-character commit hash"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$commit" HEAD; then
+            echo "::error title=Commit refused::$commit is not on main"
+            exit 1
+          fi
+          passed="$(gh run list --workflow ci.yml --branch main --event push --commit "$commit" \
+            --status success --json databaseId --jq length)"
+          if [ "$passed" = 0 ]; then
+            echo "::error title=Commit refused::CI has not passed for $commit"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Find the commit's image and check its attestation
+        id: image
+        env:
+          COMMIT: ${{ steps.plan.outputs.commit }}
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          digest="$(docker buildx imagetools inspect "ghcr.io/$repository:$COMMIT" --format '{{.Manifest.Digest}}')"
+          reference="$(npx tsx tools/release-checks.ts image "$repository" "$digest")"
+          gh attestation verify "oci://$reference" --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml"
+          echo "reference=$reference" >> "$GITHUB_OUTPUT"
+          echo "$reference" > image.txt
+
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ steps.image.outputs.reference }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Write the release notes
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          COMMIT: ${{ steps.plan.outputs.commit }}
+          REFERENCE: ${{ steps.image.outputs.reference }}
+        run: |
+          previous="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+          generated=(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes"
+            -f tag_name="$TAG" -f target_commitish="$COMMIT")
+          if [ -n "$previous" ]; then generated+=(-f previous_tag_name="$previous"); fi
+          {
+            echo "Image: \`$REFERENCE\`"
+            echo
+            echo "Built from commit \`$COMMIT\`. Check it with \`gh release verify $TAG\` and"
+            echo "\`gh attestation verify oci://$REFERENCE --repo $GITHUB_REPOSITORY\`."
+            echo
+            "${generated[@]}" --jq .body
+          } > release-notes.md
+          {
+            echo "## $TAG, from commit \`${COMMIT:0:12}\`"
+            echo
+            cat release-notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Everything above only reads. From here on the release becomes permanent.
+      - name: Create the draft release
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          COMMIT: ${{ steps.plan.outputs.commit }}
+        run: |
+          gh release create "$TAG" image.txt sbom.spdx.json --draft --target "$COMMIT" \
+            --title "$TAG" --notes-file release-notes.md
+
+      - name: Tag the image with the version
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          REFERENCE: ${{ steps.image.outputs.reference }}
+        run: docker buildx imagetools create --tag "ghcr.io/${GITHUB_REPOSITORY,,}:$TAG" "$REFERENCE"
+
+      - name: Publish the release
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          gh release edit "$TAG" --draft=false --latest
+          gh release verify "$TAG"
+          echo "Published $TAG: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
