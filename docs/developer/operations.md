@@ -76,7 +76,7 @@ The server's launch script already installed Docker, swap, automatic security up
 **[SPEC]**
 GitHub releases each commit on main after CI passes (ADR 0022):
 1. The **Deploy** workflow waits for approval. Open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**.
-2. It refuses to run during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. To release anyway, run **Deploy** by hand from the Actions tab with **force** ticked.
+2. It does not release during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. To release during a shift, run **Deploy** by hand from the Actions tab with **force** ticked.
 3. It applies `deploy/aws/stack.yaml` to the stack, and stops if any resource would be replaced or removed.
 4. On the server, `release.sh` backs the database up to S3, runs the image for that commit, and goes back to the previous image if the new one is not healthy.
 

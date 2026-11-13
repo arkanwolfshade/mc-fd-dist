@@ -1,8 +1,8 @@
 name: Deploy
 
 # Releases to the Lightsail server after CI passes on main, once a reviewer approves the
-# job in the production environment. A release is refused during shift hours unless it is
-# started by hand with "force". See ADR 0022.
+# job in the production environment. An approval during shift hours waits for the shift to
+# end (or fails at once if that is too far off); "force" releases without waiting. See ADR 0022.
 on:
   workflow_run:
     workflows: [CI]
@@ -29,6 +29,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
+    timeout-minutes: 360 # the most GitHub allows; the wait is capped to leave room for the release
     environment: production
     permissions:
       contents: read
@@ -47,9 +48,9 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
-      - name: Refuse to release during a shift
+      - name: Wait for a window outside shift hours
         if: ${{ !inputs.force }}
-        run: npx tsx tools/deploy-checks.ts window
+        run: npx tsx tools/deploy-checks.ts wait
       - name: Check that CI published this commit's image
         run: docker manifest inspect "ghcr.io/${GITHUB_REPOSITORY,,}:$COMMIT" > /dev/null
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
