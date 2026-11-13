@@ -1,12 +1,61 @@
 import { useState } from "preact/hooks";
 import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js";
 import { errorText } from "./api.js";
-import { cardDetails, DeleteCardButton, Family, StatusLabel, Ticket } from "./CardActions.js";
+import {
+  cardDetails,
+  DeleteCardButton,
+  Family,
+  SeniorBoxAndCheese,
+  StatusLabel,
+  Ticket,
+} from "./CardActions.js";
 import { EMPTY_FORM, frontDeskView, isEmpty, prepareCard } from "./forms.js";
 import type { CardForm, SavedCard } from "./forms.js";
 import type { ShiftView } from "./pending.js";
-import { toggleSeniorBox } from "./state.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
+
+// Chosen afresh for each card, since volunteers take turns at intake. See ADR 0024.
+function InitialsField(props: {
+  known: string[];
+  initials: string;
+  typed: string;
+  onChange: (changes: Partial<CardForm>) => void;
+}) {
+  const { known, initials, typed, onChange } = props;
+  return (
+    <fieldset>
+      <legend>Info from</legend>
+      <div class="info-from">
+        <div class="choices">
+          {known.map((option) => (
+            <button
+              type="button"
+              key={option}
+              class={initials === option ? "selected" : ""}
+              aria-pressed={initials === option}
+              onClick={() => onChange({ initials: option, typedInitials: "" })}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        <label>
+          New initials
+          <input
+            value={typed}
+            maxLength={4}
+            autocapitalize="characters"
+            autocomplete="off"
+            onInput={(e) => {
+              const value = e.currentTarget.value;
+              onChange({ typedInitials: value, initials: value.trim().toUpperCase() });
+            }}
+          />
+        </label>
+      </div>
+    </fieldset>
+  );
+}
 
 export function FrontDesk(props: {
   shift: ShiftView;
@@ -125,58 +174,14 @@ export function FrontDesk(props: {
           </div>
         </fieldset>
 
-        {/* Chosen afresh for each card, since volunteers take turns at intake. See ADR 0024. */}
-        <fieldset>
-          <legend>Info from</legend>
-          <div class="info-from">
-            <div class="choices">
-              {knownInitials.map((option) => (
-                <button
-                  type="button"
-                  key={option}
-                  class={initials === option ? "selected" : ""}
-                  aria-pressed={initials === option}
-                  onClick={() => change({ initials: option, typedInitials: "" })}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            <label>
-              New initials
-              <input
-                value={typedInitials}
-                maxLength={4}
-                autocapitalize="characters"
-                autocomplete="off"
-                onInput={(e) => {
-                  const typed = e.currentTarget.value;
-                  change({ typedInitials: typed, initials: typed.trim().toUpperCase() });
-                }}
-              />
-            </label>
-          </div>
-        </fieldset>
+        <InitialsField
+          known={knownInitials}
+          initials={initials}
+          typed={typedInitials}
+          onChange={change}
+        />
 
-        <div class="choices extras">
-          <button
-            type="button"
-            class={seniorBox ? "selected" : ""}
-            aria-pressed={seniorBox}
-            onClick={() => change(toggleSeniorBox({ seniorBox, cheese }))}
-          >
-            Senior Box
-          </button>
-          <button
-            type="button"
-            class={cheese ? "selected" : ""}
-            aria-pressed={cheese}
-            disabled={!seniorBox}
-            onClick={() => change({ cheese: !cheese })}
-          >
-            Cheese
-          </button>
-        </div>
+        <SeniorBoxAndCheese seniorBox={seniorBox} cheese={cheese} onChange={change} />
 
         <label>
           Other

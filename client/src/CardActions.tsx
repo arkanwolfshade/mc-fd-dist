@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { arrivalLabel } from "../../server/rules.js";
 import type { ArrivalMethod, CardStatus } from "../../server/rules.js";
+import { toggleSeniorBox } from "./state.js";
 import type { Card, UpdateCard } from "./types.js";
 
 // The words volunteers use: the front desk calls back, distribution confirms and distributes.
@@ -14,6 +15,36 @@ const STATUS_LABELS: Record<CardStatus, string> = {
 
 export function StatusLabel(props: { status: CardStatus }) {
   return <span class={`status ${props.status}`}>{STATUS_LABELS[props.status]}</span>;
+}
+
+// Cheese comes only with a Senior Box, so its button stays off until the box is ticked.
+export function SeniorBoxAndCheese(props: {
+  seniorBox: boolean;
+  cheese: boolean;
+  onChange: (changes: { seniorBox?: boolean; cheese?: boolean }) => void;
+}) {
+  const { seniorBox, cheese, onChange } = props;
+  return (
+    <div class="choices extras">
+      <button
+        type="button"
+        class={seniorBox ? "selected" : ""}
+        aria-pressed={seniorBox}
+        onClick={() => onChange(toggleSeniorBox({ seniorBox, cheese }))}
+      >
+        Senior Box
+      </button>
+      <button
+        type="button"
+        class={cheese ? "selected" : ""}
+        aria-pressed={cheese}
+        disabled={!seniorBox}
+        onClick={() => onChange({ cheese: !cheese })}
+      >
+        Cheese
+      </button>
+    </div>
+  );
 }
 
 // The Family's card number, drawn as the claim-check ticket they hold.
