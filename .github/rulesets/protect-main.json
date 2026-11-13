@@ -1,17 +1,38 @@
 {
-  "name": "Protect main",
-  "target": "branch",
+  "bypass_actors": [{ "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }],
+  "conditions": { "ref_name": { "exclude": [], "include": ["~DEFAULT_BRANCH"] } },
   "enforcement": "active",
-  "conditions": {
-    "ref_name": {
-      "include": ["~DEFAULT_BRANCH"],
-      "exclude": []
-    }
-  },
+  "name": "Protect main",
   "rules": [
     { "type": "deletion" },
     { "type": "non_fast_forward" },
+    {
+      "parameters": {
+        "allowed_merge_methods": ["rebase"],
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_extra_approval_for_unattributed_changes": false,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0,
+        "required_review_thread_resolution": false,
+        "required_reviewers": []
+      },
+      "type": "pull_request"
+    },
+    {
+      "parameters": {
+        "code_scanning_tools": [
+          {
+            "alerts_threshold": "errors",
+            "security_alerts_threshold": "high_or_higher",
+            "tool": "CodeQL"
+          }
+        ]
+      },
+      "type": "code_scanning"
+    },
+    { "parameters": { "severity": "errors" }, "type": "code_quality" },
     { "type": "required_signatures" }
   ],
-  "bypass_actors": []
+  "target": "branch"
 }

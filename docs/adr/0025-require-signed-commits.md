@@ -13,7 +13,7 @@ The history before this decision has two unsigned commits.
 
 ## Decision
 
-- **Rule:** The **Protect main** ruleset gets a `required_signatures` rule. GitHub rejects a push to main that contains a commit it cannot verify. The ruleset has no bypass, so this applies to everyone.
+- **Rule:** The **Protect main** ruleset gets a `required_signatures` rule. GitHub rejects a push to main that contains a commit it cannot verify. The live ruleset lets repository admins bypass it, so the rule catches mistakes but does not bind an admin who chooses to override it.
 - **Key:** The maintainer signs with the ed25519 key `BEFB51A293A8FDC2`. A key ID is public. The private key is never committed (`CONTRIBUTING.md`).
 - **Where signing is configured:** In each committer's own git configuration, as `commit.gpgsign` and `user.signingkey`. It is not pinned in a clone: `.git/config` is not committed, so it would not reach other clones.
 - **Existing history:** The two unsigned commits stay as they are. The rule checks what is pushed, and history is not rewritten.
@@ -28,6 +28,7 @@ The history before this decision has two unsigned commits.
 ## Consequences
 
 - A push with an unsigned commit is rejected. Anyone committing from another machine sets up signing there first and adds their public key to their GitHub account.
-- Losing the private key, with no bypass, means a repository admin has to edit the ruleset before anyone can push again.
+- Losing the private key means a repository admin has to use the bypass, or edit the ruleset, until a new key is on the account.
 - The key expires on 2027-11-12 (it was extended from 2027-04-03 on 2026-11-12). After that, signing fails until the expiry is extended and the updated public key is added to GitHub again.
-- *Assumed:* GitHub cannot sign commits made by its rebase-and-merge option, so a pull request must be merged or squashed. This matters when ADR 0008 is revisited and pull requests become the normal route.
+- GitHub cannot sign the commits that its rebase merge rewrites. GitHub said so ("Rebase merges cannot be automatically signed") on 2026-11-12, and the three pull requests merged by rebase afterwards landed unsigned. Pull requests are therefore squash-merged, which GitHub signs, and "Allow rebase merging" is switched off in the repository settings. Merge commits are switched off too.
+- The ruleset in `.github/rulesets/protect-main.json` is the live one, exported, including rules added in the GitHub settings (pull request, code scanning and code quality). Edit the file and the live ruleset together, so they do not drift apart.
