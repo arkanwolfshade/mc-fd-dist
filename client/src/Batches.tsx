@@ -2,11 +2,10 @@ import { useState } from "preact/hooks";
 import { arrivalLabel, PARTNER_METHODS } from "../../server/rules.js";
 import { roundWeight } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
-import { familyLabel, Ticket } from "./CardActions.js";
+import { familyLabel, SeniorBoxAndCheese, Ticket } from "./CardActions.js";
 import { EMPTY_PARTNER_FORM, partnerFormView, preparePartnerCard } from "./forms.js";
 import type { PartnerForm } from "./forms.js";
 import type { ShiftView } from "./pending.js";
-import { toggleSeniorBox } from "./state.js";
 import type { Card, Submit } from "./types.js";
 
 function totalWeight(loads: readonly (number | null)[]): number {
@@ -77,6 +76,26 @@ export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+// A partner Family in the list: saved, or still waiting to be sent after an outage.
+function PartnerRow(props: {
+  card: Pick<Card, "number" | "familySize" | "arrivalMethod">;
+  weight: number;
+  waiting?: boolean;
+}) {
+  const { card, weight, waiting } = props;
+  return (
+    <li class={waiting ? "card-row pending-card" : "card-row"}>
+      <Ticket number={card.number} />
+      <span class="who">
+        <strong class="family">{familyLabel(card)}</strong>
+        <span class="details">{arrivalLabel(card.arrivalMethod)}</span>
+      </span>
+      <span class="weight">{weight} lb</span>
+      {waiting && <span class="status pending">waiting to send</span>}
+    </li>
   );
 }
 
@@ -166,25 +185,7 @@ export function PartnerCards(props: {
             <strong>{size > 0 ? bags : "–"}</strong>
           </div>
         </div>
-        <div class="choices extras">
-          <button
-            type="button"
-            class={seniorBox ? "selected" : ""}
-            aria-pressed={seniorBox}
-            onClick={() => change(toggleSeniorBox({ seniorBox, cheese }))}
-          >
-            Senior Box
-          </button>
-          <button
-            type="button"
-            class={cheese ? "selected" : ""}
-            aria-pressed={cheese}
-            disabled={!seniorBox}
-            onClick={() => change({ cheese: !cheese })}
-          >
-            Cheese
-          </button>
-        </div>
+        <SeniorBoxAndCheese seniorBox={seniorBox} cheese={cheese} onChange={change} />
         {checkExtras && (
           <ExtrasFields
             added={extrasAdded}
@@ -200,25 +201,10 @@ export function PartnerCards(props: {
       </form>
       <ul class="cards">
         {pendingPartnerCards.map((card) => (
-          <li class="card-row pending-card" key={card.id}>
-            <Ticket number={card.number} />
-            <span class="who">
-              <strong class="family">{familyLabel(card)}</strong>
-              <span class="details">{arrivalLabel(card.arrivalMethod)}</span>
-            </span>
-            <span class="weight">{totalWeight(card.loads)} lb</span>
-            <span class="status pending">waiting to send</span>
-          </li>
+          <PartnerRow key={card.id} card={card} weight={totalWeight(card.loads)} waiting />
         ))}
         {[...partnerCards].reverse().map((card) => (
-          <li class="card-row" key={card.id}>
-            <Ticket number={card.number} />
-            <span class="who">
-              <strong class="family">{familyLabel(card)}</strong>
-              <span class="details">{arrivalLabel(card.arrivalMethod)}</span>
-            </span>
-            <span class="weight">{card.totalWeight} lb</span>
-          </li>
+          <PartnerRow key={card.id} card={card} weight={card.totalWeight} />
         ))}
       </ul>
     </section>
