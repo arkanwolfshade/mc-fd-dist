@@ -157,13 +157,27 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-      - run: |
+      - id: push
+        run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
           docker build -t "$image:$GITHUB_SHA" -t "$image:latest" .
-          docker push "$image:$GITHUB_SHA"
+          # The digest is the one the registry reports for the pushed image.
+          digest="$(docker push "$image:$GITHUB_SHA" | tee /dev/stderr | grep -Eo 'digest: sha256:[0-9a-f]{64}' | tail -1 | cut -d' ' -f2)"
           docker push "$image:latest"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Published $image@$digest" >> "$GITHUB_STEP_SUMMARY"
+      # Records how and where this image was built, so that a release can prove it names an
+      # image this repository's CI built. The attestation is stored beside the image.
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.push.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
