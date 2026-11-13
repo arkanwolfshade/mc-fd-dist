@@ -13,6 +13,8 @@
 - **Before each commit:** formats and lints the staged files, then scans the staged changes for secrets with [gitleaks](https://github.com/gitleaks/gitleaks).
 - **Before each push:** runs the type checks and unit tests.
 
+Check that the hooks are installed with `git config core.hooksPath`, which should print `.husky/_`. If it prints nothing, run `npx husky`. Until then git runs no hooks at all, so a failing test or a formatting error is only found by CI.
+
 gitleaks is not an npm package, so install it separately (on Windows, `winget install Gitleaks.Gitleaks`). Without it the commit hook warns and skips the secret scan, and CI catches secrets only after they reach GitHub.
 
 ## Signed commits

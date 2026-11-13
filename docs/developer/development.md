@@ -153,6 +153,11 @@ Symptom: `deploy/smoke-test.sh` or a `docker` command run from Git Bash fails wi
 Cause: Git Bash rewrites any argument that starts with `/` into a Windows path, including paths meant for inside a container.
 Fix: Set `MSYS_NO_PATHCONV=1` for the command. CI runs on Linux and is not affected.
 
+**[BUG] The git hooks do not run**
+Symptom: A commit is not formatted or linted, or a push with a failing test goes through, and CI finds the problem instead.
+Cause: `git config core.hooksPath` prints nothing, so git runs no hooks. Husky installs them when `npm install` runs the `prepare` script, which did not happen in this checkout.
+Fix: Run `npx husky`, then check that `git config core.hooksPath` prints `.husky/_`.
+
 **[BUG] A new shell script fails in CI with exit code 126**
 Symptom: CI reports exit code 126 when running a script in `deploy/`.
 Cause: The file was committed without the executable flag, which is easy to miss on Windows.
