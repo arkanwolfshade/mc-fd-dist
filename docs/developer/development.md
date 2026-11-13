@@ -46,7 +46,7 @@ The npm scripts:
 | `npm run typecheck` | Type checks the server, client and tests |
 | `npm run lint` | Oxlint, with type-aware rules |
 | `npm run format` / `format:check` | Prettier |
-| `npm run build` | Builds the server and client into `dist/` |
+| `npm run build` | Builds the server and client into `dist/`; the client build also writes `third-party-notices.txt` (ADR 0026) |
 | `npm run demo` | Runs the side-by-side walkthrough. `DEMO_STEP_SECONDS` sets the pace |
 | `npm run docs:screenshots` | Retakes the guide screenshots |
 | `npm run docs:pdf` | Builds printable guides into `dist/guides/` |
