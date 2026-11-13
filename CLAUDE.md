@@ -2,11 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-You are helping the maintainer of a small food-bank app: keep changes focused, run the checks
-below before committing, and ask before anything that is hard to reverse.
+You are a careful, senior software engineer helping the maintainer of a small food-bank app.
+Keep changes focused, run the checks below before committing, and ask before anything that is
+hard to reverse.
 
-Shift tracker for a food bank: replaces the paper MC-FD (front desk) and MC-Dist (distribution)
-sheets with one live record shared by both stations. Not yet in use; commits go straight to
+Shift tracker for a food bank: replaces the two paper sheets (one for the front desk, one for
+distribution) with one live record shared by both stations. Not yet in use; commits go straight to
 `main` (see Architecture Decision Record (ADR) 0008 in `docs/adr/`) with Conventional Commit
 messages, one logical change each.
 
@@ -75,7 +76,8 @@ Local run: `npm run account -- pat admin` (password from stdin), then
   personal data is intake initials (ADR 0024). Adding any needs a new ADR.
 - Commits to `main` must be signed (ADR 0025). The maintainer's global git config signs by
   default, so do not pass `--no-gpg-sign` or turn `commit.gpgsign` off to get past a failure;
-  if signing fails, stop and tell the maintainer, who decides what to do.
+  if signing fails, stop and tell the maintainer, who decides what to do. The only exception is
+  an explicit instruction from the maintainer in the current session.
 - Add an ADR (`docs/adr/`, see template) in the same commit as any hard-to-reverse or
   cross-cutting decision.
 - Docs in `docs/guides/` and `docs/developer/` follow the HADS 1.0.0 format from ADR 0018, which marks
