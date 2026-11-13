@@ -11,7 +11,7 @@ The server's SSH port is open only to the Lightsail console's browser client. Th
 
 ## Decision
 
-- **When:** Each push to main that passes CI starts the deploy workflow. Its job waits in the GitHub `production` environment until a required reviewer approves it. Only main can deploy, and administrators cannot bypass the rules. A release is refused during shift hours unless started by hand with `force`.
+- **When:** Each push to main that passes CI starts the deploy workflow. Its job waits in the GitHub `production` environment until a required reviewer approves it. Only main can deploy, and administrators cannot bypass the rules. An approval given during a shift makes the job wait until the shift ends and then release. If the shift ends more than 340 minutes away, the job fails at once and names the time to approve again. Started by hand with `force`, it releases without waiting.
 - **Access to AWS:** GitHub signs in through OpenID Connect. No AWS key is stored in GitHub. The deploy role trusts only tokens for `repo:arkanwolfshade@23161760/mc-fd-dist@1448960738:environment:production`. GitHub names the owner and repository with their numeric IDs, so a repository deleted and created again under the same name cannot deploy.
 - **What GitHub may do:** The deploy role can create, inspect and run change sets on the app's stack, only as a separate CloudFormation role, and can reach the server. The CloudFormation role:
   - can change Lightsail, the backup bucket and the budget;
@@ -35,5 +35,7 @@ The server's SSH port is open only to the Lightsail console's browser client. Th
 - CloudFormation uses the narrow role for every later change to the app's stack, including changes made by hand. A deliberate replacement of the server, or a new kind of AWS resource in the stack, first needs the role widened in `github-deploy.yaml` by an administrator.
 - An approved template can still change the bucket's lifecycle rules, for example shortening how long backups are kept. The change set is printed in the job before it runs.
 - If a job is killed before it cleans up, SSH stays open to one GitHub runner address until the next release or a manual fix.
+- A job can run for 6 hours at most and a shift lasts 7, so an approval in the first hour and 20 minutes of a shift (before about 8:20am Monday, Tuesday, Thursday and Friday, or 2:20pm Wednesday) fails at once instead of waiting. The AWS role trusts only the `production` environment, so splitting the wait into a separate job would need a second approval.
+- A waiting job holds the `deploy-production` concurrency group, so a newer release queues behind it. The older approved commit goes out first, and the newer one then waits for its own approval. If the repository ever becomes private, the hours of waiting are billed runner minutes.
 - Shift times are written in `tools/deploy-window.ts` and must be changed there when the schedule changes.
 - This partly supersedes ADR 0015, which had GitHub hold no AWS access.
