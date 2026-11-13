@@ -33,3 +33,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0023](0023-partner-families-carts-and-extras.md) | Enter partner Families as cards, and match carts and extras to the Family | Accepted |
 | [0024](0024-intake-initials.md) | Record the intake volunteer's initials on each walk-in card | Accepted |
 | [0025](0025-require-signed-commits.md) | Require signed commits on main | Accepted |
+| [0026](0026-license-the-project-under-mit.md) | License the project under MIT | Accepted |

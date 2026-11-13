@@ -25,6 +25,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run docs:check
+      - run: npm run licenses:check
       - run: npm run test:coverage
       # Codacy's get.sh script and its own action (which runs get.sh from Codacy's master
       # branch) are not used. The release binary is downloaded in a step that holds no secrets

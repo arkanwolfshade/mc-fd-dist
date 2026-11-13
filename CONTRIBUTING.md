@@ -47,3 +47,7 @@ Add an [architecture decision record](docs/adr/README.md) in the same commit as 
 Never add names, addresses or other personal details without a new decision record. Families stay anonymous (see [ADR 0002](docs/adr/0002-anonymous-same-day-tickets.md)). The only personal data held is each intake volunteer's initials (see [ADR 0024](docs/adr/0024-intake-initials.md)).
 
 Never commit secrets, real passwords or database files.
+
+## License
+
+By contributing you agree that your work is licensed under the [MIT license](LICENSE) that covers the project.

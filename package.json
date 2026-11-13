@@ -2,6 +2,7 @@
   "name": "mc-fd-dist",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Shift tracker that replaces the MC-FD and MC-Dist paper sheets at the food bank.",
   "type": "module",
   "engines": {
@@ -22,6 +23,7 @@
     "docs:screenshots": "vite build && tsx e2e/screenshots.ts",
     "docs:pdf": "tsx tools/guides-pdf.ts",
     "docs:check": "tsx tools/check-docs.ts",
+    "licenses:check": "tsx tools/check-licenses.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "oxlint --deny-warnings .",

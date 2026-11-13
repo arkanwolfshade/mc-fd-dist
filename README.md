@@ -79,3 +79,7 @@ The server reads these environment variables:
 | `CLIENT_DIR` | `dist/client` | Location of the built client |
 | `TIME_ZONE` | `America/Phoenix` | The food bank's time zone, used to close old shifts overnight |
 | `TRUST_PROXY` | `false` | Set to `true` behind the HTTPS proxy, so that login limits see the real client address |
+
+## License
+
+MIT, for the code, the guides and the pictures alike: see [LICENSE](LICENSE). The licenses of the libraries and fonts the app ships are collected in `/third-party-notices.txt`, served by the app itself ([ADR 0026](docs/adr/0026-license-the-project-under-mit.md)).
