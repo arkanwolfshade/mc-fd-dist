@@ -3,6 +3,8 @@ name: Deploy
 # Releases to the Lightsail server after CI passes on main, once a reviewer approves the
 # job in the production environment. A release is refused during shift hours unless it is
 # started by hand with "force". See ADR 0022.
+# checkov:skip=CKV_GHA_7: "force" only skips the shift-hours guard. It cannot change what is
+# released, which is the image CI already built for the commit, and a reviewer must approve.
 on:
   workflow_run:
     workflows: [CI]
