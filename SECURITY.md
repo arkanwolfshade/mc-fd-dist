@@ -1,6 +1,6 @@
 # Security policy
 
-This app records food bank shifts. It holds no names, addresses or other personal details: a card number is an anonymous same-day ticket (see [ADR 0002](docs/adr/0002-anonymous-same-day-tickets.md)). It does hold station and admin passwords as Argon2 hashes, shift records, and an activity log.
+This app records food bank shifts. It holds no names, addresses or other personal details. A card number is an anonymous same-day ticket (see Architecture Decision Record (ADR) [0002](docs/adr/0002-anonymous-same-day-tickets.md)). It does hold station and admin passwords as Argon2 hashes, shift records, and an activity log.
 
 ## Supported versions
 
