@@ -37,6 +37,7 @@ export function checkHads(markdown: string): string[] {
 
   let inFence = false;
   lines.forEach((line, index) => {
+    // nosemgrep: rules_lgpl_javascript_dos_rule-regex-dos -- reads this repository's own Markdown, and the patterns used here run in linear time
     const trimmed = line.trim();
     if (trimmed.startsWith("```")) {
       inFence = !inFence;

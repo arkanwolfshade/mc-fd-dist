@@ -32,6 +32,7 @@ export interface AppOptions {
 // address, so it is listed by host. A host that could alter the policy is left out.
 function registerSecurityHeaders(app: FastifyInstance, cookieSecure: boolean): void {
   app.addHook("onRequest", async (request, reply) => {
+    // nosemgrep: rules_lgpl_javascript_dos_rule-regex-dos -- SAFE_HOST is anchored and has no nested repetition, so it runs in linear time
     const socketSource = SAFE_HOST.test(request.host)
       ? ` ${cookieSecure ? "wss" : "ws"}://${request.host}`
       : "";

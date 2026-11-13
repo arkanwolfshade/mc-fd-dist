@@ -9,6 +9,7 @@ import { openDatabase } from "../db.js";
 const [username, role] = process.argv.slice(2);
 
 if (!username || !ROLES.includes(role as Role)) {
+  // nosemgrep: html-in-template-string -- a usage message for a terminal, not HTML
   console.error(`Usage: npm run account -- <username> <${ROLES.join("|")}>`);
   process.exit(1);
 }
