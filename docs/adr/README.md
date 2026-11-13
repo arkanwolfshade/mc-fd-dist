@@ -34,3 +34,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0024](0024-intake-initials.md) | Record the intake volunteer's initials on each walk-in card | Accepted |
 | [0025](0025-require-signed-commits.md) | Require signed commits on main | Accepted |
 | [0026](0026-license-the-project-under-mit.md) | License the project under MIT | Accepted |
+| [0027](0027-build-on-chainguard-node-images.md) | Build the app image on Chainguard's node images | Accepted |

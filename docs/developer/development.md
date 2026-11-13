@@ -121,8 +121,8 @@ Fix: Lint with Oxlint and oxlint-tsgolint, as configured in `.oxlintrc.json`. Re
 
 **[BUG] The container build fails while installing better-sqlite3**
 Symptom: `npm ci` fails in the Docker build with a node-gyp error.
-Cause: npm compiles better-sqlite3 from source, and the slim base image has no compiler.
-Fix: The build stage installs `python3`, `make` and `g++`. Keep them there, not in the final stage.
+Cause: npm compiles better-sqlite3 from source, and the runtime image has no compiler.
+Fix: The build stage uses Chainguard's `latest-dev` node image, which has `make` and `g++`, and installs `python3` with `apk`. Keep them there, not in the final stage.
 
 **[BUG] A new shell script fails in CI with exit code 126**
 Symptom: CI reports exit code 126 when running a script in `deploy/`.
