@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.1.0** · mc-fd-dist · 2026-11-11 · For the maintainer and the staff owner
+**Version 1.2.0** · mc-fd-dist · 2026-11-13 · For the maintainer and the staff owner
 
 ---
 
@@ -19,7 +19,7 @@ Where each part of the system lives:
 | Thing | Where |
 |---|---|
 | Code and issues | GitHub, `arkanwolfshade/mc-fd-dist` |
-| Container image | `ghcr.io/arkanwolfshade/mc-fd-dist`, tagged with each commit and `latest` |
+| Container image | `ghcr.io/arkanwolfshade/mc-fd-dist`, tagged with each commit and `latest`, built on Chainguard's node images (ADR 0027) |
 | AWS account | A standalone account for this app alone, to be handed to the food bank (ADR 0015) |
 | Region | `us-west-2` (Oregon) |
 | Infrastructure | CloudFormation stack `mc-fd-dist`, from `deploy/aws/stack.yaml` |
@@ -49,6 +49,7 @@ Where settings and credentials live. None of them is in the repository.
 **[?]**
 - The prototype runs on the Lightsail server, released from GitHub (section 4). The nightly backup timer has run once on its own and reached S3.
 - Until the food bank has a hostname, the prototype uses `32-189-213-183.sslip.io`. sslip.io is a free public DNS service that answers with the IP address written in the name, so Caddy can get a real certificate without any DNS set-up. It gives no guarantees, so replace it with the real hostname before going live.
+- The first release on Chainguard's image (ADR 0027) has not yet run against the live data. The app still runs as user 1000, so the existing data volume stays writable, and `release.sh` backs up first and goes back if the new image is not healthy.
 - A restore drill onto the same server has been done (section 6). A drill onto a new server has not.
 - Alerts for downtime and missing backups have not been set up. Only the monthly budget warning reports anything.
 
@@ -76,7 +77,7 @@ The server's launch script already installed Docker, swap, automatic security up
 **[SPEC]**
 GitHub releases each commit on main after CI passes (ADR 0022):
 1. The **Deploy** workflow waits for approval. Open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**.
-2. It does not release during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. To release during a shift, run **Deploy** by hand from the Actions tab with **force** ticked.
+2. It does not release during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. While a job waits, it holds the release slot: a newer commit's **Deploy** queues behind it, so the older commit goes out first and the newer one then needs its own approval. To release during a shift, run **Deploy** by hand from the Actions tab with **force** ticked.
 3. It applies `deploy/aws/stack.yaml` to the stack, and stops if any resource would be replaced or removed.
 4. On the server, `release.sh` backs the database up to S3, runs the image for that commit, and goes back to the previous image if the new one is not healthy.
 

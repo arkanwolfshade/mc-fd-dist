@@ -46,16 +46,15 @@ printf '%s\n' "$password" | docker compose exec -T app node dist/server/cli/acco
 grep -q '"role":"admin"' <<<"$(sign_in)"
 
 echo "--- Container hardening"
-# The app's image has no shell or coreutils, so these checks run as node.
-docker compose exec -T app node -e 'process.exit(process.getuid() === 0 ? 1 : 0)'
-if docker compose exec -T app node -e 'require("node:fs").writeFileSync("/app/written", "")' 2>/dev/null; then
+[ "$(docker compose exec -T app id -u)" != 0 ]
+if docker compose exec -T app touch /app/written 2>/dev/null; then
   echo "The app's files should be read-only" >&2
   exit 1
 fi
 
 echo "--- Backup and restore"
 ./backup.sh --local-only
-name="$(docker compose run --rm --no-deps -T --entrypoint ls aws /backups | grep '^mc-fd-dist-' | tail -1 | tr -d '\r')"
+name="$(docker compose exec -T app ls /data/backups | grep '^mc-fd-dist-' | tail -1 | tr -d '\r')"
 ./restore.sh "$name"
 grep -q '"role":"admin"' <<<"$(sign_in)"
 

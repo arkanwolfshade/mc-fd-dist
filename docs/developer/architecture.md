@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.1.0** · mc-fd-dist · 2026-11-11 · For developers
+**Version 1.2.0** · mc-fd-dist · 2026-11-13 · For developers
 
 ---
 
@@ -24,6 +24,7 @@ Read `[NOTE]` only if the reasoning behind a design is needed; the ADRs in `docs
 | Database | SQLite through better-sqlite3, WAL mode | `server/db.ts` |
 | Client | Preact, built with Vite | `client/` |
 | Offline support | Service worker and a write queue in `localStorage` | `client/public/sw.js`, `client/src/outbox.ts` |
+| Container image | Chainguard's node images, pinned by digest (ADR 0027) | `Dockerfile` |
 | Hosting | Docker Compose behind Caddy, on AWS Lightsail | `deploy/` |
 
 **[NOTE]**
@@ -38,7 +39,8 @@ Each server module and what it is responsible for:
 
 | Module | Responsibility |
 |---|---|
-| `app.ts` | Builds the Fastify app: security headers, the live socket, the health check, route registration |
+| `main.ts`, `config.ts` | Start the server. `config.ts` reads the settings from environment variables, which the README lists |
+| `app.ts` | Builds the Fastify app: security headers, the live socket, the health check, serving the built client, route registration |
 | `accounts.ts`, `sessions.ts` | Accounts with Argon2 password hashes; session tokens stored as hashes |
 | `auth-routes.ts` | Signing in and out, and who is signed in |
 | `cards.ts`, `card-routes.ts` | Cards, their status path, revisions and live broadcasts |
@@ -53,7 +55,35 @@ Each server module and what it is responsible for:
 
 ---
 
-## 3. Data model
+## 3. Client, tools and tests
+
+**[SPEC]**
+Decision logic lives in plain `.ts` files, because there is no DOM test environment: the `.tsx` screens are covered only by the browser tests in `e2e/`. The client files and what each is responsible for:
+
+| File in `client/src/` | Responsibility |
+|---|---|
+| `main.tsx`, `Station.tsx` | Start the app. A station sets up its outbox, live connection and timers once per sign-in |
+| `api.ts` | HTTP calls, and what to tell a volunteer about a failure |
+| `state.ts`, `pending.ts` | The shift as a station sees it: merging cards by revision, and the server's state plus writes still waiting to send |
+| `outbox.ts` | The write queue that survives dropouts (section 6) |
+| `forms.ts`, `types.ts` | Card entry rules and shared types |
+| `FrontDesk.tsx`, `Distribution.tsx`, `Batches.tsx`, `CardActions.tsx` | The two stations' screens, partner Families and returned items, and the status buttons |
+| `Summary.tsx`, `Admin.tsx`, `Login.tsx`, `Help.tsx` | Shift totals, the admin screen, sign-in, and the guides in the Help tab |
+
+**[SPEC]**
+The tools in `tools/` run in CI, in the Deploy workflow or at build time:
+
+| File | Responsibility |
+|---|---|
+| `deploy-checks.ts`, `deploy-window.ts` | The Deploy workflow's wait for a window outside shift hours (ADR 0022), and the shift times it uses |
+| `check-change-set.ts` | Refuses a release whose stack change replaces or removes a resource |
+| `check-docs.ts`, `hads.ts`, `links.ts` | `npm run docs:check`: HADS format, links and pictures |
+| `guides.ts`, `vite-guides.ts`, `guides-pdf.ts` | Turn the volunteer guides into the Help tab's HTML and the printable PDFs |
+| `check-licenses.ts`, `licenses.ts`, `vite-notices.ts` | The license allowlist and `third-party-notices.txt` (ADR 0026) |
+
+---
+
+## 4. Data model
 
 **[SPEC]**
 The tables and what each holds:
@@ -75,7 +105,7 @@ The tables and what each holds:
 
 ---
 
-## 4. How a change moves between stations
+## 5. How a change moves between stations
 
 **[SPEC]**
 1. A station sends a write over HTTP, for example `PATCH /api/cards/:id` with the card's current `revision`.
@@ -91,7 +121,7 @@ The tables and what each holds:
 
 ---
 
-## 5. Offline behaviour
+## 6. Offline behaviour
 
 **[SPEC]**
 - The service worker keeps the app's own files for offline use. It never handles `/api`.
@@ -107,7 +137,7 @@ ADR 0014 records the reasoning and the trade-offs, including what is lost if a d
 
 ---
 
-## 6. Security
+## 7. Security
 
 **[SPEC]**
 - Passwords: Argon2. Session tokens are stored only as hashes.
@@ -124,7 +154,7 @@ ADR 0014 records the reasoning and the trade-offs, including what is lost if a d
 
 ---
 
-## 7. Known limits
+## 8. Known limits
 
 **[?]**
 - Install and offline behaviour on real iPhones, iPads and Android devices has not been tested.

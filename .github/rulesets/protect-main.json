@@ -10,7 +10,7 @@
       "parameters": {
         "allowed_merge_methods": ["squash"],
         "dismiss_stale_reviews_on_push": false,
-        "require_code_owner_review": false,
+        "require_code_owner_review": true,
         "require_extra_approval_for_unattributed_changes": false,
         "require_last_push_approval": false,
         "required_approving_review_count": 0,
@@ -32,7 +32,19 @@
       "type": "code_scanning"
     },
     { "parameters": { "severity": "errors" }, "type": "code_quality" },
-    { "type": "required_signatures" }
+    { "type": "required_signatures" },
+    {
+      "parameters": {
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          { "context": "Codacy Coverage Variation", "integration_id": 56611 },
+          { "context": "Codacy Diff Coverage", "integration_id": 56611 },
+          { "context": "Codacy Static Code Analysis", "integration_id": 56611 }
+        ],
+        "strict_required_status_checks_policy": true
+      },
+      "type": "required_status_checks"
+    }
   ],
   "target": "branch"
 }

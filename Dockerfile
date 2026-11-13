@@ -15,8 +15,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN npm run build && npm prune --omit=dev
-# The runtime image has no shell, so the data folder is made here. Named volumes copy this
-# ownership when they are first created.
+# The data folder is made here and copied with its owner. Named volumes copy this ownership
+# when they are first created.
 RUN mkdir -p /data/backups && chown -R 1000:1000 /data
 
 FROM cgr.dev/chainguard/node:latest@sha256:013b80be7d1fe3b24bad520aa559b83ec2048896bbacc96e1885ce1a66903923

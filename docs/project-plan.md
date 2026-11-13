@@ -1,5 +1,7 @@
 # Food bank shift tracker: replacing the MC-FD and MC-Dist sheets
 
+This is the plan the project started from, corrected on 2026-11-13 where the built system differs. `docs/developer/architecture.md` and the decision records in `docs/adr/` are the current description.
+
 ## Context
 
 The food bank tracks each shift on two printed sheets: MC-FD (front desk) and MC-Dist (distribution). Both repeat the same family details, totals are added up by hand per page, and neither station can see the other's work. This project replaces the sheets with a small web app that shares one live record between the stations, stores it permanently, and produces reports.
@@ -35,24 +37,24 @@ These choices were not discussed in the interview and are open to change.
 ## Data model
 
 - **shift:** date (one shift per date), status (open or closed), reopened flag.
-- **card:** shift, card number (unique per shift), family size, arrival method (one of East, West, AC, Bus, Walk), senior box (yes/no), cheese (yes/no), TEFAP bags, TEFAP override flag, other (text), status (entered, called, confirmed, distributed), up to three load weights, revision.
-- **partner_batch:** shift, partner (Door Dash or Helping Hands), family count, weight. Zero or more per shift, entered in a dedicated end-of-shift step, never mixed into the card list.
-- **returned_batch:** shift, weight, time. A running log that is not tied to any card.
+- **card:** shift, card number (unique per shift), family size, arrival method (one of East, West, AC, Bus, Walk, or DD and HH for Door Dash and Helping Hands Families), senior box (yes/no), cheese (yes/no), TEFAP bags, TEFAP override flag, other (text), status (entered, called, confirmed, distributed, or left), up to three cart weights, extras added and a note, intake initials, revision, client ID.
+- **partner_batch:** retired. Door Dash and Helping Hands Families are cards, entered in a dedicated end-of-shift step (ADR 0023). Migration 6 dropped the table.
+- **returned_batch:** shift, weight, client ID. A running log that is not tied to any card.
 - **account:** role login or named admin, with password hash.
 - **audit_log:** who (station or admin), what, when. Needed because shared logins cannot identify a person.
 
 ## Business rules
 
 - TEFAP bags are calculated from family size: 1-4 = 1, 5-8 = 2, 9+ = 3. Staff can override.
-- Card weight is the sum of its load weights.
-- Shift net weight is card loads, plus partner batch weights, minus returned batches (see ADR 0012).
+- Card weight is the sum of its cart weights.
+- Shift net weight is the weight of all cards, including Door Dash and Helping Hands cards, minus returned batches (see ADR 0012 and ADR 0023).
 - The "on this page" footer totals go away. Their purpose moves to the live shift summary.
 - Two stations can edit one card, so each write carries a revision number. A stale write prompts a review instead of silently overwriting.
 
 ## Screens
 
 1. **Front desk:** fast card entry and a live list of the shift's cards.
-2. **Distribution:** live queue, confirm or correct, enter weights, mark distributed; returned-batch log; end-of-shift partner batch step.
+2. **Distribution:** live queue, confirm or correct, enter weights, mark distributed; returned-batch log; end-of-shift Door Dash and Helping Hands step.
 3. **Shift summary:** matches the MC-Dist Totals table and updates live.
 4. **Admin:** close and reopen shifts, date-range totals, CSV export, change role passwords, manage admin accounts, recent activity. Distribution can also close a shift, and old shifts close automatically overnight (see ADR 0013).
 
@@ -83,7 +85,7 @@ Estimates from third-party guides, to confirm on official AWS pricing pages:
 4. Admin, date-range reports, CSV export, audit log.
 5. PWA install, dropout queue and resync.
 6. Deployment, backups, monitoring, and restore scripts, in the AWS account that is handed to the food bank (see ADR 0015).
-7. Code health tools, run in CI and blocking a merge when they fail. Proposed, to be confirmed:
+7. Code health tools, run in CI and blocking a merge when they fail (see ADR 0016):
    - linting and formatting checks;
    - type checking, which is already in place;
    - static security analysis (SAST);
