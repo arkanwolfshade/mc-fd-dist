@@ -78,9 +78,10 @@ Local run: `npm run account -- pat admin` (password from stdin), then
   if signing fails, stop and tell the maintainer, who decides what to do.
 - Add an ADR (`docs/adr/`, see template) in the same commit as any hard-to-reverse or
   cross-cutting decision.
-- Docs in `docs/guides/` and `docs/developer/` follow the HADS 1.0.0 format from ADR 0018 (blocks marked with
-  tags such as `[BUG]` and `[?]`); `tools/hads.ts` checks them. When a screen changes, run `npm run docs:screenshots`
-  and check the guides still match. Read `[BUG]` blocks in `docs/developer/development.md`
-  before touching build, CI or deploy scripts.
+- Docs in `docs/guides/` and `docs/developer/` follow the HADS 1.0.0 format from ADR 0018, which marks
+  blocks with bracketed tags; `tools/hads.ts` checks them. When a screen changes, run
+  `npm run docs:screenshots` and check the guides still match. Before touching build, CI or
+  deploy scripts, read the known-pitfall blocks (the ones tagged as a bug) in
+  `docs/developer/development.md`.
 - New `deploy/*.sh` files need `git update-index --chmod=+x` (Windows loses the flag).
 - Pin new GitHub Actions and scanner images to a full commit/digest with the version in a comment.
