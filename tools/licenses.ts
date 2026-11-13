@@ -37,14 +37,16 @@ function declared(pkg: InstalledPackage): string | null {
   return types.length > 0 ? types.join(" OR ") : null;
 }
 
-// "(MIT OR Apache-2.0)" is fine if either is allowed; "A AND B" only if both are.
+// "(MIT OR Apache-2.0)" is fine if either is allowed; "A AND B" only if both are. SPDX writes
+// the operators with single spaces, so plain string splits are enough, and an oddly spaced
+// expression is rejected, never accepted.
 // shortcut: nested expressions are read loosely, which can only reject a good one, never
 // accept a bad one; spell out the license in the allowlist if that ever happens.
 function permitted(expression: string): boolean {
-  return expression.split(/\s+OR\s+/).some((choice) =>
+  return expression.split(" OR ").some((choice) =>
     choice
       .replace(/[()]/g, "")
-      .split(/\s+AND\s+/)
+      .split(" AND ")
       .every((id) => ALLOWED.has(id.trim())),
   );
 }
