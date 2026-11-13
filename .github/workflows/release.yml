@@ -39,7 +39,7 @@ jobs:
     permissions:
       contents: write # creates the release and its tag
       packages: write # adds the version tag to the image
-      actions: read # finds the commit's CI run
+      actions: write # finds the commit's CI run, and starts Deploy for the new release
       attestations: read # checks the image's build attestation
     env:
       GH_TOKEN: ${{ github.token }}
@@ -157,3 +157,10 @@ jobs:
           done
           gh release verify "$TAG"
           echo "Published $TAG: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+
+      # The deploy still waits for a reviewer's approval in the production environment.
+      - name: Ask for approval to deploy
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: gh workflow run deploy.yml --ref main --field version="$TAG"

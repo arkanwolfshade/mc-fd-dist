@@ -32,4 +32,4 @@ GitHub's immutable releases are switched on for the repository. Once a release i
 - Registry tags are still movable, so the version tag on the image is a convenience. Production runs the digest.
 - The first release must be of a commit built after CI began attesting images, because older images carry no attestation.
 - Release notes are only as good as the pull request titles they list.
-- Until the Deploy workflow is changed to deploy releases, production still deploys each commit as ADR 0022 describes.
+- A deploy uses the scripts and templates of the release's own commit, as they were when it was cut. `v0.1.0` and `v0.1.1` were cut before the deploy scripts took a version and a digest, so they cannot be deployed. The first deployable release is the next one. ADR 0022 is amended accordingly.
