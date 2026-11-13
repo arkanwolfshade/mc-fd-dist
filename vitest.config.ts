@@ -19,6 +19,7 @@ export default defineConfig({
         "tools/check-licenses.ts",
         "tools/guides-pdf.ts",
         "tools/deploy-checks.ts",
+        "tools/release-checks.ts",
       ],
       // lcov is what Codacy reads; see the upload step in .github/workflows/ci.yml.
       reporter: ["text-summary", "lcov"],

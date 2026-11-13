@@ -38,6 +38,10 @@ Merge pull requests with **Squash and merge**. GitHub signs that commit, but not
 - CI runs these on every push, along with the security scans listed in [ADR 0016](docs/adr/0016-code-health-checks.md). A finding blocks the build. If a rule truly does not apply, turn it off where it applies and say why, rather than ignoring it.
 - Pin any new GitHub Action or scanner image to a full commit or digest, with the version in a comment.
 
+## Releases
+
+The maintainer cuts a release ([ADR 0029](docs/adr/0029-immutable-versioned-releases.md)). In the Actions tab, run **Release** from `main` with the version, for example `0.2.0`. It starts as a dry run that publishes nothing and shows the release notes. Run it again with **dry run** unticked to publish. A published release and its version can never be changed or reused, so check the dry run first.
+
 ## Decisions
 
 Add an [architecture decision record](docs/adr/README.md) in the same commit as any change that is hard to reverse, affects several parts of the system, or rejects an obvious alternative.
