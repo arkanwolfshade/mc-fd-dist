@@ -163,9 +163,12 @@ export function newCardBags(input: Pick<NewCard, "familySize" | "tefapBags">): n
   return input.tefapBags ?? tefapBags(input.familySize);
 }
 
+// SQLite stores a flag as 0 or 1.
+function flag(value: boolean): 0 | 1 {
+  return value ? 1 : 0;
+}
+
 export function createCard(db: Database, shiftId: number, input: NewCard): Card | "duplicate" {
-  const isOverride = input.tefapBags !== undefined;
-  const loads = input.loads ?? [];
   try {
     const { lastInsertRowid } = db
       .prepare(
@@ -180,14 +183,14 @@ export function createCard(db: Database, shiftId: number, input: NewCard): Card 
         input.number,
         input.familySize,
         input.arrivalMethod,
-        input.seniorBox ? 1 : 0,
-        input.cheese ? 1 : 0,
+        flag(input.seniorBox),
+        flag(input.cheese),
         input.other,
         newCardBags(input),
-        isOverride ? 1 : 0,
+        flag(input.tefapBags !== undefined),
         input.status ?? "entered",
-        ...loadColumns(loads),
-        input.extrasAdded ? 1 : 0,
+        ...loadColumns(input.loads ?? []),
+        flag(input.extrasAdded ?? false),
         input.extrasNote ?? "",
         input.intakeInitials ?? null,
       );
@@ -218,14 +221,20 @@ function loadColumns(loads: readonly (number | null)[]): (number | null)[] {
   return [loads[0] ?? null, loads[1] ?? null, loads[2] ?? null];
 }
 
+// The changes that name a value: a missing or null field leaves the card as it was. The TEFAP
+// bags are left out, because there null means "go back to the size rule".
+function given(changes: CardChanges): Partial<Omit<CardChanges, "tefapBags">> {
+  const { tefapBags: _byHand, ...rest } = changes;
+  return Object.fromEntries(Object.entries(rest).filter(([, value]) => value != null));
+}
+
 export function updateCard(
   db: Database,
   current: Card,
   revision: number,
   changes: CardChanges,
 ): UpdateResult {
-  const familySize = changes.familySize ?? current.familySize;
-  const loads = changes.loads ?? current.loads;
+  const next = { ...current, ...given(changes) };
 
   try {
     const { changes: updated } = db
@@ -237,18 +246,18 @@ export function updateCard(
          WHERE id = ? AND revision = ?`,
       )
       .run(
-        changes.number ?? current.number,
-        familySize,
-        changes.arrivalMethod ?? current.arrivalMethod,
-        (changes.seniorBox ?? current.seniorBox) ? 1 : 0,
-        (changes.cheese ?? current.cheese) ? 1 : 0,
-        changes.other ?? current.other,
+        next.number,
+        next.familySize,
+        next.arrivalMethod,
+        flag(next.seniorBox),
+        flag(next.cheese),
+        next.other,
         bagsAfter(current, changes),
-        overrideAfter(current, changes) ? 1 : 0,
-        changes.status ?? current.status,
-        ...loadColumns(loads),
-        (changes.extrasAdded ?? current.extrasAdded) ? 1 : 0,
-        changes.extrasNote ?? current.extrasNote,
+        flag(overrideAfter(current, changes)),
+        next.status,
+        ...loadColumns(next.loads),
+        flag(next.extrasAdded),
+        next.extrasNote,
         current.id,
         revision,
       );
