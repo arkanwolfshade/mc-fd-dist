@@ -2,7 +2,7 @@
    element, drawn as the canary claim-check ticket they hold. */
 :root {
   --paper: #eaefea;
-  --surface: #ffffff;
+  --surface: #fff;
   --ink: #1d2b24;
   --muted: #56645c;
   --line: #c9d3cc;
@@ -114,6 +114,7 @@ legend {
   color: var(--ink);
   font: 700 22px/1.15 var(--font-number);
   font-variant-numeric: tabular-nums;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Chrome before 120 and older Safari need the prefix */
   -webkit-mask:
     radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
     radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
@@ -376,6 +377,7 @@ a.button {
   gap: 8px;
 }
 
+/* stylelint-disable-next-line media-feature-range-notation -- range notation needs Safari 16.4 */
 @media (max-width: 560px) {
   .cards > li.card-row {
     grid-template-columns: auto minmax(0, 1fr);
@@ -539,7 +541,7 @@ label.check input {
   flex: none;
   width: 12px;
   height: 12px;
-  border: 2px solid currentColor;
+  border: 2px solid currentcolor;
   border-radius: 50%;
 }
 

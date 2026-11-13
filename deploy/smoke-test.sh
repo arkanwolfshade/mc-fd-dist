@@ -40,6 +40,7 @@ grep -q 'Food bank shift tracker' page.html
 rm -f page.html
 
 echo "--- Account and sign-in"
+# nosemgrep: codacy.bash.security.hard-coded-password -- generated at run time, not a stored secret
 password="$(openssl rand -base64 18)"
 printf '%s\n' "$password" | docker compose exec -T app node dist/server/cli/account.js smoke-admin admin
 grep -q '"role":"admin"' <<<"$(sign_in)"

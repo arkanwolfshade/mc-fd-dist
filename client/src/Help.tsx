@@ -42,6 +42,7 @@ export function Help(props: { role: Role }) {
       </nav>
       {/* Written in this repository and converted at build time, never user input. */}
       {/* oxlint-disable-next-line react/no-danger */}
+      {/* nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml */}
       <article class="guide panel" dangerouslySetInnerHTML={{ __html: shown.html }} />
     </div>
   );
