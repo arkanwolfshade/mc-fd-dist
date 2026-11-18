@@ -1,33 +1,35 @@
 import { shiftSummary } from "../../server/summary.js";
+import { ScreenReaderText } from "./Controls.js";
 import type { ShiftWithCards } from "./types.js";
 
 interface TotalsRow {
   key: string;
   label: string;
   value: string | number;
-  // A breakdown of the row above it.
-  detail?: boolean;
+  // A breakdown of the total above it, named here for screen readers, which do not see the
+  // indent that shows it.
+  detailOf?: string;
 }
 
 function totalsRows(summary: ReturnType<typeof shiftSummary>): TotalsRow[] {
   const { families, weight } = summary;
   return [
     { key: "families", label: "Total # of families", value: families.total },
-    { key: "families-cards", label: "Cards", value: families.cards, detail: true },
+    { key: "families-cards", label: "Cards", value: families.cards, detailOf: "Families" },
     {
       key: "families-partners",
       label: "Door Dash and Helping Hands",
       value: families.partners,
-      detail: true,
+      detailOf: "Families",
     },
     { key: "left", label: "Left without food", value: families.left },
     { key: "weight", label: "Total weight", value: `${weight.total} lb` },
-    { key: "weight-cards", label: "Cards", value: `${weight.cards} lb`, detail: true },
+    { key: "weight-cards", label: "Cards", value: `${weight.cards} lb`, detailOf: "Weight" },
     {
       key: "weight-partners",
       label: "Door Dash and Helping Hands",
       value: `${weight.partners} lb`,
-      detail: true,
+      detailOf: "Weight",
     },
     { key: "returned", label: "Total return weight", value: `${summary.returnedWeight} lb` },
     { key: "net", label: "Net weight", value: `${summary.netWeight} lb` },
@@ -48,8 +50,11 @@ export function Summary(props: { shift: ShiftWithCards }) {
         <table class="totals">
           <tbody>
             {totalsRows(summary).map((row) => (
-              <tr key={row.key} class={row.detail ? "detail" : undefined}>
-                <th>{row.label}</th>
+              <tr key={row.key} class={row.detailOf ? "detail" : undefined}>
+                <th scope="row">
+                  {row.detailOf && <ScreenReaderText>{row.detailOf}: </ScreenReaderText>}
+                  {row.label}
+                </th>
                 <td>{row.value}</td>
               </tr>
             ))}

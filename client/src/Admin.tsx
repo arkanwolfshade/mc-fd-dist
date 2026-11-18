@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import type { AuditEntry } from "../../server/audit.js";
 import type { ShiftSummary } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
+import { ConfirmButton, ErrorMessage, ScreenReaderText } from "./Controls.js";
 import { isoDate } from "./state.js";
 import type { Identity, Shift } from "./types.js";
 
@@ -46,10 +47,12 @@ function ReportResults(props: { report: Report; onChange: (url: string) => void 
             </span>
             {shift.status === "closed" ? (
               <button onClick={() => onChange(`/api/admin/shifts/${shift.id}/reopen`)}>
-                Reopen
+                Reopen<ScreenReaderText> the shift on {shift.date}</ScreenReaderText>
               </button>
             ) : (
-              <button onClick={() => onChange(`/api/shifts/${shift.id}/close`)}>Close</button>
+              <button onClick={() => onChange(`/api/shifts/${shift.id}/close`)}>
+                Close<ScreenReaderText> the shift on {shift.date}</ScreenReaderText>
+              </button>
             )}
           </li>
         ))}
@@ -105,7 +108,7 @@ function Reports(props: { onChanged: () => void }) {
           Show totals
         </button>
       </div>
-      {error && <p class="error">{error}</p>}
+      <ErrorMessage text={error} />
       {report && <ReportResults report={report} onChange={change} />}
       <CsvLinks range={range} />
     </section>
@@ -162,7 +165,7 @@ function Accounts(props: { identity: Identity; onChanged: () => void }) {
     <section class="panel">
       <h2>Accounts</h2>
       {message && <p class="success">{message}</p>}
-      {error && <p class="error">{error}</p>}
+      <ErrorMessage text={error} />
       <ul class="cards">
         {accounts.map((account) => (
           <AccountRow
@@ -222,7 +225,6 @@ function AccountRow(props: {
 }) {
   const { account, isSelf, onError, onPasswordChanged, onRemoved } = props;
   const [changing, setChanging] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
   const [password, setPassword] = useState("");
 
   async function savePassword(event: Event) {
@@ -254,15 +256,20 @@ function AccountRow(props: {
         <strong>{account.username}</strong> <span class="status">{account.role}</span>
       </span>
       <span class="choices">
-        <button onClick={() => setChanging(!changing)}>Change password</button>
-        {account.role === "admin" && !isSelf && !confirmRemove && (
-          <button onClick={() => setConfirmRemove(true)}>Remove</button>
-        )}
-        {confirmRemove && (
-          <>
-            <button onClick={remove}>Yes, remove</button>
-            <button onClick={() => setConfirmRemove(false)}>Cancel</button>
-          </>
+        <button aria-expanded={changing} onClick={() => setChanging(!changing)}>
+          Change password<ScreenReaderText> for {account.username}</ScreenReaderText>
+        </button>
+        {account.role === "admin" && !isSelf && (
+          <ConfirmButton
+            label={
+              <>
+                Remove<ScreenReaderText> {account.username}</ScreenReaderText>
+              </>
+            }
+            question={`Remove the admin account ${account.username}?`}
+            yes="Yes, remove"
+            onYes={() => void remove()}
+          />
         )}
       </span>
       {changing && (
@@ -298,7 +305,7 @@ function Activity(props: { version: number }) {
   return (
     <section class="panel">
       <h2>Recent activity</h2>
-      {error && <p class="error">{error}</p>}
+      <ErrorMessage text={error} />
       <ul class="activity">
         {entries.map((entry) => (
           <li key={entry.id}>

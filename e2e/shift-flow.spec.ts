@@ -223,10 +223,10 @@ test("totals combine cards, partner Families and returned items at every station
   // The front desk received the partner Families live.
   await frontDesk.getByRole("button", { name: "Totals" }).click();
   await expect(totalsRow(frontDesk, "Total # of families")).toContainText("3");
-  await expect(totalsRow(frontDesk, "Door Dash and Helping Hands").locator("td")).toHaveText([
-    "2",
+  await expect(totalsRow(frontDesk, "Families: Door Dash and Helping Hands")).toContainText("2");
+  await expect(totalsRow(frontDesk, "Weight: Door Dash and Helping Hands")).toContainText(
     "49.25 lb",
-  ]);
+  );
   await expect(totalsRow(frontDesk, "Total weight")).toContainText("69.75 lb");
   await expect(totalsRow(frontDesk, "Total return weight")).toContainText("3.5 lb");
   await expect(totalsRow(frontDesk, "Net weight")).toContainText("66.25 lb");

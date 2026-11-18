@@ -125,7 +125,11 @@ export async function chooseInitials(frontDesk: Page, initials: string): Promise
 }
 
 export async function callBack(frontDesk: Page): Promise<void> {
-  await frontDesk.getByRole("button", { name: "Call back", exact: true }).first().click();
+  // Each one also names its card for screen readers, as in "Call back card 3".
+  await frontDesk
+    .getByRole("button", { name: /^Call back card \d+$/ })
+    .first()
+    .click();
 }
 
 // Cards are found by the number on their ticket, as a volunteer finds them.

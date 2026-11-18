@@ -1,5 +1,5 @@
 # Development
-**Version 1.2.1** · mc-fd-dist · 2026-11-13 · For developers
+**Version 1.3.0** · mc-fd-dist · 2026-11-14 · For developers
 
 ---
 
@@ -66,6 +66,14 @@ The npm scripts:
 - Add an ADR in the same commit as any decision that is hard to reverse or crosses parts of the system.
 - Dependencies in `package.json` are pinned to exact versions, and `.npmrc` sets `save-exact` so that `npm install <package>` records one. Dependabot raises the pins.
 - When a screen changes, run `npm run docs:screenshots` and check the guides still describe it.
+
+**[SPEC]**
+Screens follow these rules for screen readers, and `e2e/accessibility.spec.ts` checks them. The shared pieces are in `client/src/Controls.tsx`:
+
+- Show an error with `ErrorMessage`, which keeps its alert region on the page so that the error is read out when it appears. Status messages go in an element with class `live` and `aria-live` or `role="status"` that is always present.
+- A button in a list says which item it acts on: the visible word, then the card or account in `ScreenReaderText`, as in "Call back card 3".
+- A question that replaces a button moves focus to its safe answer, and answering puts focus back on the button, or on the section's heading if the row may go. Use `ConfirmButton`, or `afterRender` to focus something the change puts on the page.
+- Each screen has one `main` area and a level-one heading, which a change of screen moves focus to.
 
 ---
 

@@ -11,6 +11,7 @@ import {
   Ticket,
 } from "./CardActions.js";
 import { EMPTY_FORM, frontDeskView, isEmpty, prepareCard } from "./forms.js";
+import { ErrorMessage, ScreenReaderText } from "./Controls.js";
 import type { CardForm, SavedCard } from "./forms.js";
 import type { ShiftView } from "./pending.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
@@ -154,7 +155,16 @@ export function FrontDesk(props: {
           </label>
           <div class="tefap">
             TEFAP bags
-            <strong>{size > 0 ? tefapBags(size) : "–"}</strong>
+            <strong>
+              {size > 0 ? (
+                tefapBags(size)
+              ) : (
+                <>
+                  <span aria-hidden="true">–</span>
+                  <ScreenReaderText>shown once the family size is entered</ScreenReaderText>
+                </>
+              )}
+            </strong>
           </div>
         </div>
 
@@ -193,16 +203,19 @@ export function FrontDesk(props: {
           />
         </label>
 
-        {error && <p class="error">{error}</p>}
+        <ErrorMessage text={error} />
         <button class="primary" type="submit">
           Save card {Number(number) || suggested}
         </button>
-        {saved && (
-          <p class="saved" role="status">
-            <Ticket number={saved.number} /> Saved: Family of {saved.familySize},{" "}
-            {cardDetails(saved)}
-          </p>
-        )}
+        {/* Always present, so that the first saved card is read out too. */}
+        <div class="live" role="status">
+          {saved && (
+            <p class="saved">
+              <Ticket number={saved.number} /> Saved: Family of {saved.familySize},{" "}
+              {cardDetails(saved)}
+            </p>
+          )}
+        </div>
       </form>
 
       <section class="panel">
@@ -223,11 +236,13 @@ export function FrontDesk(props: {
               <span class="row-actions">
                 {/* "Call back" is the radio call to distribution. */}
                 {card.status === "entered" && (
-                  <button onClick={() => onUpdate(card, { status: "called" })}>Call back</button>
+                  <button onClick={() => onUpdate(card, { status: "called" })}>
+                    Call back<ScreenReaderText> card {card.number}</ScreenReaderText>
+                  </button>
                 )}
                 {card.status === "called" && (
                   <button onClick={() => onUpdate(card, { status: "entered" })}>
-                    Undo call back
+                    Undo call back<ScreenReaderText> card {card.number}</ScreenReaderText>
                   </button>
                 )}
                 {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}

@@ -194,10 +194,8 @@ test("a Door Dash Family entered at the end of the shift counts in the totals", 
 
   for (const station of [frontDesk, distribution]) {
     await station.getByRole("button", { name: "Totals", exact: true }).click();
-    await expect(totalsRow(station, "Door Dash and Helping Hands").locator("td")).toHaveText([
-      "1",
-      "40 lb",
-    ]);
+    await expect(totalsRow(station, "Families: Door Dash and Helping Hands")).toContainText("1");
+    await expect(totalsRow(station, "Weight: Door Dash and Helping Hands")).toContainText("40 lb");
     await expect(totalsRow(station, "Total weight")).toContainText("40 lb");
   }
 });
