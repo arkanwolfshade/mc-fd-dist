@@ -2,7 +2,7 @@
 # Dependabot moves the digest (ADR 0027). The two stages must stay on the same Node major,
 # because better-sqlite3 is compiled in the first and loaded by the second.
 # Builds on the CI runner rather than the server, which is too small to compile comfortably.
-FROM cgr.dev/chainguard/node:latest-dev@sha256:4b1b492b6e1ef2433e14caaf09df940a415a3da5315a1ec5a787defd8464b054 AS build
+FROM cgr.dev/chainguard/node:latest-dev@sha256:87726d08ac62e749ca00666c6b6497e635d0d1baceb3b31ebcdf72f0c922038e AS build
 # The image's own user cannot install packages, and this stage is discarded: only files are
 # copied out of it, never its user.
 # hadolint ignore=DL3002
@@ -19,7 +19,7 @@ RUN npm run build && npm prune --omit=dev
 # when they are first created.
 RUN mkdir -p /data/backups && chown -R 1000:1000 /data
 
-FROM cgr.dev/chainguard/node:latest@sha256:013b80be7d1fe3b24bad520aa559b83ec2048896bbacc96e1885ce1a66903923
+FROM cgr.dev/chainguard/node:latest@sha256:efeb9fd6c61fd20b7c634531e0a746d26204bdc2df13e7ea57ab69aad349a900
 # Links the published package to the repository on GitHub.
 LABEL org.opencontainers.image.source=https://github.com/arkanwolfshade/mc-fd-dist \
       org.opencontainers.image.licenses=MIT
