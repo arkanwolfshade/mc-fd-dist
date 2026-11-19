@@ -7,6 +7,7 @@ import type { Role } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";
 import { Admin } from "./Admin.js";
 import { ApiError, api, connectLive, errorText } from "./api.js";
+import { afterRender, focusHeading, ScreenReaderText } from "./Controls.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
 import { Help } from "./Help.js";
@@ -75,6 +76,23 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
   );
   // Dedicated devices stay signed in for weeks, so "today" must keep moving.
   const [today, setToday] = useState(() => isoDate(new Date()));
+
+  // The warning goes away silently when the connection returns, so its return is said aloud.
+  const [reconnected, setReconnected] = useState(false);
+  const wasLost = useRef(false);
+  useEffect(() => {
+    if (!connected) {
+      wasLost.current = true;
+      setReconnected(false);
+    } else if (wasLost.current) {
+      wasLost.current = false;
+      setReconnected(true);
+    }
+  }, [connected]);
+
+  // Choosing a screen moves focus to its heading, so that a screen reader says where the
+  // user now is. Nothing moves when the station first loads.
+  const heading = useRef<HTMLHeadingElement>(null);
   const date = useRef(today);
   const snapshotKey = `shift:${identity.username}`;
 
@@ -295,7 +313,11 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
               key={option}
               class={view === option ? "selected" : ""}
               aria-current={view === option ? "page" : undefined}
-              onClick={() => setView(option)}
+              onClick={() => {
+                if (option === view) return;
+                setView(option);
+                afterRender(() => focusHeading(heading.current));
+              }}
             >
               {VIEW_LABELS[option]}
             </button>
@@ -307,50 +329,61 @@ export function Station(props: { identity: Identity; onSignedOut: () => void }) 
         </button>
       </header>
 
-      {!connected && (
-        <p class="warning">
-          Connection lost. Entries are being kept on this device. This station can't see new entries
-          from others until it returns.
-        </p>
-      )}
-      {waiting.length > 0 && (
-        <p class="warning">
-          {waiting.length} {waiting.length === 1 ? "entry" : "entries"} waiting to send. Totals will
-          update once they arrive.
-        </p>
-      )}
-      {notice && <p class="error">{notice}</p>}
-      {rejections.map((rejection) => (
-        <div class="rejected" key={rejection.id}>
-          <span>
-            <strong>{rejection.label}</strong> could not be saved: {rejection.message}
-          </span>
-          <button
-            onClick={() =>
-              setRejections((current) => current.filter((other) => other.id !== rejection.id))
-            }
-          >
-            Dismiss
-          </button>
+      <main>
+        <h1 class="sr-only" ref={heading}>
+          {VIEW_LABELS[view]}
+        </h1>
+        {/* Always present, so that screen readers read out what appears in them. */}
+        <div class="live" aria-live="polite">
+          {!connected && (
+            <p class="warning">
+              Connection lost. Entries are being kept on this device. This station can't see new
+              entries from others until it returns.
+            </p>
+          )}
+          {waiting.length > 0 && (
+            <p class="warning">
+              {waiting.length} {waiting.length === 1 ? "entry" : "entries"} waiting to send. Totals
+              will update once they arrive.
+            </p>
+          )}
+          {reconnected && <ScreenReaderText>Connected again.</ScreenReaderText>}
         </div>
-      ))}
+        <div class="live" role="alert">
+          {notice && <p class="error">{notice}</p>}
+          {rejections.map((rejection) => (
+            <div class="rejected" key={rejection.id}>
+              <span>
+                <strong>{rejection.label}</strong> could not be saved: {rejection.message}
+              </span>
+              <button
+                onClick={() =>
+                  setRejections((current) => current.filter((other) => other.id !== rejection.id))
+                }
+              >
+                Dismiss<ScreenReaderText> the message about {rejection.label}</ScreenReaderText>
+              </button>
+            </div>
+          ))}
+        </div>
 
-      {view === "admin" && <Admin identity={identity} />}
-      {view === "help" && <Help role={identity.role} />}
+        {view === "admin" && <Admin identity={identity} />}
+        {view === "help" && <Help role={identity.role} />}
 
-      {SHIFT_VIEWS.has(view) && (
-        <ShiftScreen
-          view={view}
-          shift={shiftView}
-          connected={connected}
-          submit={(write) => outbox.submit(write)}
-          onSaved={applyCard}
-          onUpdate={updateCard}
-          onDelete={deleteCard}
-          onOpenShift={openShift}
-          onCloseShift={closeShift}
-        />
-      )}
+        {SHIFT_VIEWS.has(view) && (
+          <ShiftScreen
+            view={view}
+            shift={shiftView}
+            connected={connected}
+            submit={(write) => outbox.submit(write)}
+            onSaved={applyCard}
+            onUpdate={updateCard}
+            onDelete={deleteCard}
+            onOpenShift={openShift}
+            onCloseShift={closeShift}
+          />
+        )}
+      </main>
     </div>
   );
 }

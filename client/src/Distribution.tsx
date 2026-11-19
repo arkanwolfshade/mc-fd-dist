@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import {
   ARRIVAL_METHODS,
   arrivalLabel,
@@ -17,6 +17,7 @@ import {
   StatusLabel,
   Ticket,
 } from "./CardActions.js";
+import { afterRender, ScreenReaderText } from "./Controls.js";
 import type { ShiftView } from "./pending.js";
 import {
   distributionLists,
@@ -45,6 +46,13 @@ export function Distribution(props: {
 }) {
   const { shift, submit, onSaved, onUpdate, onDelete, onCloseShift } = props;
   const [confirmClose, setConfirmClose] = useState(false);
+  // Asking moves focus to "Keep it open", the safe answer; keeping it open puts it back.
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const keepOpen = useRef<HTMLButtonElement>(null);
+  function askToClose(asking: boolean) {
+    setConfirmClose(asking);
+    afterRender(() => (asking ? keepOpen : closeButton).current?.focus());
+  }
   const { cards } = shift;
   const { queue, done, left, unserved } = distributionLists(cards);
 
@@ -71,7 +79,9 @@ export function Distribution(props: {
                 <span class="details">{distributedDetails(card)}</span>
               </span>
               <span class="row-actions">
-                <button onClick={() => onUpdate(card, { status: "confirmed" })}>Undo</button>
+                <button onClick={() => onUpdate(card, { status: "confirmed" })}>
+                  Undo<ScreenReaderText> distributed, card {card.number}</ScreenReaderText>
+                </button>
               </span>
             </li>
           ))}
@@ -81,7 +91,9 @@ export function Distribution(props: {
               <Family card={card} />
               <StatusLabel status={card.status} />
               <span class="row-actions">
-                <button onClick={() => onUpdate(card, { status: "entered" })}>Undo</button>
+                <button onClick={() => onUpdate(card, { status: "entered" })}>
+                  Undo<ScreenReaderText> left without food, card {card.number}</ScreenReaderText>
+                </button>
               </span>
             </li>
           ))}
@@ -122,13 +134,15 @@ export function Distribution(props: {
             <p>Close this shift? Only an admin can reopen it.</p>
             <div class="choices">
               <button onClick={onCloseShift}>Yes, close the shift</button>
-              <button class="primary" onClick={() => setConfirmClose(false)}>
+              <button ref={keepOpen} class="primary" onClick={() => askToClose(false)}>
                 Keep it open
               </button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setConfirmClose(true)}>Close shift</button>
+          <button ref={closeButton} onClick={() => askToClose(true)}>
+            Close shift
+          </button>
         )}
       </section>
     </div>
@@ -191,7 +205,9 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
           <button class="primary" onClick={() => onUpdate(card, { status: "confirmed" })}>
             Confirm card {card.number}
           </button>
-          <button onClick={() => setCorrecting(!correcting)}>Correct details</button>
+          <button aria-expanded={correcting} onClick={() => setCorrecting(!correcting)}>
+            Correct details<ScreenReaderText>, card {card.number}</ScreenReaderText>
+          </button>
         </div>
       )}
 
@@ -218,6 +234,7 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
           onDistributeAnyway={distribute}
           onGoBack={() => setMissing([])}
           onUndoConfirm={() => onUpdate(card, { status: "called" })}
+          correcting={correcting}
           onCorrect={() => setCorrecting(!correcting)}
         />
       )}
@@ -242,12 +259,17 @@ interface ConfirmedCardProps {
   onDistributeAnyway: () => void;
   onGoBack: () => void;
   onUndoConfirm: () => void;
+  correcting: boolean;
   onCorrect: () => void;
 }
 
 // What Distribution fills in once a card is confirmed: the weight of each cart and the extras.
 function ConfirmedCard(props: ConfirmedCardProps) {
   const { card, missing } = props;
+  // Asking about missing details moves focus to "Go back", and going back returns it.
+  const markButton = useRef<HTMLButtonElement>(null);
+  const goBack = useRef<HTMLButtonElement>(null);
+  const cardNumber = <ScreenReaderText>, card {card.number}</ScreenReaderText>;
   return (
     <>
       <CartFields loads={props.loads} carts={props.carts} onChange={props.onLoads} />
@@ -255,11 +277,20 @@ function ConfirmedCard(props: ConfirmedCardProps) {
         <ExtrasFields added={props.extrasAdded} note={props.extrasNote} onChange={props.onExtras} />
       )}
       <div class="choices">
-        <button class="primary" onClick={props.onMarkDistributed}>
-          Mark distributed
+        <button
+          ref={markButton}
+          class="primary"
+          onClick={() => {
+            props.onMarkDistributed();
+            afterRender(() => goBack.current?.focus());
+          }}
+        >
+          Mark distributed{cardNumber}
         </button>
-        <button onClick={props.onUndoConfirm}>Undo confirm</button>
-        <button onClick={props.onCorrect}>Correct details</button>
+        <button onClick={props.onUndoConfirm}>Undo confirm{cardNumber}</button>
+        <button aria-expanded={props.correcting} onClick={props.onCorrect}>
+          Correct details{cardNumber}
+        </button>
       </div>
       {missing.length > 0 && (
         <div class="confirm">
@@ -267,8 +298,15 @@ function ConfirmedCard(props: ConfirmedCardProps) {
             <p key={message}>{message}</p>
           ))}
           <div class="choices">
-            <button onClick={props.onDistributeAnyway}>Mark distributed anyway</button>
-            <button class="primary" onClick={props.onGoBack}>
+            <button onClick={props.onDistributeAnyway}>Mark distributed anyway{cardNumber}</button>
+            <button
+              ref={goBack}
+              class="primary"
+              onClick={() => {
+                props.onGoBack();
+                afterRender(() => markButton.current?.focus());
+              }}
+            >
               Go back
             </button>
           </div>

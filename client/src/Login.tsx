@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { api, errorText } from "./api.js";
+import { ErrorMessage } from "./Controls.js";
 import type { Identity } from "./types.js";
 
 export function Login(props: { onSignedIn: (identity: Identity) => void }) {
@@ -18,32 +19,34 @@ export function Login(props: { onSignedIn: (identity: Identity) => void }) {
   }
 
   return (
-    <form class="login panel" onSubmit={submit}>
-      <h1>Shift tracker</h1>
-      <label>
-        Username
-        <input
-          value={username}
-          autocomplete="username"
-          autocapitalize="off"
-          required
-          onInput={(e) => setUsername(e.currentTarget.value)}
-        />
-      </label>
-      <label>
-        Password
-        <input
-          type="password"
-          value={password}
-          autocomplete="current-password"
-          required
-          onInput={(e) => setPassword(e.currentTarget.value)}
-        />
-      </label>
-      {error && <p class="error">{error}</p>}
-      <button class="primary" type="submit">
-        Sign in
-      </button>
-    </form>
+    <main>
+      <form class="login panel" onSubmit={submit}>
+        <h1>Shift tracker</h1>
+        <label>
+          Username
+          <input
+            value={username}
+            autocomplete="username"
+            autocapitalize="off"
+            required
+            onInput={(e) => setUsername(e.currentTarget.value)}
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            value={password}
+            autocomplete="current-password"
+            required
+            onInput={(e) => setPassword(e.currentTarget.value)}
+          />
+        </label>
+        <ErrorMessage text={error} />
+        <button class="primary" type="submit">
+          Sign in
+        </button>
+      </form>
+    </main>
   );
 }

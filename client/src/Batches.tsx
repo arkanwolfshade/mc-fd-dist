@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { arrivalLabel, PARTNER_METHODS } from "../../server/rules.js";
 import { roundWeight } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
+import { ErrorMessage, ScreenReaderText } from "./Controls.js";
 import { familyLabel, SeniorBoxAndCheese, Ticket } from "./CardActions.js";
 import { EMPTY_PARTNER_FORM, partnerFormView, preparePartnerCard } from "./forms.js";
 import type { PartnerForm } from "./forms.js";
@@ -61,12 +62,14 @@ export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
         </label>
         <button type="submit">Add returned weight</button>
       </form>
-      {error && <p class="error">{error}</p>}
+      <ErrorMessage text={error} />
       <ul class="cards">
         {shift.returnedBatches.map((batch) => (
           <li key={batch.id}>
             <span>{batch.weight} lb</span>
-            <button onClick={() => remove(batch.id)}>Remove</button>
+            <button onClick={() => remove(batch.id)}>
+              Remove<ScreenReaderText> the returned weight of {batch.weight} lb</ScreenReaderText>
+            </button>
           </li>
         ))}
         {shift.pendingReturned.map((batch) => (
@@ -196,7 +199,7 @@ export function PartnerCards(props: {
         {carts > 0 && (
           <CartFields loads={loads} carts={carts} onChange={(next) => change({ loads: next })} />
         )}
-        {error && <p class="error">{error}</p>}
+        <ErrorMessage text={error} />
         <button type="submit">Add partner Family</button>
       </form>
       <ul class="cards">
