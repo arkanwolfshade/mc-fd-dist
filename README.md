@@ -7,9 +7,7 @@
 [![Codacy grade](https://app.codacy.com/project/badge/Grade/65201efe5dfe4e299d5d29c519ae6422)](https://app.codacy.com/gh/arkanwolfshade/mc-fd-dist/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codacy coverage](https://app.codacy.com/project/badge/Coverage/65201efe5dfe4e299d5d29c519ae6422)](https://app.codacy.com/gh/arkanwolfshade/mc-fd-dist/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
-Shift tracker for the food bank. It replaces the printed MC-FD (front desk) and MC-Dist (distribution) sheets with a web app that shares one live record between the two stations, stores it permanently, and produces reports.
-
-The project is in early development and is not yet in use.
+Distribution tracker for a food bank. It replaces the printed front-desk and distribution sheets with a web app that shares one live record between the two stations, stores it permanently, and produces reports.The project is in early development and is not yet in use.
 
 ## Documentation
 
