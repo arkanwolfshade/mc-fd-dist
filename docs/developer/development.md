@@ -111,8 +111,8 @@ Dependabot (`.github/dependabot.yml`) covers these dependencies:
 - Review and merge by hand with Squash and merge, which is the only method the repository allows, once CI passes. Nothing auto-merges.
 - Dependabot security alerts and security updates are switched on in the repository settings, not in this file.
 
-**[?]**
-Dependabot has not yet been seen moving a `cgr.dev` digest in the Dockerfile. If it does not, bump both digests by hand and keep the two images on the same Node major, because `better-sqlite3` is compiled in one and loaded in the other.
+**[SPEC]**
+Dependabot moves the two `cgr.dev` digests in the Dockerfile together, in one pull request (first seen in #28). Before merging one, check that both images are still on the same Node major, because `better-sqlite3` is compiled in one and loaded in the other.
 
 **[SPEC]**
 Codacy analyses every pull request and reads `.codacy.yaml` from the default branch. Each exclusion there says why. Its Lizard tool flags a function over 55 lines of code or with a complexity over 10, so keep functions small.
