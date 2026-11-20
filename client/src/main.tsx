@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ApiError, api } from "./api.js";
 import type { Identity } from "./types.js";
 import { Login } from "./Login.js";
+import { savedScheme, showScheme } from "./scheme.js";
 import { Station } from "./Station.js";
 // Bundled with the app, so it works offline and within the content security policy.
 import "@fontsource/atkinson-hyperlegible-next/400.css";
@@ -12,6 +13,9 @@ import "@fontsource/atkinson-hyperlegible-mono/700.css";
 import "./styles.css";
 
 const IDENTITY_KEY = "identity";
+
+// Before the first render, so that a device set to Dark does not open in light colors.
+showScheme(savedScheme());
 
 // Only the username and role are kept, so that a reload during an outage can still
 // show the station. The session itself stays in its protected cookie.

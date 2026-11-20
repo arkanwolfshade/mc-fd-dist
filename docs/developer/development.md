@@ -1,5 +1,5 @@
 # Development
-**Version 1.3.1** · mc-fd-dist · 2026-11-19 · For developers
+**Version 1.4.0** · mc-fd-dist · 2026-11-19 · For developers
 
 ---
 
@@ -74,6 +74,9 @@ Screens follow these rules for screen readers, and `e2e/accessibility.spec.ts` c
 - A button in a list says which item it acts on: the visible word, then the card or account in `ScreenReaderText`, as in "Call back card 3".
 - A question that replaces a button moves focus to its safe answer, and answering puts focus back on the button, or on the section's heading if the row may go. Use `ConfirmButton`, or `afterRender` to focus something the change puts on the page.
 - Each screen has one `main` area and a level-one heading, which a change of screen moves focus to.
+
+**[SPEC]**
+Colors come only from the custom properties at the top of `client/src/styles.css`. Each one has a dark value in two blocks that must match: one for a device set to dark, one for Dark chosen on the Help screen (`client/src/scheme.ts`). A new color needs a dark value in both, with text at 4.5:1 against its background, and `e2e/colors.spec.ts` checks the choice itself. Windows High Contrast replaces every color, so anything shown only by a fill needs a rule in the `forced-colors` block.
 
 ---
 

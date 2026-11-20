@@ -4,6 +4,7 @@ import admin from "../../docs/guides/en/admin.md?guide";
 import distribution from "../../docs/guides/en/distribution.md?guide";
 import frontDesk from "../../docs/guides/en/front-desk.md?guide";
 import gettingStarted from "../../docs/guides/en/getting-started.md?guide";
+import { SCHEMES, type Scheme, saveScheme, savedScheme } from "./scheme.js";
 
 interface Guide {
   title: string;
@@ -22,9 +23,16 @@ const GUIDES_BY_ROLE: Record<Role, [Guide, ...Guide[]]> = {
   admin: [ADMIN, FRONT_DESK, DISTRIBUTION, GETTING_STARTED],
 };
 
+const SCHEME_LABELS: Record<Scheme, string> = {
+  auto: "Same as this device",
+  light: "Light",
+  dark: "Dark",
+};
+
 export function Help(props: { role: Role }) {
   const guides = GUIDES_BY_ROLE[props.role];
   const [shown, setShown] = useState(guides[0]);
+  const [scheme, setScheme] = useState(savedScheme);
 
   return (
     <div class="help">
@@ -40,6 +48,24 @@ export function Help(props: { role: Role }) {
           </button>
         ))}
       </nav>
+      <fieldset>
+        <legend>Colors on this device</legend>
+        <div class="choices">
+          {SCHEMES.map((option) => (
+            <button
+              key={option}
+              class={option === scheme ? "selected" : ""}
+              aria-pressed={option === scheme}
+              onClick={() => {
+                saveScheme(option);
+                setScheme(option);
+              }}
+            >
+              {SCHEME_LABELS[option]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
       {/* Written in this repository and converted at build time, never user input. */}
       {/* oxlint-disable-next-line react/no-danger */}
       {/* nosemgrep: javascript_react_rule-dangerouslysetinnerhtml, react-dangerouslysetinnerhtml -- the HTML is converted from this repository's guides at build time */}
