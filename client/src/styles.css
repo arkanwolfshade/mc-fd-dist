@@ -835,6 +835,169 @@ label.check input {
   position: absolute;
 }
 
+/* The wall display in the distribution room: read from across a room and never touched. Sizes
+   follow the screen's height, so a row is the same share of any screen. A row is 11vh, which
+   ROW_VH in Display.tsx must match. */
+.wall {
+  display: flex;
+  flex-direction: column;
+  gap: 2vh;
+  height: 100vh;
+  padding: 2vh 2vw;
+  overflow: hidden;
+}
+
+.wall-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2vw;
+}
+
+.wall-bar h1 {
+  margin: 0;
+  font-size: 5vh;
+}
+
+.wall-date {
+  color: var(--muted);
+  font-size: 4vh;
+}
+
+.wall-groups {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 1fr 1fr;
+  gap: 2vw;
+  min-height: 0;
+}
+
+/* stylelint-disable-next-line media-feature-range-notation -- range notation needs Safari 16.4 */
+@media (max-aspect-ratio: 1/1) {
+  .wall-groups {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+.wall-group {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1.5vh 1.5vw;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.wall-group h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 1vh;
+  font-size: 4.2vh;
+}
+
+.wall-hint {
+  color: var(--muted);
+  font-size: 3vh;
+  font-weight: 400;
+}
+
+.wall-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.wall-row,
+.wall-more,
+.wall-none {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  height: 11vh;
+  border-top: 1px solid var(--line);
+  font-size: 4vh;
+}
+
+.wall-more {
+  justify-content: center;
+  color: var(--muted);
+  font-size: 4.4vh;
+  font-weight: 700;
+}
+
+.wall-none {
+  color: var(--muted);
+}
+
+.ticket.wall-number {
+  --notch: 1.2vh;
+
+  min-width: 3.2em;
+  padding: 0.4vh 1.2vw;
+  font-size: 7.5vh;
+  line-height: 1.05;
+}
+
+.wall-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.6vh;
+  justify-content: center;
+  min-width: 0;
+}
+
+.wall-facts {
+  font-size: 4vh;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.wall-badges {
+  display: flex;
+  gap: 1vw;
+}
+
+.wall-badge {
+  padding: 0.1vh 0.8vw;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ticket-tint);
+  font-size: 2.8vh;
+  font-weight: 700;
+}
+
+.wall-notice {
+  display: grid;
+  flex: 1;
+  gap: 2vh;
+  place-content: center;
+  margin: 0;
+  font-size: 5vh;
+  text-align: center;
+}
+
+.wall-notice.offline {
+  border-radius: 8px;
+  background: var(--alert-tint);
+  color: var(--alert);
+}
+
+.wall-notice p {
+  margin: 0;
+}
+
+.wall-notice-title {
+  font-size: 9vh;
+  font-weight: 700;
+}
+
 /* Windows High Contrast replaces every color with the user's own, which hides what only a
    fill showed: the chosen button and the ticket's edge. */
 @media (forced-colors: active) {

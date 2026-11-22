@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { ApiError, api } from "./api.js";
+import { Display } from "./Display.js";
 import type { Identity } from "./types.js";
 import { Login } from "./Login.js";
 import { savedScheme, showScheme } from "./scheme.js";
@@ -58,9 +59,8 @@ function App() {
   if (identity === null) {
     return <Login onSignedIn={signedIn} />;
   }
-  // The queue display has a screen of its own, which is not built yet.
   if (identity.role === "display") {
-    return <p class="notice">This login is for the queue display, which is not ready yet.</p>;
+    return <Display onSignedOut={signedOut} />;
   }
   return <Station identity={{ ...identity, role: identity.role }} onSignedOut={signedOut} />;
 }

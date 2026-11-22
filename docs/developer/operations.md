@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.6.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
+**Version 1.7.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
 
 ---
 
@@ -195,6 +195,16 @@ Try the app on the real devices before the first shift, and again when the devic
 
 **[?]**
 This checklist has not been run yet. Record the date, the devices and anything that failed here when it is.
+
+**[SPEC]**
+Setting up the wall display in the distribution room (ADR 0033 and 0034):
+1. On the server, create its login: `docker compose exec app node dist/server/cli/account.js wall display`, and type a password.
+2. On the television's computer or stick, open the app's address in a browser, sign in as `wall`, and make the page full screen. The screen needs no mouse or keyboard after that.
+3. Turn off the screen saver and sleep on that device, so that it stays on during a shift.
+4. Its session lasts 90 days. Put a reminder in the staff runbook for about every three months, and see the next block for what it looks like when it ends.
+
+**[?]**
+The wall display has been tried only in an emulated browser. On the real television, check once that: the numbers can be read from the far side of the room; the queue follows the tablets within a second or two; it shows **Not connected** when the Wi-Fi is switched off for half a minute and recovers when it is switched on; and it is still on, and still signed in, after an idle night. Record the date, the television and anything that failed here.
 
 **[BUG] The wall display shows the sign-in form**
 Symptom: The screen in the distribution room asks for a username and password.

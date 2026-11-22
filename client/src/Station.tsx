@@ -15,7 +15,7 @@ import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
 import type { ShiftView } from "./pending.js";
-import { applyLiveMessage, classifyLoadFailure, isoDate, savedShift } from "./state.js";
+import { applyLiveMessage, classifyLoadFailure, dayInWords, isoDate, savedShift } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Shift, ShiftWithCards, StationIdentity, Submit, UpdateCard } from "./types.js";
 
@@ -40,16 +40,6 @@ const STATION_NAMES: Record<WorkingRole, string> = {
   distribution: "Distribution",
   admin: "Admin",
 };
-
-// "2026-11-07" becomes "Saturday, November 7".
-function dayInWords(isoDay: string): string {
-  const [year, month, day] = isoDay.split("-").map(Number);
-  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 // The admin and help screens don't depend on today's shift.
 const SHIFT_VIEWS: ReadonlySet<View> = new Set(["front_desk", "distribution", "summary"]);

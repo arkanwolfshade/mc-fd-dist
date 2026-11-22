@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.5.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.6.0** · mc-fd-dist · 2026-11-22 · For developers
 
 ---
 
@@ -68,6 +68,7 @@ Decision logic lives in plain `.ts` files, because there is no DOM test environm
 | `state.ts`, `pending.ts` | The shift as a station sees it: merging cards by revision, and the server's state plus writes still waiting to send |
 | `outbox.ts` | The write queue that survives dropouts (section 6) |
 | `forms.ts`, `types.ts` | Card entry rules and shared types |
+| `Display.tsx`, `display-state.ts` | The wall display's screen (ADR 0034) and its logic: merging live messages, the two groups, how many rows fit, when the queue can no longer be trusted, and which screen to show |
 | `FrontDesk.tsx`, `Distribution.tsx`, `Batches.tsx`, `CardActions.tsx` | The two stations' screens, partner Families and returned items, and the status buttons |
 | `Summary.tsx`, `Admin.tsx`, `Login.tsx`, `Help.tsx` | Shift totals, the admin screen, sign-in, and the guides in the Help tab |
 
