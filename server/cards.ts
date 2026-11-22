@@ -24,6 +24,8 @@ export interface Card {
   extrasAdded: boolean;
   extrasNote: string;
   intakeInitials: string | null;
+  // Which family in the shift was called first, second and so on. Null before a call.
+  calledOrder: number | null;
 }
 
 export interface Shift {
@@ -81,6 +83,7 @@ interface CardRow {
   extras_added: number;
   extras_note: string;
   intake_initials: string | null;
+  called_order: number | null;
 }
 
 function toCard(row: CardRow): Card {
@@ -103,6 +106,7 @@ function toCard(row: CardRow): Card {
     extrasAdded: row.extras_added === 1,
     extrasNote: row.extras_note,
     intakeInitials: row.intake_initials,
+    calledOrder: row.called_order,
   };
 }
 
@@ -229,6 +233,12 @@ export function updateCard(
         `UPDATE card SET number = ?, family_size = ?, arrival_method = ?, senior_box = ?,
            cheese = ?, other = ?, tefap_bags = ?, tefap_override = ?, status = ?,
            load_1 = ?, load_2 = ?, load_3 = ?, extras_added = ?, extras_note = ?,
+           called_order = CASE
+             WHEN ? IN ('entered', 'left') THEN NULL
+             WHEN called_order IS NULL AND ? IN ('called', 'confirmed')
+               THEN (SELECT COALESCE(MAX(called_order), 0) + 1 FROM card WHERE shift_id = ?)
+             ELSE called_order
+           END,
            revision = revision + 1
          WHERE id = ? AND revision = ?`,
       )
@@ -245,6 +255,9 @@ export function updateCard(
         ...loadColumns(next.loads),
         flag(next.extrasAdded),
         next.extrasNote,
+        next.status,
+        next.status,
+        current.shiftId,
         current.id,
         revision,
       );

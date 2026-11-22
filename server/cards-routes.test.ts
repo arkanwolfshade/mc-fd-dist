@@ -79,6 +79,100 @@ describe("shift and card routes", () => {
     return request("PATCH", `/api/cards/${id}`, cookie, payload);
   }
 
+  // Each family is numbered as it is called, so the queue is in the order families were called,
+  // not the order of their ticket numbers. See ADR 0032.
+  describe("call order", () => {
+    interface Moved {
+      id: number;
+      revision: number;
+      calledOrder: number | null;
+    }
+
+    async function move(card: Moved, cookie: string, status: string): Promise<Moved> {
+      const response = await patchCard(card.id, cookie, { revision: card.revision, status });
+      expect(response.statusCode).toBe(200);
+      return response.json();
+    }
+
+    it("numbers families in the order they are called, not by their card numbers", async () => {
+      const shiftId = await openShift();
+      const one = await addCard(shiftId, { number: 1 });
+      const two = await addCard(shiftId, { number: 2 });
+      const three = await addCard(shiftId, { number: 3 });
+      expect(three.calledOrder).toBeNull();
+
+      const calledThree = await move(three, frontDesk, "called");
+      const calledOne = await move(one, frontDesk, "called");
+      const calledTwo = await move(two, frontDesk, "called");
+
+      expect([calledThree, calledOne, calledTwo].map((card) => card.calledOrder)).toEqual([
+        1, 2, 3,
+      ]);
+    });
+
+    it("keeps a family's place when the call is confirmed, and when that is undone", async () => {
+      const shiftId = await openShift();
+      const first = await addCard(shiftId, { number: 1 });
+      const second = await addCard(shiftId, { number: 2 });
+      const calledFirst = await move(first, frontDesk, "called");
+      await move(second, frontDesk, "called");
+
+      const confirmed = await move(calledFirst, distribution, "confirmed");
+      const backToCalled = await move(confirmed, distribution, "called");
+
+      expect(confirmed.calledOrder).toBe(1);
+      expect(backToCalled.calledOrder).toBe(1);
+    });
+
+    it("forgets the place when the call is undone, and a second call goes to the back", async () => {
+      const shiftId = await openShift();
+      const first = await addCard(shiftId, { number: 1 });
+      const second = await addCard(shiftId, { number: 2 });
+      const calledFirst = await move(first, frontDesk, "called");
+      await move(second, frontDesk, "called");
+
+      const undone = await move(calledFirst, frontDesk, "entered");
+      const calledAgain = await move(undone, frontDesk, "called");
+
+      expect(undone.calledOrder).toBeNull();
+      expect(calledAgain.calledOrder).toBe(3);
+    });
+
+    it("forgets the place when a family leaves without food, and when they come back", async () => {
+      const shiftId = await openShift();
+      const card = await addCard(shiftId);
+      const called = await move(card, frontDesk, "called");
+
+      const left = await move(called, distribution, "left");
+      const returned = await move(left, distribution, "entered");
+
+      expect(left.calledOrder).toBeNull();
+      expect(returned.calledOrder).toBeNull();
+    });
+
+    it("counts again from one in each shift", async () => {
+      const today = await openShift();
+      const other = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-08" });
+      const first = await move(await addCard(today), frontDesk, "called");
+      const elsewhere = await addCard(other.json().id);
+      const second = await move(elsewhere, frontDesk, "called");
+
+      expect([first.calledOrder, second.calledOrder]).toEqual([1, 1]);
+    });
+
+    it("leaves other changes to a called card alone", async () => {
+      const shiftId = await openShift();
+      const called = await move(await addCard(shiftId), frontDesk, "called");
+
+      const edited = await patchCard(called.id, frontDesk, {
+        revision: called.revision,
+        familySize: 3,
+      });
+
+      expect(edited.json().calledOrder).toBe(1);
+    });
+  });
+
   describe("shifts", () => {
     it("requires a session to open a shift", async () => {
       const response = await app.inject({

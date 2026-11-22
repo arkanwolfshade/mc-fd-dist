@@ -155,6 +155,9 @@ export const MIGRATIONS: readonly Migration[] = [
       DROP TABLE partner_batch;
     `);
   },
+  // The order a shift's families were called in, so that the queue is in that order. Empty for
+  // a card not yet called, and for a family called before this was kept. See ADR 0032.
+  `ALTER TABLE card ADD COLUMN called_order INTEGER;`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

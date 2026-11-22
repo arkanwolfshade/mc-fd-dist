@@ -30,6 +30,7 @@ function card(overrides: Partial<Card>): Card {
     extrasAdded: false,
     extrasNote: "",
     intakeInitials: "AB",
+    calledOrder: null,
     ...overrides,
   };
 }

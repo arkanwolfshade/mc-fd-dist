@@ -104,6 +104,34 @@ describe("openDatabase", () => {
     });
   });
 
+  describe("when a database from before call order was kept is upgraded", () => {
+    function databaseBeforeCallOrder(): string {
+      const path = tempPath();
+      const old = new Sqlite(path);
+      const before = MIGRATIONS.slice(0, MIGRATIONS.length - 1);
+      before.forEach((migration) =>
+        typeof migration === "string" ? old.exec(migration) : migration(old),
+      );
+      old.pragma(`user_version = ${before.length}`);
+      old.prepare("INSERT INTO shift (date) VALUES ('2026-11-07')").run();
+      old
+        .prepare(
+          `INSERT INTO card (shift_id, client_id, number, family_size, arrival_method, tefap_bags, status)
+           VALUES (1, 'a', 7, 5, 'East', 2, 'called')`,
+        )
+        .run();
+      old.close();
+      return path;
+    }
+
+    it("keeps a family that was already called, with no place in the order", () => {
+      const db = openDatabase(databaseBeforeCallOrder());
+      const card = db.prepare("SELECT number, status, called_order FROM card").get();
+      db.close();
+      expect(card).toEqual({ number: 7, status: "called", called_order: null });
+    });
+  });
+
   describe("when a database from before partner Families became cards is upgraded", () => {
     function databaseAtVersion5(withPartnerBatch: boolean): string {
       const path = tempPath();
