@@ -1,5 +1,5 @@
 # Development
-**Version 1.5.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.6.0** · mc-fd-dist · 2026-11-22 · For developers
 
 ---
 
@@ -62,7 +62,8 @@ The npm scripts:
 - Write a failing test first and watch it fail, then make it pass (CONTRIBUTING.md).
 - Work on a branch and open a pull request with a Conventional Commit title, and merge it with **Squash and merge**, the only method allowed (ADR 0028). The title becomes the commit message on `main`, which GitHub signs (ADR 0025).
 - Two rulesets guard `main` (ADR 0017). One requires a pull request, signed commits, the code owner's review, clean CodeQL results and the three Codacy checks. The other requires the `check`, `container` and `secrets` jobs, and Chainguard's **Enforce - Commit Signing** check, which fails a pull request with a commit not signed by a key in `.chainguard/source.yaml` (ADR 0030). Repository administrators can bypass both. That is kept for repairing `main`, not for routine changes. Their definitions are in `.github/rulesets/` and are applied by hand, so keep the files in step with the settings page.
-- The commit hook formats and lints staged files and scans them for secrets. The push hook runs the type checks and unit tests.
+- The commit hook formats and lints staged files, runs the unit tests with coverage, and scans the staged changes for secrets. The push hook runs the type checks and unit tests.
+- Unit test coverage has a floor of 96% for lines, statements and functions, and 91% for branches, set in `vitest.config.ts`. Below it, `npm run test:coverage` fails, so the commit hook refuses the commit and the required `check` job fails the pull request. Raise the floor as coverage grows; ask the maintainer before lowering it.
 - Add an ADR in the same commit as any decision that is hard to reverse or crosses parts of the system.
 - Dependencies in `package.json` are pinned to exact versions, and `.npmrc` sets `save-exact` so that `npm install <package>` records one. Dependabot raises the pins.
 - When a screen changes, run `npm run docs:screenshots` and check the guides still describe it.

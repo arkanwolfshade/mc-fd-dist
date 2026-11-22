@@ -1,5 +1,7 @@
-# Formats and lints the staged files, then scans the staged changes for secrets.
+# Formats and lints the staged files, checks the coverage floor, then scans the staged
+# changes for secrets.
 npx lint-staged
+npm run test:coverage
 
 if command -v gitleaks >/dev/null 2>&1; then
   gitleaks git --pre-commit --staged --redact --verbose
