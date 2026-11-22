@@ -5,3 +5,5 @@ playwright-report/
 package-lock.json
 # Prose is reviewed by hand, and reflowing it would bury real changes in diffs.
 *.md
+# The Remember plugin's local notes and scratch files, which git also ignores.
+.remember/
