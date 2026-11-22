@@ -48,6 +48,35 @@ test("a card moves between stations live, with no reload", async ({ signIn }) =>
   await expect(frontDesk.locator(".status")).toHaveText("Distributed");
 });
 
+test("distribution lists families in the order they were called, not by card number", async ({
+  signIn,
+}) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  for (const number of [1, 2, 3]) {
+    await addCard(frontDesk, { number, familySize: 2, method: "Walk" });
+    await expect(frontDesk.getByRole("heading", { name: `Cards (${number})` })).toBeVisible();
+  }
+
+  // Calls 3, then 1, then 2.
+  for (const [position, number] of [3, 1, 2].entries()) {
+    await frontDesk.getByRole("button", { name: `Call back card ${number}`, exact: true }).click();
+    await expect(
+      distribution.getByRole("heading", { name: `Queue (${position + 1})` }),
+    ).toBeVisible();
+  }
+  const queue = distribution.locator(".queue-card .ticket");
+  await expect(queue).toHaveText(["3", "1", "2"]);
+
+  // Undoing a call and calling again sends that family to the back.
+  await frontDesk.getByRole("button", { name: "Undo call back card 3", exact: true }).click();
+  await expect(distribution.getByRole("heading", { name: "Queue (2)" })).toBeVisible();
+  await frontDesk.getByRole("button", { name: "Call back card 3", exact: true }).click();
+  await expect(distribution.getByRole("heading", { name: "Queue (3)" })).toBeVisible();
+  await expect(queue).toHaveText(["1", "2", "3"]);
+});
+
 test("the front desk previews TEFAP bags and requires a location or transport", async ({
   signIn,
 }) => {

@@ -38,6 +38,7 @@ function card(overrides: Partial<Card>): Card {
     extrasAdded: false,
     extrasNote: "",
     intakeInitials: "AB",
+    calledOrder: null,
     ...overrides,
   };
 }
@@ -108,6 +109,24 @@ describe("distributionQueue", () => {
       card({ id: 4, number: 4, status: "distributed" }),
     ]);
     expect(queue.map((c) => c.number)).toEqual([2, 3]);
+  });
+
+  it("lists families in the order they were called, not by card number", () => {
+    const queue = distributionQueue([
+      card({ id: 1, number: 1, status: "called", calledOrder: 3 }),
+      card({ id: 2, number: 2, status: "confirmed", calledOrder: 1 }),
+      card({ id: 3, number: 3, status: "called", calledOrder: 2 }),
+    ]);
+    expect(queue.map((c) => c.number)).toEqual([2, 3, 1]);
+  });
+
+  it("puts families called before call order was kept first, by card number", () => {
+    const queue = distributionQueue([
+      card({ id: 1, number: 9, status: "called", calledOrder: 1 }),
+      card({ id: 2, number: 7, status: "called", calledOrder: null }),
+      card({ id: 3, number: 4, status: "confirmed", calledOrder: null }),
+    ]);
+    expect(queue.map((c) => c.number)).toEqual([4, 7, 9]);
   });
 
   it("leaves out partner cards", () => {

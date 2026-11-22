@@ -1,5 +1,5 @@
 # Distribution guide
-**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · For distribution volunteers
+**Version 1.2.0** · Food bank shift tracker · 2026-11-22 · For distribution volunteers
 
 ---
 
@@ -14,7 +14,7 @@ Read `[NOTE]` only if the reason behind a step is needed.
 ## 1. Your screen
 
 **[SPEC]**
-- **Queue**: Families called back by the front desk, with their details and any note from the front desk.
+- **Queue**: Families called back by the front desk, with their details and any note from the front desk. They are listed in the order they were called, so the family at the top has been waiting longest. A family whose call is undone and called again goes to the bottom.
 - Each card leads with the Family's yellow ticket number, then **Info from** with the initials of the intake volunteer who gave the details, then a **Give** line listing the TEFAP bags, Senior Box and Cheese to hand over.
 - **Distributed**: Families served today, with the weight they received and any extras added.
 - **Returned items**, **End of shift: Door Dash and Helping Hands** and **Finish** are further along.

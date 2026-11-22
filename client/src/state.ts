@@ -115,11 +115,23 @@ export function hasWeight(loads: readonly (number | null)[]): boolean {
 
 // Partner cards are saved as distributed, so they never wait in the queue. See ADR 0023.
 export function distributionQueue(cards: Card[]): Card[] {
-  return cards.filter(
-    (card) =>
-      (card.status === "called" || card.status === "confirmed") &&
-      !isPartnerMethod(card.arrivalMethod),
-  );
+  return cards
+    .filter(
+      (card) =>
+        (card.status === "called" || card.status === "confirmed") &&
+        !isPartnerMethod(card.arrivalMethod),
+    )
+    .sort(byCallOrder);
+}
+
+// The order families were called in. A family called before the order was kept has none, and was
+// called before any that have one, so those come first, by card number. See ADR 0032.
+function byCallOrder(a: Card, b: Card): number {
+  if (a.calledOrder === null || b.calledOrder === null) {
+    if (a.calledOrder === b.calledOrder) return a.number - b.number;
+    return a.calledOrder === null ? -1 : 1;
+  }
+  return a.calledOrder - b.calledOrder;
 }
 
 // How Distribution sorts a shift's cards.
