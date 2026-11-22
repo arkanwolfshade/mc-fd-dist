@@ -17,7 +17,8 @@
         "required_status_checks": [
           { "context": "check", "integration_id": 15368 },
           { "context": "container", "integration_id": 15368 },
-          { "context": "secrets", "integration_id": 15368 }
+          { "context": "secrets", "integration_id": 15368 },
+          { "context": "Enforce - Commit Signing", "integration_id": 210473 }
         ]
       }
     }
