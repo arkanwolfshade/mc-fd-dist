@@ -54,6 +54,7 @@ export function toDisplayCard(card: Card): DisplayCard {
 
 // The families waiting in the queue, in the order they were called.
 export function displayQueue(cards: Card[]): DisplayCard[] {
+  // nosemgrep: rules_lgpl_javascript_dos_rule-layer7-object-dos -- loops over one shift's rows from our own database, never over what a request sends
   return cards.filter(inDistributionQueue).sort(byCallOrder).map(toDisplayCard);
 }
 
