@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.4.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
+**Version 1.5.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
 
 ---
 
@@ -182,6 +182,19 @@ Fix: On the server, run `systemctl status mc-fd-dist-backup.service` and `journa
 Symptom: Someone outside the food bank knows a station password.
 Cause: The password was written down or passed on.
 Fix: An admin changes it on the Admin screen. That ends the station's sessions everywhere. Sign the station devices in again.
+
+**[SPEC]**
+Try the app on the real devices before the first shift, and again when the devices change. The browser tests emulate phones and tablets (ADR 0031), but they cannot show these. Do each on an iPhone or iPad in Safari, and on an Android phone in Chrome, signed in as each station:
+1. Install the app to the home screen, open it from there, and sign in.
+2. Enter a card. Check that the on-screen keyboard does not hide the field being typed in or the Save card button.
+3. Turn the device sideways in the middle of a card, then back. Check that nothing typed is lost.
+4. Lock the screen for a minute, then unlock it. Check that the station says it is connected again and shows a card entered meanwhile on another device.
+5. Turn on airplane mode, enter a card, then turn it off. Check that the card is sent once, and none is lost or doubled.
+6. Turn on airplane mode, close the app, and open it again. Check that it opens with its fonts and the saved shift. Then open Help and check that each missing picture shows its description.
+7. On iOS, set Larger Text to its biggest sizes (Settings, Accessibility, Display & Text Size). Check that every button can still be reached and tapped.
+
+**[?]**
+This checklist has not been run yet. Record the date, the devices and anything that failed here when it is.
 
 ---
 

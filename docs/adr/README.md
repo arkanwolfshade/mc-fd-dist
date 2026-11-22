@@ -38,3 +38,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0028](0028-change-main-only-through-pull-requests.md) | Change main only through pull requests | Accepted |
 | [0029](0029-immutable-versioned-releases.md) | Cut immutable, versioned releases and deploy only releases | Accepted |
 | [0030](0030-verify-signatures-on-pull-request-commits.md) | Verify the signature of every commit in a pull request | Accepted |
+| [0031](0031-check-station-screens-on-phones-and-tablets.md) | Check the station screens on phones and tablets | Accepted |

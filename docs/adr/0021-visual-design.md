@@ -31,4 +31,4 @@ A usability review found that almost everything on the screens had the same visu
 - Card numbers can be matched to people in line at a glance, and distribution sees what to hand over first.
 - The bundled fonts are eight WOFF2 files totalling 88 KB on disk. A browser fetches only the character sets a page uses, about 56 KB for English text, and caches them.
 - Tests now find cards by their ticket number, not by "#1" text.
-- The admin, sign-in and help screens use the same tokens but were not redesigned. Phone-size layouts follow the same rules but still need checking on real devices.
+- The admin, sign-in and help screens use the same tokens but were not redesigned. Phone and tablet layouts are checked by the browser tests (ADR 0031); real devices are still to be tried.

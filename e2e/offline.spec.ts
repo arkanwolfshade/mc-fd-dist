@@ -10,6 +10,7 @@ import {
   partnerRow,
   queueCard,
   test,
+  WEBKIT_KEEPS_SOCKET,
   totalsRow,
 } from "./fixtures.js";
 
@@ -250,7 +251,9 @@ test("the app can be installed", async ({ signIn, serverUrl }) => {
 
 test("a station reloaded while the server is failing shows the shift it saved", async ({
   signIn,
+  browserName,
 }) => {
+  test.skip(browserName === "webkit", WEBKIT_KEEPS_SOCKET);
   const frontDesk = await signIn("front-desk");
   await openShift(frontDesk);
   await addCard(frontDesk, { familySize: 2, method: "Walk" });

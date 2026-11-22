@@ -41,7 +41,7 @@ npm run typecheck
 End-to-end tests drive real browser sessions against a real server. Each test gets its own server and in-memory database. Install the browser once, then run them:
 
 ```sh
-npx playwright install chromium
+npx playwright install chromium webkit
 npm run test:e2e
 ```
 

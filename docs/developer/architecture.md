@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.2.0** · mc-fd-dist · 2026-11-13 · For developers
+**Version 1.3.0** · mc-fd-dist · 2026-11-22 · For developers
 
 ---
 
@@ -157,6 +157,7 @@ ADR 0014 records the reasoning and the trade-offs, including what is lost if a d
 ## 8. Known limits
 
 **[?]**
-- Install and offline behaviour on real iPhones, iPads and Android devices has not been tested.
+- Phone and tablet layouts, tap-target and text sizes, and offline reloads are checked in emulated iPhone, iPad and Android profiles (ADR 0031). Install and offline behaviour on real iPhones, iPads and Android devices has not been tested, and the two offline tests that need a closed WebSocket do not run on WebKit.
+- Guide pictures are saved on a device only once seen. Offline before that, a station shows each picture's description instead.
 - The $5 server (0.5 GB) has been measured only in CI: the app used about 45 MB and Caddy about 11 MB. Docker and Ubuntu were not measured, and nothing has been load-tested.
 - Two tabs signed in as the same station on one device would each keep their own queue and overwrite each other's saved copy.
