@@ -5,6 +5,7 @@ import websocket from "@fastify/websocket";
 import type { Database } from "better-sqlite3";
 import Fastify from "fastify";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { ROLES, WORKING_ROLES } from "./accounts.js";
 import type { Account, Role } from "./accounts.js";
 import { registerAdminRoutes } from "./admin-routes.js";
 import { recordAudit } from "./audit.js";
@@ -84,24 +85,29 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return token ? findSessionAccount(db, token, now()) : null;
   }
 
-  // The wall display may use only its own routes. Checked before any route runs, so a route
-  // added later is closed to it unless it is listed in DISPLAY_ROUTES. See ADR 0033.
+  // The wall display may use only its own routes. Decided on the route the router matched, not
+  // on the address as written, and before any route runs, so a route added later is closed to it
+  // unless it is listed in DISPLAY_ROUTES. A request that matched no route is refused too. See
+  // ADR 0033.
   app.addHook("onRequest", async (request, reply) => {
-    const path = request.url.split("?")[0] as string;
-    const open = !path.startsWith("/api/") || DISPLAY_ROUTES.has(path);
+    const route = request.routeOptions.url;
+    const open = route !== undefined && (!route.startsWith("/api/") || DISPLAY_ROUTES.has(route));
     if (!open && currentAccount(request)?.role === "display") {
       return reply.code(403).send({ error: "Not allowed" });
     }
     return undefined;
   });
 
+  // With no roles named, a route is for those who work a shift. The display, which only reads,
+  // must be named, so a route written without thinking of it is closed to it.
   function requireRole(...roles: Role[]) {
+    const allowed: readonly Role[] = roles.length > 0 ? roles : WORKING_ROLES;
     return async (request: FastifyRequest, reply: FastifyReply) => {
       const account = currentAccount(request);
       if (!account) {
         return reply.code(401).send({ error: "Not signed in" });
       }
-      if (roles.length > 0 && !roles.includes(account.role)) {
+      if (!allowed.includes(account.role)) {
         return reply.code(403).send({ error: "Not allowed" });
       }
       return undefined;
@@ -124,10 +130,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // that validation and role checks live in one place.
   const socketTokens = new WeakMap<object, string>();
   const socketRoles = new WeakMap<object, Role>();
-  app.get("/api/live", { websocket: true, preValidation: requireRole() }, (socket, request) => {
-    socketTokens.set(socket, request.cookies[SESSION_COOKIE] as string);
-    socketRoles.set(socket, (currentAccount(request) as Account).role);
-  });
+  app.get(
+    "/api/live",
+    { websocket: true, preValidation: requireRole(...ROLES) },
+    (socket, request) => {
+      socketTokens.set(socket, request.cookies[SESSION_COOKIE] as string);
+      socketRoles.set(socket, (currentAccount(request) as Account).role);
+    },
+  );
 
   // A socket outlives its session unless checked, so a changed password, a sign-out
   // or an expiry must also stop live updates. See ADR 0007.

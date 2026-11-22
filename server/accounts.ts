@@ -7,6 +7,9 @@ export const ROLES = ["front_desk", "distribution", "admin", "display"] as const
 export type Role = (typeof ROLES)[number];
 // The roles that work a shift at a station. The display only reads.
 export type WorkingRole = Exclude<Role, "display">;
+export const WORKING_ROLES: readonly WorkingRole[] = ROLES.filter(
+  (role): role is WorkingRole => role !== "display",
+);
 
 export interface Account {
   id: number;
