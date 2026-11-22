@@ -1,5 +1,5 @@
 # Distribution guide
-**Version 1.2.0** · Food bank shift tracker · 2026-11-22 · For distribution volunteers
+**Version 1.3.0** · Food bank shift tracker · 2026-11-22 · For distribution volunteers
 
 ---
 
@@ -20,6 +20,12 @@ Read `[NOTE]` only if the reason behind a step is needed.
 - **Returned items**, **End of shift: Door Dash and Helping Hands** and **Finish** are further along.
 
 ![The distribution screen](../images/distribution.png)
+
+**[SPEC]**
+- If the distribution room has a wall display, it shows the same queue in large type. **Confirmed** lists the Families being packed and **Called** lists the Families on their way, each with the yellow ticket number, the Family size, the carts and any Senior Box or Cheese, in the order they were called.
+- It shows no initials, notes or weights. Use the tablet for those, and to change anything.
+- When the list is longer than the screen, the last line says how many more are waiting. The Families who have waited longest are always shown.
+- If the screen says **Not connected**, the queue is hidden on purpose, because it may be out of date. Use the tablet until the queue comes back, and tell the maintainer if it stays.
 
 **[NOTE]**
 You never type a walk-in Family's details. They arrive from the front desk. Only Door Dash and Helping Hands Families are entered here, at the end of the shift.

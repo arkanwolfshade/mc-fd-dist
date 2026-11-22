@@ -91,6 +91,16 @@ export function nextCardNumber(cards: readonly { number: number }[]): number {
   return cards.reduce((highest, card) => Math.max(highest, card.number), 0) + 1;
 }
 
+// "2026-11-07" becomes "Saturday, November 7".
+export function dayInWords(isoDay: string): string {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export function isoDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");

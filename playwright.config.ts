@@ -33,6 +33,12 @@ export default defineConfig({
     },
     { name: "ipad", testMatch: STATION_TESTS, use: { ...devices["iPad (gen 7)"] } },
     { name: "android", testMatch: STATION_TESTS, use: { ...devices["Pixel 7"] } },
+    // The wall display is for a large landscape screen. Desktop also runs it, at its own size.
+    {
+      name: "wall",
+      testMatch: "display.spec.ts",
+      use: { viewport: { width: 1920, height: 1080 } },
+    },
     // Browser zoom of 200% on a 640 px window shows the page as if 320 px wide (WCAG 1.4.10).
     // The CSS sizes text in px, so enlarging the root font would not test the same thing.
     {

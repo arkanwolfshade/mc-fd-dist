@@ -1,5 +1,5 @@
 # Development
-**Version 1.7.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.8.0** · mc-fd-dist · 2026-11-22 · For developers
 
 ---
 
@@ -73,6 +73,7 @@ Screens work on phones and tablets as well as desktop, and the browser tests che
 
 - A new test file for a screen people use at a station goes in `STATION_TESTS`. Do not set a window size inside a test; the project sets it.
 - `e2e/layout.spec.ts` fails a change that makes the page scroll sideways or lets a control leave its panel. On touch profiles it also fails a button, link, field or choice smaller than 44×44 px, and a text field with text under 16 px (iOS Safari zooms the page on those). Keep new controls above both.
+- The wall display's tests (`e2e/display.spec.ts`) are not in `STATION_TESTS`, because it is for a large landscape screen. They run on desktop and on the 1920×1080 `wall` project, and their server has a display account only because the file sets `withDisplay` (an account costs a password hash, so other tests do not get one).
 - Run one profile with `npx playwright test --project=iphone`. Under a full local run with every worker the WebKit profiles can time out; `--workers=2` is closer to CI.
 - WebKit reports no touch points even when emulating touch, so a test that needs to know about touch uses `matchMedia("(pointer: coarse)")`.
 

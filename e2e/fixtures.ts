@@ -13,6 +13,9 @@ export const PASSWORD = "local-test-password-1";
 export const WEBKIT_KEEPS_SOCKET = "WebKit's offline mode does not close an open WebSocket";
 
 interface Fixtures {
+  // Whether the server also has an account for the wall display, named wall. Off for most tests,
+  // because every account costs a password hash.
+  withDisplay: boolean;
   serverUrl: string;
   signIn: (
     username: string,
@@ -22,12 +25,17 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+  withDisplay: [false, { option: true }],
+
   // Own server and database per test, because each date allows only one shift.
-  serverUrl: async ({}, use) => {
+  serverUrl: async ({ withDisplay }, use) => {
     const db = openDatabase(":memory:");
     await createAccount(db, { username: "front-desk", password: PASSWORD, role: "front_desk" });
     await createAccount(db, { username: "distribution", password: PASSWORD, role: "distribution" });
     await createAccount(db, { username: "pat", password: PASSWORD, role: "admin" });
+    if (withDisplay) {
+      await createAccount(db, { username: "wall", password: PASSWORD, role: "display" });
+    }
     const app = await buildApp({
       db,
       cookieSecure: false,
