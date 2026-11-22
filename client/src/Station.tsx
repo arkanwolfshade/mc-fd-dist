@@ -3,7 +3,7 @@
 // them as dependencies would only reconnect and resubscribe for no reason.
 /* oxlint-disable react-hooks/exhaustive-deps */
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
-import type { Role } from "../../server/accounts.js";
+import type { WorkingRole } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";
 import { Admin } from "./Admin.js";
 import { ApiError, api, connectLive, errorText } from "./api.js";
@@ -17,7 +17,7 @@ import { withPending } from "./pending.js";
 import type { ShiftView } from "./pending.js";
 import { applyLiveMessage, classifyLoadFailure, isoDate, savedShift } from "./state.js";
 import { Summary } from "./Summary.js";
-import type { Card, Identity, Shift, ShiftWithCards, Submit, UpdateCard } from "./types.js";
+import type { Card, Shift, ShiftWithCards, StationIdentity, Submit, UpdateCard } from "./types.js";
 
 type View = "front_desk" | "distribution" | "summary" | "admin" | "help";
 
@@ -29,13 +29,13 @@ const VIEW_LABELS: Record<View, string> = {
   help: "Help",
 };
 
-const VIEWS_BY_ROLE: Record<Role, View[]> = {
+const VIEWS_BY_ROLE: Record<WorkingRole, View[]> = {
   front_desk: ["front_desk", "summary", "help"],
   distribution: ["distribution", "summary", "help"],
   admin: ["front_desk", "distribution", "summary", "admin", "help"],
 };
 
-const STATION_NAMES: Record<Role, string> = {
+const STATION_NAMES: Record<WorkingRole, string> = {
   front_desk: "Front desk",
   distribution: "Distribution",
   admin: "Admin",
@@ -65,7 +65,7 @@ interface Rejection {
   message: string;
 }
 
-export function Station(props: { identity: Identity; onSignedOut: () => void }) {
+export function Station(props: { identity: StationIdentity; onSignedOut: () => void }) {
   const { identity } = props;
   const [shift, setShift] = useState<ShiftWithCards | null | undefined>(undefined);
   const [connected, setConnected] = useState(true);

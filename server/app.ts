@@ -12,6 +12,7 @@ import { registerAuthRoutes, SESSION_COOKIE } from "./auth-routes.js";
 import { registerBatchRoutes } from "./batch-routes.js";
 import { registerCardRoutes } from "./card-routes.js";
 import type { LiveMessage } from "./card-routes.js";
+import { displayMessage, DISPLAY_ROUTES, registerDisplayRoutes } from "./display.js";
 import { findSessionAccount } from "./sessions.js";
 import { scheduleAutoClose } from "./shift-closing.js";
 
@@ -83,6 +84,17 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return token ? findSessionAccount(db, token, now()) : null;
   }
 
+  // The wall display may use only its own routes. Checked before any route runs, so a route
+  // added later is closed to it unless it is listed in DISPLAY_ROUTES. See ADR 0033.
+  app.addHook("onRequest", async (request, reply) => {
+    const path = request.url.split("?")[0] as string;
+    const open = !path.startsWith("/api/") || DISPLAY_ROUTES.has(path);
+    if (!open && currentAccount(request)?.role === "display") {
+      return reply.code(403).send({ error: "Not allowed" });
+    }
+    return undefined;
+  });
+
   function requireRole(...roles: Role[]) {
     return async (request: FastifyRequest, reply: FastifyReply) => {
       const account = currentAccount(request);
@@ -111,8 +123,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // Stations only listen on this socket. All writes go through the HTTP routes, so
   // that validation and role checks live in one place.
   const socketTokens = new WeakMap<object, string>();
+  const socketRoles = new WeakMap<object, Role>();
   app.get("/api/live", { websocket: true, preValidation: requireRole() }, (socket, request) => {
     socketTokens.set(socket, request.cookies[SESSION_COOKIE] as string);
+    socketRoles.set(socket, (currentAccount(request) as Account).role);
   });
 
   // A socket outlives its session unless checked, so a changed password, a sign-out
@@ -131,10 +145,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return sockets;
   }
 
+  // A display is sent a trimmed copy of each change, or nothing. The stations get it whole.
   function broadcast(message: LiveMessage): void {
-    const data = JSON.stringify(message);
+    const everything = JSON.stringify(message);
+    const shown = displayMessage(message);
+    const trimmed = shown ? JSON.stringify(shown) : null;
     for (const socket of openSocketsWithSessions()) {
-      socket.send(data);
+      const data = socketRoles.get(socket) === "display" ? trimmed : everything;
+      if (data) socket.send(data);
     }
   }
 
@@ -151,6 +169,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   };
   registerCardRoutes(app, routeContext);
   registerBatchRoutes(app, routeContext);
+  registerDisplayRoutes(app, routeContext);
   registerAdminRoutes(app, routeContext);
 
   if (options.autoCloseTimeZone) {

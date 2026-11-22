@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.4.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.5.0** · mc-fd-dist · 2026-11-22 · For developers
 
 ---
 
@@ -46,6 +46,7 @@ Each server module and what it is responsible for:
 | `cards.ts`, `card-routes.ts` | Cards, their status path, revisions and live broadcasts |
 | `batches.ts`, `batch-routes.ts` | Returned items. Door Dash and Helping Hands Families are cards (ADR 0023) |
 | `admin-routes.ts` | Shift reports, CSV exports, accounts, activity log |
+| `display.ts` | The wall display's read-only role (ADR 0033): its trimmed copy of the queue, the routes it may use, and the trimmed messages on the live socket |
 | `rules.ts` | TEFAP bags, cart count, extras check, intake initials pattern, arrival and partner methods, allowed status changes by role |
 | `summary.ts` | `shiftSummary`, the one calculation of shift totals (ADR 0012) |
 | `shift-closing.ts` | Closing shifts by hand and automatically overnight (ADR 0013) |
@@ -142,7 +143,8 @@ ADR 0014 records the reasoning and the trade-offs, including what is lost if a d
 **[SPEC]**
 - Passwords: Argon2. Session tokens are stored only as hashes.
 - Cookies: `HttpOnly`, `SameSite=Strict`, `Secure` in production.
-- Sessions: shared role logins last 90 days; named admin logins last 12 hours (ADR 0007).
+- Sessions: shared role logins, including the wall display's, last 90 days; named admin logins last 12 hours (ADR 0007).
+- The wall display may use only the routes in `DISPLAY_ROUTES` (`server/display.ts`); every other `/api` route answers it 403 before it runs, including routes added later. It is sent the queue without initials, notes or weights (ADR 0033).
 - Sign-in is rate-limited to 10 attempts a minute per address.
 - Changing a password ends that account's sessions and closes its sockets with code 4401.
 - Every response carries a content security policy, `nosniff`, `no-referrer`, frame denial, a permissions policy and cross-origin isolation. HSTS is added when running behind HTTPS.

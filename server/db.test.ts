@@ -104,6 +104,54 @@ describe("openDatabase", () => {
     });
   });
 
+  describe("when a database from before the display role is upgraded", () => {
+    function databaseBeforeDisplayRole(): string {
+      const path = tempPath();
+      const old = new Sqlite(path);
+      old.pragma("foreign_keys = ON");
+      const before = MIGRATIONS.slice(0, MIGRATIONS.length - 1);
+      before.forEach((migration) =>
+        typeof migration === "string" ? old.exec(migration) : migration(old),
+      );
+      old.pragma(`user_version = ${before.length}`);
+      old
+        .prepare("INSERT INTO account (username, password_hash, role) VALUES (?, ?, ?)")
+        .run("front-desk", "hash", "front_desk");
+      old
+        .prepare("INSERT INTO session (token_hash, account_id, expires_at) VALUES (?, ?, ?)")
+        .run("token", 1, 9_999_999_999_999);
+      old.close();
+      return path;
+    }
+
+    it("keeps accounts and the sessions of stations that are signed in", () => {
+      const db = openDatabase(databaseBeforeDisplayRole());
+      const account = db.prepare("SELECT id, username, role FROM account").get();
+      const session = db.prepare("SELECT token_hash, account_id FROM session").get();
+      db.close();
+      expect(account).toEqual({ id: 1, username: "front-desk", role: "front_desk" });
+      expect(session).toEqual({ token_hash: "token", account_id: 1 });
+    });
+
+    it("accepts a display account, and still rejects unknown roles", () => {
+      const db = openDatabase(databaseBeforeDisplayRole());
+      const insert = db.prepare(
+        "INSERT INTO account (username, password_hash, role) VALUES (?, 'h', ?)",
+      );
+      expect(() => insert.run("wall", "display")).not.toThrow();
+      expect(() => insert.run("other", "kiosk")).toThrow("CHECK constraint failed");
+      db.close();
+    });
+
+    it("still ends a session when its account is removed", () => {
+      const db = openDatabase(databaseBeforeDisplayRole());
+      db.prepare("DELETE FROM account WHERE id = 1").run();
+      const sessions = db.prepare("SELECT COUNT(*) AS n FROM session").get();
+      db.close();
+      expect(sessions).toEqual({ n: 0 });
+    });
+  });
+
   describe("when a database from before call order was kept is upgraded", () => {
     function databaseBeforeCallOrder(): string {
       const path = tempPath();

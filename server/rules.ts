@@ -66,6 +66,28 @@ export function bagsAfter(current: BagState, changes: BagChanges): number {
     : tefapBags(changes.familySize ?? current.familySize);
 }
 
+// Whether a card waits in Distribution's queue: called or confirmed, and not a partner Family,
+// who is saved as already served. See ADR 0023.
+export function inDistributionQueue(card: { status: CardStatus; arrivalMethod: string }): boolean {
+  return (
+    (card.status === "called" || card.status === "confirmed") &&
+    !isPartnerMethod(card.arrivalMethod)
+  );
+}
+
+// The order families were called in. A family called before the order was kept has none, and was
+// called before any that have one, so those come first, by card number. See ADR 0032.
+export function byCallOrder(
+  a: { number: number; calledOrder: number | null },
+  b: { number: number; calledOrder: number | null },
+): number {
+  if (a.calledOrder === null || b.calledOrder === null) {
+    if (a.calledOrder === b.calledOrder) return a.number - b.number;
+    return a.calledOrder === null ? -1 : 1;
+  }
+  return a.calledOrder - b.calledOrder;
+}
+
 // Each TEFAP bag goes out on its own cart, so a Family has a weight for each. See ADR 0023.
 export function cartCount(card: { tefapBags: number }): number {
   return card.tefapBags;
@@ -107,6 +129,8 @@ const STATUSES_BY_ROLE: Record<Role, readonly CardStatus[]> = {
   front_desk: ["entered", "called"],
   distribution: ["called", "confirmed", "distributed"],
   admin: CARD_STATUSES,
+  // The wall display only reads. Its routes are closed to it as well (ADR 0033).
+  display: [],
 };
 
 export function canChangeStatus(role: Role, from: CardStatus, to: CardStatus): boolean {

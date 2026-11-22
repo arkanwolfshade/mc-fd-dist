@@ -158,6 +158,23 @@ export const MIGRATIONS: readonly Migration[] = [
   // The order a shift's families were called in, so that the queue is in that order. Empty for
   // a card not yet called, and for a family called before this was kept. See ADR 0032.
   `ALTER TABLE card ADD COLUMN called_order INTEGER;`,
+  // The wall display's role. A CHECK cannot be changed, so the table is rebuilt. Dropping the
+  // old one would also delete every session through its ON DELETE CASCADE, signing every
+  // station out, so the sessions are kept aside and put back. See ADR 0033.
+  `
+  CREATE TEMP TABLE session_kept AS SELECT * FROM session;
+  CREATE TABLE account_new (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('front_desk', 'distribution', 'admin', 'display'))
+  );
+  INSERT INTO account_new SELECT id, username, password_hash, role FROM account;
+  DROP TABLE account;
+  ALTER TABLE account_new RENAME TO account;
+  INSERT INTO session SELECT * FROM session_kept;
+  DROP TABLE session_kept;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
