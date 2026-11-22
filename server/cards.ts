@@ -1,8 +1,8 @@
 import { SqliteError } from "better-sqlite3";
 import type { Database } from "better-sqlite3";
-import { tefapBags } from "./rules.js";
+import { bagsAfter, overrideAfter, tefapBags } from "./rules.js";
 import type { ArrivalMethod, CardStatus } from "./rules.js";
-import { roundWeight } from "./summary.js";
+import { totalWeight } from "./summary.js";
 
 export type Loads = [number | null, number | null, number | null];
 
@@ -98,7 +98,7 @@ function toCard(row: CardRow): Card {
     tefapOverride: row.tefap_override === 1,
     status: row.status,
     loads,
-    totalWeight: roundWeight(loads.reduce<number>((sum, load) => sum + (load ?? 0), 0)),
+    totalWeight: totalWeight(loads),
     revision: row.revision,
     extrasAdded: row.extras_added === 1,
     extrasNote: row.extras_note,
@@ -202,19 +202,6 @@ export function createCard(db: Database, shiftId: number, input: NewCard): Card 
 }
 
 export type UpdateResult = Card | "stale" | "duplicate";
-
-// Whether the TEFAP bags are set by hand once the changes are made. Setting them to null
-// returns to the size rule.
-function overrideAfter(current: Card, changes: CardChanges): boolean {
-  return changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
-}
-
-// The TEFAP bags a card will have once the changes are made.
-export function bagsAfter(current: Card, changes: CardChanges): number {
-  return overrideAfter(current, changes)
-    ? (changes.tefapBags ?? current.tefapBags)
-    : tefapBags(changes.familySize ?? current.familySize);
-}
 
 // A card's weights fill three columns, one for each cart it can have.
 function loadColumns(loads: readonly (number | null)[]): (number | null)[] {

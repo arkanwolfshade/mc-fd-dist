@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import { arrivalLabel, PARTNER_METHODS } from "../../server/rules.js";
-import { roundWeight } from "../../server/summary.js";
+import { totalWeight } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
 import { ErrorMessage, ScreenReaderText } from "./Controls.js";
 import { familyLabel, SeniorBoxAndCheese, Ticket } from "./CardActions.js";
@@ -8,10 +8,6 @@ import { EMPTY_PARTNER_FORM, partnerFormView, preparePartnerCard } from "./forms
 import type { PartnerForm } from "./forms.js";
 import type { ShiftView } from "./pending.js";
 import type { Card, Submit } from "./types.js";
-
-function totalWeight(loads: readonly (number | null)[]): number {
-  return roundWeight(loads.reduce<number>((sum, load) => sum + (load ?? 0), 0));
-}
 
 export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
   const { shift, submit } = props;

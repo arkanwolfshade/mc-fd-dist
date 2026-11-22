@@ -4,7 +4,6 @@ import type { Account, Role } from "./accounts.js";
 import { listReturnedBatches } from "./batches.js";
 import type { ReturnedBatch } from "./batches.js";
 import {
-  bagsAfter,
   createCard,
   createShift,
   deleteCard,
@@ -20,6 +19,7 @@ import type { Card, CardChanges, NewCard, Shift } from "./cards.js";
 import {
   ALL_ARRIVAL_METHODS,
   ALL_CARD_STATUSES,
+  bagsAfter,
   breaksCheeseRule,
   canChangeStatus,
   cartCount,
@@ -95,6 +95,8 @@ const NEW_CARD_BODY = {
 const CARD_CHANGES_BODY = {
   type: "object",
   required: ["revision"],
+  // Fields not listed here are dropped, so the activity log records only what changes.
+  additionalProperties: false,
   properties: {
     revision: { type: "integer", minimum: 1 },
     ...CARD_DETAIL_PROPERTIES,

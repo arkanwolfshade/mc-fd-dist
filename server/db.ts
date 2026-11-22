@@ -174,6 +174,13 @@ export function openDatabase(path: string): Database {
 
 function migrate(db: Database): void {
   const current = db.pragma("user_version", { simple: true }) as number;
+  // An earlier release, such as after a rollback, must not write to a schema it does not know.
+  if (current > MIGRATIONS.length) {
+    throw new Error(
+      `This database was made by a newer version of the app (schema ${current}, ` +
+        `this version knows ${MIGRATIONS.length}). Restore the backup taken before that release.`,
+    );
+  }
   MIGRATIONS.slice(current).forEach((migration, index) => {
     db.transaction(() => {
       if (typeof migration === "string") db.exec(migration);

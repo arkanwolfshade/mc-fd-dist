@@ -339,6 +339,20 @@ describe("shift and card routes", () => {
       expect(stale.json().card).toMatchObject({ familySize: 2, revision: 2 });
     });
 
+    it("logs only the changes it makes, not fields it does not accept", async () => {
+      const card = await addCard(await openShift());
+      const response = await patchCard(card.id, distribution, {
+        revision: 1,
+        familySize: 2,
+        intakeInitials: "ZZ",
+      });
+      expect(response.statusCode).toBe(200);
+      const { detail } = db
+        .prepare("SELECT detail FROM audit_log WHERE action = 'card.update'")
+        .get() as { detail: string };
+      expect(JSON.parse(detail).changes).toEqual({ familySize: 2 });
+    });
+
     it("requires a revision", async () => {
       const card = await addCard(await openShift());
       const response = await patchCard(card.id, distribution, { familySize: 2 });

@@ -147,10 +147,13 @@ describe("admin and closing routes", () => {
       expect((await request("GET", url, distribution)).statusCode).toBe(403);
     });
 
-    it("rejects a range that ends before it starts", async () => {
-      const url = "/api/admin/reports/totals?from=2026-11-30&to=2026-11-01";
-      expect((await request("GET", url, admin)).statusCode).toBe(400);
-    });
+    it.each(["totals", "shifts.csv", "cards.csv"])(
+      "rejects a range that ends before it starts, for %s",
+      async (report) => {
+        const url = `/api/admin/reports/${report}?from=2026-11-30&to=2026-11-01`;
+        expect((await request("GET", url, admin)).statusCode).toBe(400);
+      },
+    );
 
     it("returns each shift in the range and combined totals", async () => {
       const first = await openShift("2026-11-07");

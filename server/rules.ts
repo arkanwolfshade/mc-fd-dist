@@ -41,6 +41,31 @@ export function tefapBags(familySize: number): number {
   return 3;
 }
 
+interface BagState {
+  familySize: number;
+  tefapBags: number;
+  tefapOverride: boolean;
+}
+
+interface BagChanges {
+  familySize?: number;
+  tefapBags?: number | null;
+}
+
+// Whether the TEFAP bags are set by hand once the changes are made. Setting them to null
+// returns to the size rule.
+export function overrideAfter(current: BagState, changes: BagChanges): boolean {
+  return changes.tefapBags === undefined ? current.tefapOverride : changes.tefapBags !== null;
+}
+
+// The TEFAP bags a card will have once the changes are made. Stations use it to show a change
+// still waiting to send, so it must match what the server saves.
+export function bagsAfter(current: BagState, changes: BagChanges): number {
+  return overrideAfter(current, changes)
+    ? (changes.tefapBags ?? current.tefapBags)
+    : tefapBags(changes.familySize ?? current.familySize);
+}
+
 // Each TEFAP bag goes out on its own cart, so a Family has a weight for each. See ADR 0023.
 export function cartCount(card: { tefapBags: number }): number {
   return card.tefapBags;
