@@ -9,6 +9,7 @@ const HOUR = 60 * 60 * 1000;
 const SESSION_LIFETIME: Record<Role, number> = {
   front_desk: 90 * 24 * HOUR,
   distribution: 90 * 24 * HOUR,
+  display: 90 * 24 * HOUR,
   admin: 12 * HOUR,
 };
 

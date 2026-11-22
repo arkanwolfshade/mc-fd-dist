@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import type { Role } from "../../server/accounts.js";
+import type { WorkingRole } from "../../server/accounts.js";
 import admin from "../../docs/guides/en/admin.md?guide";
 import distribution from "../../docs/guides/en/distribution.md?guide";
 import frontDesk from "../../docs/guides/en/front-desk.md?guide";
@@ -17,7 +17,7 @@ const ADMIN: Guide = { title: "Admin guide", html: admin };
 const GETTING_STARTED: Guide = { title: "Getting started", html: gettingStarted };
 
 // Each station starts on its own guide.
-const GUIDES_BY_ROLE: Record<Role, [Guide, ...Guide[]]> = {
+const GUIDES_BY_ROLE: Record<WorkingRole, [Guide, ...Guide[]]> = {
   front_desk: [FRONT_DESK, GETTING_STARTED],
   distribution: [DISTRIBUTION, GETTING_STARTED],
   admin: [ADMIN, FRONT_DESK, DISTRIBUTION, GETTING_STARTED],
@@ -29,7 +29,7 @@ const SCHEME_LABELS: Record<Scheme, string> = {
   dark: "Dark",
 };
 
-export function Help(props: { role: Role }) {
+export function Help(props: { role: WorkingRole }) {
   const guides = GUIDES_BY_ROLE[props.role];
   const [shown, setShown] = useState(guides[0]);
   const [scheme, setScheme] = useState(savedScheme);

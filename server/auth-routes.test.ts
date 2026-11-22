@@ -18,6 +18,7 @@ describe("auth routes", () => {
     time = Date.UTC(2026, 10, 6, 12);
     await createAccount(db, { username: "front-desk", password: PASSWORD, role: "front_desk" });
     await createAccount(db, { username: "pat", password: PASSWORD, role: "admin" });
+    await createAccount(db, { username: "wall", password: PASSWORD, role: "display" });
     app = await buildApp({ db, cookieSecure: true, now: () => time });
   });
 
@@ -120,6 +121,14 @@ describe("auth routes", () => {
     expect((await get("/api/me", cookie)).statusCode).toBe(401);
   });
 
+  it("keeps a display signed in for ninety days, then signs it out", async () => {
+    const cookie = await sessionCookie("wall");
+    time += 89 * 24 * HOUR;
+    expect((await get("/api/me", cookie)).statusCode).toBe(200);
+    time += 2 * 24 * HOUR;
+    expect((await get("/api/me", cookie)).statusCode).toBe(401);
+  });
+
   it("expires an admin session after twelve hours", async () => {
     const cookie = await sessionCookie("pat");
     time += 11 * HOUR;
@@ -143,6 +152,7 @@ describe("auth routes", () => {
     expect(response.json()).toEqual([
       { username: "front-desk", role: "front_desk" },
       { username: "pat", role: "admin" },
+      { username: "wall", role: "display" },
     ]);
   });
 });

@@ -58,7 +58,11 @@ function App() {
   if (identity === null) {
     return <Login onSignedIn={signedIn} />;
   }
-  return <Station identity={identity} onSignedOut={signedOut} />;
+  // The queue display has a screen of its own, which is not built yet.
+  if (identity.role === "display") {
+    return <p class="notice">This login is for the queue display, which is not ready yet.</p>;
+  }
+  return <Station identity={{ ...identity, role: identity.role }} onSignedOut={signedOut} />;
 }
 
 render(<App />, document.getElementById("app") as HTMLElement);

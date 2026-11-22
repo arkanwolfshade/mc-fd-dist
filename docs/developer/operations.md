@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.5.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
+**Version 1.6.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
 
 ---
 
@@ -63,7 +63,7 @@ Where settings and credentials live. None of them is in the repository.
 3. On the server, edit `/opt/mc-fd-dist/.env` from `.env.example`: `SITE_ADDRESS`, `ACME_EMAIL`, `BACKUP_BUCKET`, `AWS_REGION` and the key. Keep the file at `chmod 600`.
 4. Start the app: `cd /opt/mc-fd-dist && docker compose up -d`.
 5. Create the station logins and the first admin:
-   `docker compose exec app node dist/server/cli/account.js front-desk front_desk` (and the same for `distribution`, and an admin with role `admin`).
+   `docker compose exec app node dist/server/cli/account.js front-desk front_desk` (and the same for `distribution`, and an admin with role `admin`). The wall display in the distribution room has its own role, `display`, made the same way. It can read the queue and nothing else (ADR 0033).
 6. Open the site, sign in, and check that it shows a padlock (HTTPS).
 7. Run `./backup.sh` once and confirm the file appears in S3.
 
@@ -195,6 +195,11 @@ Try the app on the real devices before the first shift, and again when the devic
 
 **[?]**
 This checklist has not been run yet. Record the date, the devices and anything that failed here when it is.
+
+**[BUG] The wall display shows the sign-in form**
+Symptom: The screen in the distribution room asks for a username and password.
+Cause: Its session ended. Sessions last 90 days (ADR 0033), or the display's password was changed.
+Fix: Plug in a keyboard and sign in as the display account. If nobody has the password, an admin sets a new one on the Admin screen, and then the screen is signed in with that.
 
 ---
 
