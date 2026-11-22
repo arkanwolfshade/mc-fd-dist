@@ -48,8 +48,9 @@ npm run docs:check                        # HADS (Human-AI Document Standard) fo
 ```
 
 Before committing, run format:check, lint, typecheck and test:coverage; add test:e2e when a
-screen changes. The pre-commit hook formats/lints staged files and runs gitleaks; the pre-push
-hook runs typecheck and unit tests.
+screen changes. The pre-commit hook formats/lints staged files, runs test:coverage (floor 96%
+for lines, statements and functions) and runs gitleaks; the pre-push hook runs typecheck and
+unit tests.
 
 Local run: `npm run account -- pat admin` (password from stdin), then
 `COOKIE_SECURE=false npm run dev` and `npm run dev:client` in a second terminal.
