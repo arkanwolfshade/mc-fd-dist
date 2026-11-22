@@ -1,6 +1,6 @@
 import type { Database } from "better-sqlite3";
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { verifyPassword } from "./accounts.js";
+import { ROLES, verifyPassword } from "./accounts.js";
 import type { Account } from "./accounts.js";
 import type { CardRouteContext } from "./card-routes.js";
 import { createSession, deleteSession } from "./sessions.js";
@@ -61,7 +61,7 @@ export function registerAuthRoutes(app: FastifyInstance, context: AuthRouteConte
     return reply.code(204).send();
   });
 
-  app.get("/api/me", { preHandler: requireRole() }, async (request) => {
+  app.get("/api/me", { preHandler: requireRole(...ROLES) }, async (request) => {
     const account = currentAccount(request) as Account;
     return { username: account.username, role: account.role };
   });

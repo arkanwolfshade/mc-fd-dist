@@ -102,6 +102,9 @@ Local run: `npm run account -- pat admin` (password from stdin), then
   default, so do not pass `--no-gpg-sign` or turn `commit.gpgsign` off to get past a failure;
   if signing fails, stop and tell the maintainer, who decides what to do. The only exception is
   an explicit instruction from the maintainer in the current session.
+- The wall display role can use only the routes in `DISPLAY_ROUTES` (`server/display.ts`, ADR 0033); every
+  other `/api` route answers it 403. A new route is closed to it by default, and
+  `server/display.test.ts` fails until you add the route to its list on purpose.
 - Add an ADR (`docs/adr/`, see template) in the same commit as any hard-to-reverse or
   cross-cutting decision.
 - Docs in `docs/guides/` and `docs/developer/` follow the HADS 1.0.0 format from ADR 0018, which marks

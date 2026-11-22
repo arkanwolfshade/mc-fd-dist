@@ -40,3 +40,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0030](0030-verify-signatures-on-pull-request-commits.md) | Verify the signature of every commit in a pull request | Accepted |
 | [0031](0031-check-station-screens-on-phones-and-tablets.md) | Check the station screens on phones and tablets | Accepted |
 | [0032](0032-list-the-queue-in-the-order-families-were-called.md) | List the queue in the order families were called | Accepted |
+| [0033](0033-add-a-read-only-display-role.md) | Add a read-only role for the wall display | Accepted |

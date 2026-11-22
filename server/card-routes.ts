@@ -38,7 +38,7 @@ export const SHIFT_PARAMS = {
 } as const;
 export const ID_PARAMS = { type: "object", properties: { id: { type: "integer" } } } as const;
 
-const DATE_OBJECT = {
+export const DATE_OBJECT = {
   type: "object",
   required: ["date"],
   properties: { date: { type: "string", format: "date" } },
