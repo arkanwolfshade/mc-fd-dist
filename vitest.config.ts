@@ -23,8 +23,10 @@ export default defineConfig({
       ],
       // lcov is what Codacy reads; see the upload step in .github/workflows/ci.yml.
       reporter: ["text-summary", "lcov"],
-      // Set just below the level when coverage was first measured, so it cannot fall.
-      thresholds: { statements: 92, branches: 84, functions: 93, lines: 92 },
+      // A floor of 96%, just below the line coverage Codacy reported (96.77%). Branches sit
+      // lower (91.69% when the floor was set), so theirs is just below that. The commit hook
+      // and CI's check job both fail under these.
+      thresholds: { statements: 96, branches: 91, functions: 96, lines: 96 },
     },
   },
 });
