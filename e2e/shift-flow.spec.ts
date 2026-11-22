@@ -11,6 +11,7 @@ import {
   PASSWORD,
   queueCard,
   test,
+  WEBKIT_KEEPS_SOCKET,
   tickExtras,
   totalsRow,
 } from "./fixtures.js";
@@ -256,7 +257,9 @@ test("a station acting on an outdated card is told to review it", async ({ signI
 
 test("a station that loses its connection warns, then recovers the missed updates", async ({
   signIn,
+  browserName,
 }) => {
+  test.skip(browserName === "webkit", WEBKIT_KEEPS_SOCKET);
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);

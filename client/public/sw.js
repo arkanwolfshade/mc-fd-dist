@@ -11,6 +11,19 @@ async function precache() {
   const page = await (await cache.match("/")).text();
   const assets = [...page.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((match) => match[1]);
   await cache.addAll(assets);
+  await precacheFonts(cache, assets);
+}
+
+// Fonts are named in the stylesheet, not the page, so without this an offline reload right after
+// the first visit shows the fallback font. A browser that supports woff2 never asks for the
+// .woff copies. One that fails to load is skipped, so it can never stop the app being installed.
+async function precacheFonts(cache, assets) {
+  const sheets = assets.filter((asset) => asset.endsWith(".css"));
+  const texts = await Promise.all(sheets.map(async (sheet) => (await cache.match(sheet)).text()));
+  const fonts = texts.flatMap((css) =>
+    [...css.matchAll(/url\((\/assets\/[^)]+\.woff2)\)/g)].map((match) => match[1]),
+  );
+  await Promise.allSettled(fonts.map((font) => cache.add(font)));
 }
 
 async function removeOldCaches() {

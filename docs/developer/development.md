@@ -1,5 +1,5 @@
 # Development
-**Version 1.6.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.7.0** · mc-fd-dist · 2026-11-22 · For developers
 
 ---
 
@@ -16,7 +16,7 @@ Read `[NOTE]` only if additional context is needed.
 **[SPEC]**
 - Node.js 26.13.0 or later (the current LTS release).
 - gitleaks, for the commit hook's secret scan (`winget install Gitleaks.Gitleaks` on Windows).
-- Chromium for Playwright: `npx playwright install chromium`.
+- Chromium and WebKit for Playwright: `npx playwright install chromium webkit`.
 - Docker is optional. CI builds and tests the container; build it locally only to debug it. In Git Bash on Windows, set `MSYS_NO_PATHCONV=1` first (see known pitfalls).
 
 ---
@@ -67,6 +67,14 @@ The npm scripts:
 - Add an ADR in the same commit as any decision that is hard to reverse or crosses parts of the system.
 - Dependencies in `package.json` are pinned to exact versions, and `.npmrc` sets `save-exact` so that `npm install <package>` records one. Dependabot raises the pins.
 - When a screen changes, run `npm run docs:screenshots` and check the guides still describe it.
+
+**[SPEC]**
+Screens work on phones and tablets as well as desktop, and the browser tests check it (ADR 0031). `playwright.config.ts` runs the files in `STATION_TESTS` on an iPhone, an iPhone turned sideways, an iPad, an Android phone and a 320 px window (which stands in for 200% text), and every file on desktop:
+
+- A new test file for a screen people use at a station goes in `STATION_TESTS`. Do not set a window size inside a test; the project sets it.
+- `e2e/layout.spec.ts` fails a change that makes the page scroll sideways or lets a control leave its panel. On touch profiles it also fails a button, link, field or choice smaller than 44×44 px, and a text field with text under 16 px (iOS Safari zooms the page on those). Keep new controls above both.
+- Run one profile with `npx playwright test --project=iphone`. Under a full local run with every worker the WebKit profiles can time out; `--workers=2` is closer to CI.
+- WebKit reports no touch points even when emulating touch, so a test that needs to know about touch uses `matchMedia("(pointer: coarse)")`.
 
 **[SPEC]**
 Screens follow these rules for screen readers, and `e2e/accessibility.spec.ts` checks them. The shared pieces are in `client/src/Controls.tsx`:
@@ -183,7 +191,7 @@ Fix: Run `git update-index --chmod=+x deploy/<script>.sh` and commit.
 
 **[BUG] Browser tests that go offline still see live updates**
 Symptom: After `context.setOffline(true)`, a station still receives socket messages.
-Cause: Playwright's offline mode may not close a WebSocket that is already open.
+Cause: Playwright's offline mode may not close a WebSocket that is already open. In WebKit it never does, so the two tests that wait for the Offline banner skip WebKit (`WEBKIT_KEEPS_SOCKET` in `e2e/fixtures.ts`).
 Fix: The app also watches the browser's `offline` and `online` events and failed requests. In tests, mute the socket with the `muteLive` option of `signIn` where a test needs it silent.
 
 **[BUG] A test with a fast-forwarded clock passes even though the code is wrong**

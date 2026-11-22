@@ -56,7 +56,7 @@ jobs:
           fi
           "$RUNNER_TEMP/codacy-reporter" report --commit-uuid "$COMMIT_SHA" -r coverage/lcov.info
       - run: npm audit --audit-level=high
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
       - run: npm run docs:pdf
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

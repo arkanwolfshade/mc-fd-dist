@@ -8,6 +8,10 @@ import { openDatabase } from "../server/db.js";
 
 export const PASSWORD = "local-test-password-1";
 
+// WebKit's offline mode leaves an open WebSocket connected, so a station there never shows the
+// Offline banner. Tests that wait for it skip WebKit; the real-device checklist covers iOS.
+export const WEBKIT_KEEPS_SOCKET = "WebKit's offline mode does not close an open WebSocket";
+
 interface Fixtures {
   serverUrl: string;
   signIn: (

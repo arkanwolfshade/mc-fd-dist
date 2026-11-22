@@ -86,6 +86,8 @@ Local run: `npm run account -- pat admin` (password from stdin), then
 - Write the failing test first and watch it fail for the expected reason.
 - Each e2e test starts its own server and in-memory database (`e2e/fixtures.ts`). Anything a
   person does across stations or screens needs an e2e test.
+- Station e2e files also run on iPhone, iPad and Android profiles (`STATION_TESTS` in
+  `playwright.config.ts`, ADR 0031): add a new one to that list, and don't set a window size in a test.
 - Playwright's offline mode may not close an open WebSocket; use `signIn`'s `muteLive` option.
   `clock.fastForward` can hide races; delay the specific response with `page.route` instead.
 
