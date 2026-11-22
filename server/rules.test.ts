@@ -1,13 +1,40 @@
 import { describe, expect, it } from "vitest";
 import {
   arrivalLabel,
+  bagsAfter,
   canChangeStatus,
   cartCount,
   isPartnerMethod,
   needsExtrasCheck,
   normalizeInitials,
+  overrideAfter,
   tefapBags,
 } from "./rules.js";
+
+describe("TEFAP bags after a change", () => {
+  const bySize = { familySize: 3, tefapBags: 1, tefapOverride: false };
+  const byHand = { familySize: 3, tefapBags: 2, tefapOverride: true };
+
+  it("follows the family size while the bags are not set by hand", () => {
+    expect(bagsAfter(bySize, { familySize: 9 })).toBe(3);
+    expect(overrideAfter(bySize, { familySize: 9 })).toBe(false);
+  });
+
+  it("keeps bags set by hand when the family size changes", () => {
+    expect(bagsAfter(byHand, { familySize: 9 })).toBe(2);
+    expect(overrideAfter(byHand, { familySize: 9 })).toBe(true);
+  });
+
+  it("sets the bags by hand when a number is given", () => {
+    expect(bagsAfter(bySize, { tefapBags: 0 })).toBe(0);
+    expect(overrideAfter(bySize, { tefapBags: 0 })).toBe(true);
+  });
+
+  it("goes back to the size rule when the bags are set to null", () => {
+    expect(bagsAfter(byHand, { tefapBags: null, familySize: 9 })).toBe(3);
+    expect(overrideAfter(byHand, { tefapBags: null })).toBe(false);
+  });
+});
 
 describe("cartCount", () => {
   it("gives a Family one cart for each TEFAP bag", () => {

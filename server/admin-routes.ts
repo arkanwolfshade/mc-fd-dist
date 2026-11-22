@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   AccountExistsError,
   changePassword,
@@ -10,6 +10,7 @@ import {
 import type { Account } from "./accounts.js";
 import { listAudit } from "./audit.js";
 import { listReturnedBatches } from "./batches.js";
+import { ID_PARAMS } from "./card-routes.js";
 import type { CardRouteContext } from "./card-routes.js";
 import { listCards, listShiftsBetween } from "./cards.js";
 import { toCsv } from "./csv.js";
@@ -20,7 +21,6 @@ import { shiftSummary } from "./summary.js";
 
 const AUDIT_LIMIT = 200;
 
-const SHIFT_PARAMS = { type: "object", properties: { id: { type: "integer" } } } as const;
 const USERNAME_PARAMS = { type: "object", properties: { username: { type: "string" } } } as const;
 const PASSWORD_SCHEMA = { type: "string", minLength: 10, maxLength: 200 } as const;
 const RANGE_QUERY = {
@@ -54,7 +54,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
 
   app.post<{ Params: { id: number } }>(
     "/api/shifts/:id/close",
-    { preHandler: requireRole("distribution", "admin"), schema: { params: SHIFT_PARAMS } },
+    { preHandler: requireRole("distribution", "admin"), schema: { params: ID_PARAMS } },
     async (request, reply) => {
       const shift = setShiftStatus(db, request.params.id, "closed");
       if (!shift) {
@@ -68,7 +68,7 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
 
   app.post<{ Params: { id: number } }>(
     "/api/admin/shifts/:id/reopen",
-    { preHandler: adminOnly, schema: { params: SHIFT_PARAMS } },
+    { preHandler: adminOnly, schema: { params: ID_PARAMS } },
     async (request, reply) => {
       const shift = setShiftStatus(db, request.params.id, "open");
       if (!shift) {
@@ -80,14 +80,22 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
     },
   );
 
-  const rangeRoute = { preHandler: adminOnly, schema: { querystring: RANGE_QUERY } };
+  // Every report checks its range, so that a reversed one is refused rather than answered empty.
+  const rangeRoute = {
+    preHandler: [
+      adminOnly,
+      async (request: FastifyRequest<RangeQuery>, reply: FastifyReply) => {
+        if (request.query.from > request.query.to) {
+          return reply.code(400).send({ error: "The start date must not be after the end date" });
+        }
+        return undefined;
+      },
+    ],
+    schema: { querystring: RANGE_QUERY },
+  };
 
-  app.get<RangeQuery>("/api/admin/reports/totals", rangeRoute, async (request, reply) => {
-    const { from, to } = request.query;
-    if (from > to) {
-      return reply.code(400).send({ error: "The start date must not be after the end date" });
-    }
-    const shifts = shiftsInRange(from, to);
+  app.get<RangeQuery>("/api/admin/reports/totals", rangeRoute, async (request) => {
+    const shifts = shiftsInRange(request.query.from, request.query.to);
     return {
       // nosemgrep: rules_lgpl_javascript_dos_rule-layer7-object-dos -- loops over rows from our own database, which the date range only selects
       shifts: shifts.map(({ id, date, status, summary }) => ({ id, date, status, summary })),

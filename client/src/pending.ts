@@ -1,6 +1,6 @@
-import { tefapBags } from "../../server/rules.js";
+import { bagsAfter, overrideAfter, tefapBags } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
-import { roundWeight } from "../../server/summary.js";
+import { totalWeight } from "../../server/summary.js";
 import type { QueuedWrite } from "./outbox.js";
 import type { Card, CardChanges, ShiftWithCards } from "./types.js";
 
@@ -23,7 +23,6 @@ export interface ShiftView extends ShiftWithCards {
 function applyChange(card: Card, body: Record<string, unknown>): Card {
   const { revision: _revision, ...rest } = body;
   const changes = rest as CardChanges;
-  const familySize = changes.familySize ?? card.familySize;
   const loads = changes.loads
     ? ([
         changes.loads[0] ?? null,
@@ -31,17 +30,16 @@ function applyChange(card: Card, body: Record<string, unknown>): Card {
         changes.loads[2] ?? null,
       ] as Card["loads"])
     : card.loads;
-  const tefapOverride =
-    changes.tefapBags === undefined ? card.tefapOverride : changes.tefapBags !== null;
 
+  // The same rules the server applies, so the card shows what will be saved.
   return {
     ...card,
     ...(changes as Partial<Card>),
-    familySize,
+    familySize: changes.familySize ?? card.familySize,
     loads,
-    totalWeight: roundWeight(loads.reduce<number>((sum, load) => sum + (load ?? 0), 0)),
-    tefapOverride,
-    tefapBags: tefapOverride ? (changes.tefapBags ?? card.tefapBags) : tefapBags(familySize),
+    totalWeight: totalWeight(loads),
+    tefapOverride: overrideAfter(card, changes),
+    tefapBags: bagsAfter(card, changes),
   };
 }
 

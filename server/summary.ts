@@ -30,6 +30,11 @@ function sum(values: number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
 
+// One card's weight: its carts added up, an empty cart counting as nothing.
+export function totalWeight(loads: readonly (number | null)[]): number {
+  return roundWeight(sum(loads.map((load) => load ?? 0)));
+}
+
 function cartWeight(cards: readonly SummaryCard[]): number {
   return sum(cards.flatMap((card) => card.loads.map((load) => load ?? 0)));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { roundWeight, shiftSummary } from "./summary.js";
+import { roundWeight, shiftSummary, totalWeight } from "./summary.js";
 import type { SummaryCard } from "./summary.js";
 
 function card(overrides: Partial<SummaryCard> & { familySize?: number } = {}): SummaryCard {
@@ -18,6 +18,13 @@ function card(overrides: Partial<SummaryCard> & { familySize?: number } = {}): S
 function partnerCard(overrides: Partial<SummaryCard> = {}): SummaryCard {
   return card({ arrivalMethod: "DD", status: "distributed", ...overrides });
 }
+
+describe("totalWeight", () => {
+  it("adds a card's cart weights, skipping empty carts, to two decimals", () => {
+    expect(totalWeight([12.5, null, 0.1])).toBe(12.6);
+    expect(totalWeight([null, null, null])).toBe(0);
+  });
+});
 
 describe("roundWeight", () => {
   it("removes floating point noise from a sum", () => {

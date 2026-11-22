@@ -47,6 +47,16 @@ describe("openDatabase", () => {
     expect(row.username).toBe("front-desk");
   });
 
+  // An earlier release must not run on a schema it does not know, as after a rollback.
+  it("refuses a database made by a newer version of the app", () => {
+    const path = tempPath();
+    const newer = new Sqlite(path);
+    newer.pragma(`user_version = ${MIGRATIONS.length + 1}`);
+    newer.close();
+
+    expect(() => openDatabase(path)).toThrow("newer version");
+  });
+
   describe("when a database from before 'left without food' is upgraded", () => {
     function databaseAtVersion4(): string {
       const path = tempPath();

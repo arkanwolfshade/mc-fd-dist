@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.3.0** · mc-fd-dist · 2026-11-13 · For the maintainer and the staff owner
+**Version 1.4.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
 
 ---
 
@@ -83,7 +83,7 @@ A release is cut, then deployed (ADRs 0022 and 0029):
 5. On the server, `release.sh` backs the database up to S3, runs the release's image by its digest, and goes back to the previous image if the new one is not healthy.
 
 **[SPEC]**
-- To go back to an earlier version, run **Deploy** by hand with that release's version. Only releases cut after the deploy workflow changed to use versions can be deployed.
+- To go back to an earlier version, run **Deploy** by hand with that release's version. Only releases cut after the deploy workflow changed to use versions can be deployed. An earlier version does not start on a database that a later release changed; see the bug below.
 - `/opt/mc-fd-dist/release-version` holds the version and image digest now running.
 
 **[SPEC]**
@@ -115,6 +115,11 @@ Fix: Back up the database, then make the change by hand. The stack's CloudFormat
 Symptom: A release that includes migration 6 (ADR 0023) goes back to the previous image. The **Release on the server** step ends with `dependency failed to start: container mc-fd-dist-app-1 is unhealthy`, followed by `Going back to` the previous image. The app's log says the database holds partner batches, which cannot become cards.
 Cause: Migration 6 drops the old Door Dash and Helping Hands batches and refuses to run while any exist, because a batch has no card numbers or sizes.
 Fix: Stop and decide with the developer before releasing again. The batches must be re-entered by hand as Door Dash or Helping Hands cards, then deleted. The database is not changed by the refused migration.
+
+**[BUG] An earlier version does not start after a release changed the database**
+Symptom: Going back to an earlier version does not become healthy. After an automatic return, `release.sh` ends with `The previous image is not healthy either`, and the site is down. The app's log says the database was made by a newer version of the app.
+Cause: A release that adds a migration changes the database, and an earlier version refuses to start on a database it does not know, rather than write to it.
+Fix: Restore the backup that `release.sh` took before the newer release (section 6), then deploy the earlier version again. Anything entered after that backup is lost, so if the newer release ran for a while, decide with the developer whether to fix it forward instead.
 
 **[BUG] A release left SSH open**
 Symptom: The server's networking tab shows port 22 open to an address other than the Lightsail browser client.
