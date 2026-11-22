@@ -1,0 +1,10 @@
+# Chainguard commit verification: every commit in a pull request must be signed by one of
+# these keys, or the "Enforce - Commit Signing" check fails. See ADR 0030.
+spec:
+  authorities:
+    # The maintainer's GPG keys, as published on their GitHub account.
+    - key:
+        kms: https://github.com/arkanwolfshade.gpg
+    # GitHub's key, which signs Dependabot's commits and squash merges made on github.com.
+    - key:
+        kms: https://github.com/web-flow.gpg
