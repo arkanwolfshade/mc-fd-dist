@@ -900,7 +900,8 @@ async function run(
     for (const [label, value] of expected) {
       await expect(row(label).locator("td")).toHaveText(value);
     }
-    await expect(row("Door Dash and Helping Hands").locator("td")).toHaveText(["2", "75 lb"]);
+    await expect(row("Families: Door Dash and Helping Hands").locator("td")).toHaveText("2");
+    await expect(row("Weight: Door Dash and Helping Hands").locator("td")).toHaveText("75 lb");
   }
 
   for (const station of stations) {
