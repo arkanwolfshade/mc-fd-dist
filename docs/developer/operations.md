@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.8.0** · mc-fd-dist · 2026-11-23 · For the maintainer and the staff owner
+**Version 1.9.0** · mc-fd-dist · 2026-11-23 · For the maintainer and the staff owner
 
 ---
 
@@ -25,6 +25,7 @@ Where each part of the system lives:
 | Infrastructure | CloudFormation stack `mc-fd-dist`, from `deploy/aws/stack.yaml` |
 | Server | Lightsail instance `mc-fd-dist`, Ubuntu 24.04, app files in `/opt/mc-fd-dist` |
 | Backups | The stack's S3 bucket, under `nightly/` |
+| Security baseline | CloudFormation stack `mc-fd-dist-security-baseline`, from `deploy/aws/security-baseline.yaml`: a CloudTrail trail, its log bucket and an Access Analyzer (ADR 0036) |
 | Release access | CloudFormation stack `mc-fd-dist-github-deploy`, from `deploy/aws/github-deploy.yaml` (ADR 0022) |
 
 **[SPEC]**
@@ -123,6 +124,25 @@ One-time set-up of release access, by an administrator with their own AWS sign-i
    ```
 2. Copy its `DeployRoleArn` output into the `AWS_DEPLOY_ROLE_ARN` variable of the GitHub `production` environment.
 3. In that environment, require a reviewer, allow deployments from `main` only, and do not let administrators bypass the rules.
+
+**[SPEC]**
+The security baseline (ADR 0036) is applied by an administrator with their own AWS sign-in, never by GitHub, so a release cannot switch it off. A merged change to `security-baseline.yaml` does nothing until someone applies it:
+1. Apply it. It creates no IAM resources, so it needs no capabilities:
+   ```sh
+   aws cloudformation deploy --profile mc-fd-dist --region us-west-2 \
+     --stack-name mc-fd-dist-security-baseline --template-file deploy/aws/security-baseline.yaml
+   ```
+2. Check the trail: `aws cloudtrail get-trail-status --name mc-fd-dist-trail --profile mc-fd-dist --region us-west-2` shows `IsLogging` as `true`. Log files appear in the stack's bucket (the `TrailBucketName` output) under `AWSLogs/` within about 15 minutes.
+3. Check the analyzer: `aws accessanalyzer list-analyzers --profile mc-fd-dist --region us-west-2` lists `mc-fd-dist-external-access` as `ACTIVE`. Its findings are in the IAM console under Access Analyzer, and an empty list means nothing in `us-west-2` is shared outside the account.
+4. The template cannot set one thing, so do it once in the S3 console, under Block Public Access settings for this account: turn on all four settings. New buckets already have them on by default, so this covers a bucket made some other way.
+
+**[NOTE]**
+The security baseline is a separate stack from `stack.yaml` on purpose. The role that releases use is narrow, so it cannot change the trail, its bucket or the analyzer. The trail records management events only, the first copy of which AWS says is free. Only the storage of its log files is charged.
+
+**[?]**
+- The baseline has not been applied yet. Record the date and anything that went wrong here when it is.
+- The log files' size, and so their cost, has not been measured. Look at the S3 line of the next month's bill after applying it.
+- Nothing alarms on the trail or the analyzer. Someone has to look at them.
 
 **[BUG] A release stops at "Stack change refused"**
 Symptom: The **Update the stack** step lists a resource that would be replaced or removed.
