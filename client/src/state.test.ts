@@ -16,6 +16,7 @@ import {
   nextCardNumber,
   parseLoads,
   savedShift,
+  settleShiftLoad,
   toggleSeniorBox,
 } from "./state.js";
 
@@ -382,5 +383,50 @@ describe("distributionLists", () => {
 
   it("is empty for a shift with no cards", () => {
     expect(distributionLists([])).toEqual({ queue: [], done: [], left: [], unserved: [] });
+  });
+});
+
+describe("settleShiftLoad", () => {
+  it("keeps a change heard while the shift was loading, when the answer is the older", () => {
+    const loaded = shiftWith([card({ id: 1, number: 1 })]);
+    const heard = [{ type: "card" as const, card: card({ id: 2, number: 2 }) }];
+
+    expect(settleShiftLoad(loaded, heard).cards.map((c) => c.number)).toEqual([1, 2]);
+  });
+
+  it("does not let an older change undo a newer answer", () => {
+    const loaded = shiftWith([card({ id: 1, revision: 5, familySize: 7 })]);
+    const heard = [{ type: "card" as const, card: card({ id: 1, revision: 4, familySize: 2 }) }];
+
+    expect(settleShiftLoad(loaded, heard).cards[0]?.familySize).toBe(7);
+  });
+
+  it("removes a card deleted while the shift was loading", () => {
+    const loaded = shiftWith([card({ id: 1 }), card({ id: 2, number: 2 })]);
+    const heard = [{ type: "card-deleted" as const, shiftId: 1, cardId: 1 }];
+
+    expect(settleShiftLoad(loaded, heard).cards.map((c) => c.id)).toEqual([2]);
+  });
+
+  it("keeps a shift closed while it was loading, and the returned items entered", () => {
+    const loaded = shiftWith([]);
+    const heard = [
+      { type: "shift" as const, shift: { id: 1, date: "2026-11-07", status: "closed" as const } },
+      {
+        type: "batches" as const,
+        shiftId: 1,
+        returnedBatches: [{ id: 1, shiftId: 1, weight: 12 }],
+      },
+    ];
+
+    const settled = settleShiftLoad(loaded, heard);
+
+    expect(settled.status).toBe("closed");
+    expect(settled.returnedBatches).toHaveLength(1);
+  });
+
+  it("is the answer itself when nothing was heard", () => {
+    const loaded = shiftWith([card({})]);
+    expect(settleShiftLoad(loaded, [])).toBe(loaded);
   });
 });

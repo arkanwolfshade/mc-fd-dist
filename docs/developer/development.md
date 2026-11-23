@@ -1,5 +1,5 @@
 # Development
-**Version 1.8.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.9.0** · mc-fd-dist · 2026-11-23 · For developers
 
 ---
 
@@ -194,6 +194,11 @@ Fix: Run `git update-index --chmod=+x deploy/<script>.sh` and commit.
 Symptom: After `context.setOffline(true)`, a station still receives socket messages.
 Cause: Playwright's offline mode may not close a WebSocket that is already open. In WebKit it never does, so the two tests that wait for the Offline banner skip WebKit (`WEBKIT_KEEPS_SOCKET` in `e2e/fixtures.ts`).
 Fix: The app also watches the browser's `offline` and `online` events and failed requests. In tests, mute the socket with the `muteLive` option of `signIn` where a test needs it silent.
+
+**[BUG] A test that holds back a request hangs on WebKit**
+Symptom: A test that delays a response with `page.route` times out on the iPhone and iPad profiles, waiting for a request it never sees, and passes on Chromium.
+Cause: The app installs a service worker in a production build. WebKit sends every request from a page that a worker controls around Playwright's `page.route`, even when the worker lets it through. Chromium does not.
+Fix: Run the test without the worker, with `test.use({ serviceWorkers: "block" })` inside a `test.describe`, as the "reload answered late" test in `e2e/shift-flow.spec.ts` does. Check that the test still fails against the code it guards, because a test that cannot see the request proves nothing.
 
 **[BUG] A test with a fast-forwarded clock passes even though the code is wrong**
 Symptom: A clock-based browser test passes, but the race it targets is still there.

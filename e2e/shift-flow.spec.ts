@@ -77,6 +77,63 @@ test("distribution lists families in the order they were called, not by card num
   await expect(queue).toHaveText(["1", "2", "3"]);
 });
 
+// Playwright cannot hold back a request that a service worker controls, which WebKit treats as
+// every request from the page, so this test runs without one. The race it covers has nothing to do with it.
+test.describe("a reload answered late", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("does not wipe a change a station heard while it was waiting", async ({ signIn }) => {
+    const frontDesk = await signIn("front-desk");
+    const distribution = await signIn("distribution");
+    await openShift(frontDesk);
+    for (const number of [1, 2, 3]) {
+      await addCard(frontDesk, { number, familySize: 2, method: "Walk" });
+      await expect(frontDesk.getByRole("heading", { name: `Cards (${number})` })).toBeVisible();
+    }
+    const queue = distribution.locator(".queue-card .ticket");
+    await frontDesk.getByRole("button", { name: "Call back card 1", exact: true }).click();
+    await expect(queue).toHaveText(["1"]);
+
+    // The next reload asks the server now, but the station is given the answer only when released.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let taken!: () => void;
+    const snapshotTaken = new Promise<void>((resolve) => {
+      taken = resolve;
+    });
+    let holding = true;
+    await distribution.route(
+      (url) => url.pathname === "/api/shifts" && url.searchParams.has("date"),
+      async (route) => {
+        if (!holding) return route.continue();
+        holding = false;
+        const response = await route.fetch();
+        taken();
+        await held;
+        return route.fulfill({ response });
+      },
+    );
+    await distribution.evaluate(() => window.dispatchEvent(new Event("online")));
+    await snapshotTaken;
+
+    // A family is called after the server answered, so the answer does not include them.
+    await frontDesk.getByRole("button", { name: "Call back card 2", exact: true }).click();
+    await expect(queue).toHaveText(["1", "2"]);
+
+    const answered = distribution.waitForResponse((response) =>
+      response.url().includes("/api/shifts?date="),
+    );
+    release();
+    await answered;
+
+    // Another change arrives after the old answer, which shows what the old answer left behind.
+    await frontDesk.getByRole("button", { name: "Call back card 3", exact: true }).click();
+    await expect(queue).toHaveText(["1", "2", "3"]);
+  });
+});
+
 test("the front desk previews TEFAP bags and requires a location or transport", async ({
   signIn,
 }) => {
