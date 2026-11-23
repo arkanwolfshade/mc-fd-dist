@@ -15,7 +15,14 @@ import { Outbox } from "./outbox.js";
 import type { QueuedWrite } from "./outbox.js";
 import { withPending } from "./pending.js";
 import type { ShiftView } from "./pending.js";
-import { applyLiveMessage, classifyLoadFailure, dayInWords, isoDate, savedShift } from "./state.js";
+import {
+  applyLiveMessage,
+  classifyLoadFailure,
+  dayInWords,
+  isoDate,
+  savedShift,
+  settleShiftLoad,
+} from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Shift, ShiftWithCards, StationIdentity, Submit, UpdateCard } from "./types.js";
 
@@ -90,12 +97,26 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
   const latestShift = useRef(shift);
   latestShift.current = shift;
 
+  // Every change to the shift goes through here, whether this station made it or heard it. While
+  // a reload waits for its answer the changes are kept, because the answer may be older than
+  // they are and would erase them. Each is numbered, and a reload replays those from after it began.
+  const madeDuringReload = useRef<{ order: number; message: LiveMessage }[]>([]);
+  const changeCount = useRef(0);
+  const reloading = useRef(0);
+  const change = useCallback((message: LiveMessage) => {
+    if (reloading.current > 0) {
+      madeDuringReload.current.push({ order: changeCount.current, message });
+    }
+    changeCount.current += 1;
+    setShift((current) => applyLiveMessage(current, message));
+  }, []);
+
   const applyCard = useCallback((card: Card) => {
-    setShift((current) => applyLiveMessage(current, { type: "card", card }));
+    change({ type: "card", card });
   }, []);
 
   const removeCard = useCallback((shiftId: number, cardId: number) => {
-    setShift((current) => applyLiveMessage(current, { type: "card-deleted", shiftId, cardId }));
+    change({ type: "card-deleted", shiftId, cardId });
   }, []);
 
   // Admins only, and it needs a connection: a deletion is never queued. See ADR 0019.
@@ -141,11 +162,19 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
 
   const loadShift = useCallback(async () => {
     const requested = date.current;
+    const began = changeCount.current;
+    reloading.current += 1;
     try {
       const loaded = await api<ShiftWithCards>("GET", `/api/shifts?date=${requested}`);
       // An answer for a day that has since ended must not replace the new day's shift.
       if (requested !== date.current) return;
-      setShift(loaded);
+      const since = madeDuringReload.current.filter((entry) => entry.order >= began);
+      setShift(
+        settleShiftLoad(
+          loaded,
+          since.map((entry) => entry.message),
+        ),
+      );
       setConnected(true);
     } catch (failure) {
       if (requested !== date.current) return;
@@ -164,6 +193,9 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
         case "notice":
           setNotice("Could not load the shift. Check the connection.");
       }
+    } finally {
+      reloading.current -= 1;
+      if (reloading.current === 0) madeDuringReload.current = [];
     }
   }, []);
 
@@ -208,7 +240,7 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
       onMessage: (message) => {
         // An update can arrive before this station knows the shift was opened.
         if (!latestShift.current) void loadShift();
-        setShift((current) => applyLiveMessage(current, message as LiveMessage));
+        change(message as LiveMessage);
       },
     });
   }, []);
@@ -229,7 +261,7 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
     setNotice("");
     try {
       const closed = await api<Shift>("POST", `/api/shifts/${shiftId}/close`);
-      setShift((current) => applyLiveMessage(current, { type: "shift", shift: closed }));
+      change({ type: "shift", shift: closed });
     } catch (failure) {
       setNotice(errorText(failure, "Could not close the shift"));
     }

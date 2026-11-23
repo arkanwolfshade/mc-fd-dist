@@ -50,6 +50,21 @@ export function applyLiveMessage(shift: KnownShift, message: LiveMessage): Known
   }));
 }
 
+// The shift as a reload answered it, with the changes made or heard while it waited put back on
+// top. The server read its state when the request arrived, so a change announced in the meantime
+// may be newer than the answer, and replacing the screen with the answer would erase it. Applying
+// a change again is safe, because a card only replaces one of an older revision.
+export function settleShiftLoad(
+  loaded: ShiftWithCards,
+  heardDuringLoad: readonly LiveMessage[],
+): ShiftWithCards {
+  let settled: KnownShift = loaded;
+  for (const message of heardDuringLoad) {
+    settled = applyLiveMessage(settled, message);
+  }
+  return settled as ShiftWithCards;
+}
+
 // The last shift seen, for a reload during an outage. Only used for the same date.
 export function savedShift(
   storage: Pick<Storage, "getItem">,
