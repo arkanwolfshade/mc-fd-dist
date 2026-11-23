@@ -9,6 +9,7 @@ import {
   queueView,
   rowsThatFit,
   screenFor,
+  settleLoad,
 } from "./display-state.js";
 import type { DisplayShift, KnownDisplayShift, QueueGroup } from "./display-state.js";
 import { classifyLoadFailure, dayInWords, isoDate } from "./state.js";
@@ -75,6 +76,11 @@ export function Display(props: { onSignedOut: () => void }) {
   const latestShift = useRef(shift);
   latestShift.current = shift;
   const groups = useRef<HTMLDivElement>(null);
+  // What the wall hears while a reload is waiting for its answer, so that the answer cannot
+  // erase it. Each message is numbered, and a reload replays those from after it began.
+  const heard = useRef<{ order: number; message: DisplayMessage }[]>([]);
+  const heardCount = useRef(0);
+  const reloading = useRef(0);
 
   const markConnected = useCallback((connected: boolean) => {
     if (connected) {
@@ -87,11 +93,20 @@ export function Display(props: { onSignedOut: () => void }) {
 
   const loadShift = useCallback(async () => {
     const requested = date.current;
+    const began = heardCount.current;
+    reloading.current += 1;
     try {
       const loaded = await api<DisplayShift>("GET", `/api/display?date=${requested}`);
       // An answer for a day that has since ended must not replace the new day's shift.
       if (requested !== date.current) return;
-      setShift(loaded);
+      const since = heard.current.filter((entry) => entry.order >= began);
+      setShift(
+        settleLoad(
+          loaded,
+          since.map((entry) => entry.message),
+          requested,
+        ),
+      );
       markConnected(true);
     } catch (failure) {
       if (requested !== date.current) return;
@@ -104,6 +119,9 @@ export function Display(props: { onSignedOut: () => void }) {
       } else {
         markConnected(false);
       }
+    } finally {
+      reloading.current -= 1;
+      if (reloading.current === 0) heard.current = [];
     }
   }, []);
 
@@ -136,9 +154,12 @@ export function Display(props: { onSignedOut: () => void }) {
       onMessage: (message) => {
         // An update can arrive before the wall knows the shift was opened.
         if (!latestShift.current) void loadShift();
-        setShift((current) =>
-          applyDisplayMessage(current, message as DisplayMessage, date.current),
-        );
+        const update = message as DisplayMessage;
+        if (reloading.current > 0) {
+          heard.current.push({ order: heardCount.current, message: update });
+        }
+        heardCount.current += 1;
+        setShift((current) => applyDisplayMessage(current, update, date.current));
       },
     });
   }, []);

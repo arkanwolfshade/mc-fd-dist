@@ -7,6 +7,7 @@ import {
   queueView,
   rowsThatFit,
   screenFor,
+  settleLoad,
   SILENT_LIMIT_MS,
 } from "./display-state.js";
 import type { DisplayShift } from "./display-state.js";
@@ -204,5 +205,56 @@ describe("screenFor", () => {
 
   it("shows the queue when there is one", () => {
     expect(screenFor(open, false)).toBe("queue");
+  });
+});
+
+describe("settleLoad", () => {
+  it("keeps what the wall heard while the shift was loading, when that answer is the older", () => {
+    const loaded: DisplayShift = { ...SHIFT, cards: [card({ id: 1, number: 1 })] };
+    const heard = [{ type: "card" as const, card: card({ id: 2, number: 2, calledOrder: 2 }) }];
+
+    const settled = settleLoad(loaded, heard, TODAY);
+
+    expect(settled.cards.map((c) => c.number)).toEqual([1, 2]);
+  });
+
+  it("applies what it heard in the order it heard it", () => {
+    const loaded: DisplayShift = { ...SHIFT, cards: [] };
+    const heard = [
+      { type: "card" as const, card: card({ id: 2, revision: 1, status: "called" }) },
+      { type: "card" as const, card: card({ id: 2, revision: 2, status: "confirmed" }) },
+      { type: "card-deleted" as const, shiftId: 7, cardId: 9 },
+    ];
+
+    expect(settleLoad(loaded, heard, TODAY).cards.map((c) => c.status)).toEqual(["confirmed"]);
+  });
+
+  it("does not let an older message undo a newer answer", () => {
+    const loaded: DisplayShift = {
+      ...SHIFT,
+      cards: [card({ id: 1, revision: 5, status: "confirmed" })],
+    };
+    const heard = [{ type: "card" as const, card: card({ id: 1, revision: 4, status: "called" }) }];
+
+    expect(settleLoad(loaded, heard, TODAY).cards[0]?.status).toBe("confirmed");
+  });
+
+  it("removes a card that left the queue while the shift was loading", () => {
+    const loaded: DisplayShift = { ...SHIFT, cards: [card({ id: 1 }), card({ id: 2, number: 2 })] };
+    const heard = [{ type: "card-deleted" as const, shiftId: 7, cardId: 1 }];
+
+    expect(settleLoad(loaded, heard, TODAY).cards.map((c) => c.id)).toEqual([2]);
+  });
+
+  it("follows the shift closing while it was loading", () => {
+    const heard = [
+      { type: "shift" as const, shift: { id: 7, date: TODAY, status: "closed" as const } },
+    ];
+
+    expect(settleLoad(SHIFT, heard, TODAY).status).toBe("closed");
+  });
+
+  it("is the answer itself when nothing was heard", () => {
+    expect(settleLoad(SHIFT, [], TODAY)).toBe(SHIFT);
   });
 });

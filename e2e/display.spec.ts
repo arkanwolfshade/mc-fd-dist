@@ -90,11 +90,17 @@ test("the wall gives its last place to a count of those further back", async ({
         intakeInitials: "AB",
       },
     });
+    expect(created.ok(), `creating card ${number}`).toBe(true);
     const card = await created.json();
-    await frontDesk.request.patch(`${serverUrl}api/cards/${card.id}`, {
+    const called = await frontDesk.request.patch(`${serverUrl}api/cards/${card.id}`, {
       data: { revision: card.revision, status: "called" },
     });
+    expect(called.ok(), `calling card ${number}`).toBe(true);
   }
+
+  // Read the list only once the wall has heard of every family, so a slow update is not
+  // mistaken for a missing one.
+  await expect(group(wall, "Called")).toContainText(`Called (${CALLED})`);
 
   const more = wall.locator(".wall-more");
   await expect(more).toHaveText(/^\+\d+ more waiting$/);
@@ -132,4 +138,48 @@ test("the wall hides the queue when it cannot be trusted, and shows it again whe
   await wall.clock.fastForward(31_000);
   await expect(wall.getByRole("alert")).toHaveCount(0);
   await expect(numbers(wall, "Called")).toHaveText(["4"]);
+});
+
+test("a reload answered late does not wipe a change the wall heard while it was waiting", async ({
+  signIn,
+}) => {
+  const frontDesk = await signIn("front-desk");
+  const wall = await signIn("wall");
+  await openShift(frontDesk);
+  for (const number of [1, 2, 3]) {
+    await addCard(frontDesk, { number, familySize: 2, method: "Walk" });
+    await expect(frontDesk.getByRole("heading", { name: `Cards (${number})` })).toBeVisible();
+  }
+  await frontDesk.getByRole("button", { name: "Call back card 1", exact: true }).click();
+  await expect(numbers(wall, "Called")).toHaveText(["1"]);
+
+  // The next reload asks the server now, but the wall is told the answer only when released.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let taken!: () => void;
+  const snapshotTaken = new Promise<void>((resolve) => {
+    taken = resolve;
+  });
+  await wall.route("**/api/display*", async (route) => {
+    const response = await route.fetch();
+    taken();
+    await held;
+    await route.fulfill({ response });
+  });
+  await wall.evaluate(() => window.dispatchEvent(new Event("online")));
+  await snapshotTaken;
+
+  // A family is called after the server answered, so the answer does not include them.
+  await frontDesk.getByRole("button", { name: "Call back card 2", exact: true }).click();
+  await expect(numbers(wall, "Called")).toHaveText(["1", "2"]);
+
+  const answered = wall.waitForResponse((response) => response.url().includes("/api/display"));
+  release();
+  await answered;
+
+  // Another change arrives after the old answer, which shows what the old answer left behind.
+  await frontDesk.getByRole("button", { name: "Call back card 3", exact: true }).click();
+  await expect(numbers(wall, "Called")).toHaveText(["1", "2", "3"]);
 });
