@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in the app or the guides does not work, or gives the wrong answer.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue is public.** Please do not write anything about a Family, the initials of an intake volunteer, a password or a station login, and please do not attach screenshots of the food bank's live site. Describe what happened in words instead.
+
+        A security problem is not a bug: please [report it privately](https://github.com/arkanwolfshade/mc-fd-dist/security/advisories/new).
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Where did it happen?
+      options:
+        - Front desk
+        - Distribution
+        - Admin
+        - Wall display
+        - Help or a guide
+        - Installing the app, or working without a connection
+        - Somewhere else
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Say what you did and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can someone make it happen again?
+      description: Numbered steps help. If you are not sure, say so.
+    validations:
+      required: false
+  - type: input
+    id: device
+    attributes:
+      label: What device and browser were you using?
+      placeholder: For example, an iPad with Safari
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When did it happen, or which version?
+      description: The date is enough if you do not know the version.
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send it
+      options:
+        - label: I have left out details about Families and volunteers, passwords, and screenshots of the live site.
+          required: true

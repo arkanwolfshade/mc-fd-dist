@@ -27,6 +27,8 @@ For developers and the maintainer:
 - [Architecture decision records](docs/adr/README.md): why the system is built this way
 - [Contributing](CONTRIBUTING.md): how changes are made
 - [Security policy](SECURITY.md): how to report a vulnerability
+- [Code of Conduct](CODE_OF_CONDUCT.md): how people treat each other here, and how to report a problem
+- [Accessibility](ACCESSIBILITY.md): what the project aims for, what has been checked, and how to report a barrier
 
 ## Development
 

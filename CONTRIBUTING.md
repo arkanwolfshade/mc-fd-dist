@@ -6,6 +6,10 @@
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for the pull request title, which becomes the commit message, for example `feat: add card entry form` or `fix: correct TEFAP count at nine people`.
 - Keep each pull request to one logical change.
 
+## Conduct
+
+Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). Issues use the forms in `.github/ISSUE_TEMPLATE`, and a pull request fills in its template.
+
 ## Git hooks
 
 `npm install` sets up hooks with husky:
@@ -43,6 +47,10 @@ Merge pull requests with **Squash and merge**. GitHub signs that commit, but not
 ## Releases
 
 The maintainer cuts a release ([ADR 0029](docs/adr/0029-immutable-versioned-releases.md)). In the Actions tab, run **Release** from `main` with the version, for example `0.2.0`. It starts as a dry run that publishes nothing and shows the release notes. Run it again with **dry run** unticked to publish, which also starts a **Deploy** for that version that waits for the maintainer's approval. A published release and its version can never be changed or reused, so check the dry run first.
+
+## Accessibility
+
+A change to a screen keeps [ACCESSIBILITY.md](ACCESSIBILITY.md) true. If it closes one of the gaps listed there, or opens a new one, say so in the same pull request.
 
 ## Decisions
 

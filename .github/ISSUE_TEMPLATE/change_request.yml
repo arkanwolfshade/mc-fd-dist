@@ -1,0 +1,51 @@
+name: Change request
+description: Ask for something new, or for a screen, a rule or a guide to work differently.
+title: "Change: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue is public.** Please do not write anything about a Family, the initials of an intake volunteer, a password or a station login, and please do not attach screenshots of the food bank's live site. Describe it in words instead.
+
+        A change that is hard to undo, such as keeping new information or adding a new kind of login, is written up as an [architecture decision record](https://github.com/arkanwolfshade/mc-fd-dist/blob/main/docs/adr/README.md) before it is built, so it can take longer.
+  - type: textarea
+    id: need
+    attributes:
+      label: What are you trying to do, and what gets in the way?
+      description: Say who needs it and when, for example "the front desk, at the start of a shift". Start with the problem, not the fix.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What happens today?
+      description: How do people manage without it now?
+    validations:
+      required: false
+  - type: textarea
+    id: idea
+    attributes:
+      label: Do you have an idea for how it could work?
+      description: Optional. A description in words is fine.
+    validations:
+      required: false
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who is it for?
+      options:
+        - Front desk volunteers
+        - Distribution volunteers
+        - Admins and staff
+        - Everyone who uses the app
+        - Developers of the app
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send it
+      options:
+        - label: I have left out details about Families and volunteers, passwords, and screenshots of the live site.
+          required: true
