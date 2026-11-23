@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Free security features for the food bank shift tracker's AWS account: a CloudTrail trail
+  that records who did what, with the S3 bucket that keeps its log files, and an IAM Access
+  Analyzer that reports resources shared outside the account. Applied once by an
+  administrator, never by GitHub, so that a release cannot switch the record off. ADR 0036.
+
+Parameters:
+  TrailName:
+    Type: String
+    Default: mc-fd-dist-trail
+  AnalyzerName:
+    Type: String
+    Default: mc-fd-dist-external-access
+  LogRetentionDays:
+    Type: Number
+    Default: 365
+    Description: How long CloudTrail's log files are kept in S3, as long as the backups are.
+
+Resources:
+  # Kept if the stack is deleted, so that removing this stack never removes the record.
+  TrailBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: >-
+              Access logs would need another bucket. Only CloudTrail writes here, and log
+              file validation and versioning show any change to its files.
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-logs
+            Status: Enabled
+            ExpirationInDays: !Ref LogRetentionDays
+            NoncurrentVersionExpiration:
+              NoncurrentDays: !Ref LogRetentionDays
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      Tags:
+        - Key: app
+          Value: mc-fd-dist
+
+  # What CloudTrail needs to write its logs here, limited to this one trail, plus the
+  # backup bucket's rule that nothing may use the bucket over plain HTTP.
+  TrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TrailBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt TrailBucket.Arn
+            Condition:
+              StringEquals:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}"
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub "${TrailBucket.Arn}/AWSLogs/${AWS::AccountId}/*"
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}"
+          - Sid: RequireTls
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt TrailBucket.Arn
+              - !Sub "${TrailBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # The first copy of management events is free, so this logs only those: no data events,
+  # which are charged. A multi-region trail also records activity in a region nobody uses.
+  Trail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn: TrailBucketPolicy
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_35
+            comment: >-
+              The log bucket is encrypted with S3-managed keys. A KMS key of our own would
+              add a monthly charge and a key policy to keep.
+          - id: CKV_AWS_252
+            comment: Nothing is subscribed to a notification topic yet, and a topic would be one more thing to watch.
+          - id: CKV2_AWS_10
+            comment: CloudWatch Logs would add a charge, and nothing alarms on it yet.
+    Properties:
+      TrailName: !Ref TrailName
+      S3BucketName: !Ref TrailBucket
+      IsLogging: true
+      IsMultiRegionTrail: true
+      IncludeGlobalServiceEvents: true
+      EnableLogFileValidation: true
+      EventSelectors:
+        - IncludeManagementEvents: true
+          ReadWriteType: All
+      Tags:
+        - Key: app
+          Value: mc-fd-dist
+
+  # An external access analyzer: it reports resources in this account that are shared with
+  # anyone outside it. The analyzers for internal and unused access are charged, so they
+  # are not created. It covers this region only, where the backup bucket is.
+  ExternalAccessAnalyzer:
+    Type: AWS::AccessAnalyzer::Analyzer
+    Properties:
+      AnalyzerName: !Ref AnalyzerName
+      Type: ACCOUNT
+      Tags:
+        - Key: app
+          Value: mc-fd-dist
+
+Outputs:
+  TrailName:
+    Value: !Ref Trail
+  TrailBucketName:
+    Value: !Ref TrailBucket
+  AnalyzerArn:
+    Value: !GetAtt ExternalAccessAnalyzer.Arn
