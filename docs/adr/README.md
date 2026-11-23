@@ -42,3 +42,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0032](0032-list-the-queue-in-the-order-families-were-called.md) | List the queue in the order families were called | Accepted |
 | [0033](0033-add-a-read-only-display-role.md) | Add a read-only role for the wall display | Accepted |
 | [0034](0034-show-the-queue-on-a-wall-display.md) | Show the queue on a wall display | Accepted |
+| [0035](0035-publish-community-standards-files.md) | Publish a Code of Conduct, issue forms and an accessibility commitment | Accepted |
