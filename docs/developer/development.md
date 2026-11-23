@@ -1,5 +1,5 @@
 # Development
-**Version 1.9.0** · mc-fd-dist · 2026-11-23 · For developers
+**Version 1.10.0** · mc-fd-dist · 2026-11-23 · For developers
 
 ---
 
@@ -97,14 +97,26 @@ The CI jobs and what each runs:
 
 | Job | Runs |
 |---|---|
-| `check` | Formatting, lint, types, documentation check, license check, unit tests with coverage, coverage upload to Codacy, `npm audit`, browser tests, PDF build |
+| `quality` | Formatting, lint, types, documentation check, license check, unit tests with coverage, coverage upload to Codacy, `npm audit`, PDF build |
+| `e2e` | The browser tests, in three groups of device profiles that run at the same time |
+| `check` | The job the ruleset requires. It waits for `quality` and every group of `e2e`, and fails unless all of them succeeded |
 | `container` | shellcheck, hadolint, cfn-lint, Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
 | `secrets` | gitleaks over the whole history |
 | `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main`, and attests where it was built |
 | CodeQL | Separate workflow: security analysis of the TypeScript and the workflows |
 
 **[SPEC]**
-The `check` job uploads coverage to Codacy:
+How the jobs fit together, and what keeps them honest:
+
+- The jobs run at the same time, so a run takes as long as the slowest one. The browser tests were the slowest, which is why they are split. Each group installs the browsers and builds the client again, so more groups use more runner minutes.
+- The groups are sets of device profiles, balanced by how long each profile takes, not by Playwright's own `--shard`. `--shard` splits by test count in order, which put all of the slow WebKit profiles into one shard. Measured on 2026-11-23, in seconds of test time: ipad 136, desktop 119, iphone-landscape 108, iphone 107, android 63, reflow 62, wall 10. Measure again (`npx playwright test --reporter=json`) if the groups drift, and move a profile between groups in `ci.yml`.
+- A new profile in `playwright.config.ts` must be added to exactly one group in `ci.yml`. `tools/ci-gate.test.ts` fails until it is, so that no profile goes untested.
+- The ruleset requires `check`, `container` and `secrets` by name (ADR 0017). `check` runs even when a job it waits for failed, because GitHub counts a required check that is skipped as passing.
+- A job added to `ci.yml` that the ruleset does not require must be added to `check`'s `needs`, or a failure in it would not stop a merge. `tools/ci-gate.test.ts` fails until it is, and also fails if `check` stops running after a failure.
+- A failed group uploads its traces as `playwright-traces-<group number>`. Open the failed group's log first: the other groups still ran, so one run shows every failure.
+
+**[SPEC]**
+The `quality` job uploads coverage to Codacy:
 
 - It reads the repository's Codacy token from the `CODACY` Actions secret. Where the secret cannot be read, as in Dependabot's runs, the step is skipped with a notice.
 - A failed upload is a warning, not a failure, so that an outage at Codacy cannot hold up a release.

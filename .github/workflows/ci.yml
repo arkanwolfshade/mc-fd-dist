@@ -9,8 +9,13 @@ permissions:
   contents: read
 
 # Third-party actions are pinned to a full commit, not a tag, because tags can be moved.
+#
+# The work runs as parallel jobs: quality, the browser tests in shards, container and secrets.
+# The ruleset requires a job named check, which waits for quality and the shards. A job that
+# is added here and is not required by the ruleset must be added to check's needs, and
+# tools/ci-gate.test.ts fails until it is.
 jobs:
-  check:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,20 +61,65 @@ jobs:
           fi
           "$RUNNER_TEMP/codacy-reporter" report --commit-uuid "$COMMIT_SHA" -r coverage/lcov.info
       - run: npm audit --audit-level=high
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
+      - run: npx playwright install --with-deps chromium
       - run: npm run docs:pdf
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: printable-guides
           path: dist/guides/
           retention-days: 30
+
+  # The browser tests, which take longest, run as groups of device profiles at the same time.
+  # The groups are balanced by how long each profile takes (measured on 2026-11-23, in seconds
+  # of test time: ipad 136, desktop 119, iphone-landscape 108, iphone 107, android 63,
+  # reflow 62, wall 10), because Playwright's own --shard splits by test count and would put
+  # all the slow WebKit tests together. A group that fails does not stop the others, so one run
+  # shows every failure. Every profile in playwright.config.ts must be in exactly one group,
+  # and tools/ci-gate.test.ts fails until it is.
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: iPad and Android
+            projects: --project=ipad --project=android
+          - group: iPhones
+            projects: --project=iphone --project=iphone-landscape
+          - group: desktop, wall and 320 px
+            projects: --project=desktop --project=wall --project=reflow
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:e2e -- ${{ matrix.projects }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ strategy.job-index }}
           path: test-results/
           retention-days: 7
+
+  # The job the ruleset requires. It stands for quality and every shard, and runs even when
+  # one of them failed, because a required check that is skipped counts as passing.
+  check:
+    needs: [quality, e2e]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          QUALITY: ${{ needs.quality.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          echo "quality: $QUALITY"
+          echo "e2e: $E2E"
+          [ "$QUALITY" = success ] && [ "$E2E" = success ]
 
   container:
     runs-on: ubuntu-latest
