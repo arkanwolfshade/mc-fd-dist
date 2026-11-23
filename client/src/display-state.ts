@@ -39,6 +39,22 @@ export function applyDisplayMessage(
   };
 }
 
+// The queue as a reload answered it, with what the wall heard while it waited put back on top.
+// The server read its state when the request arrived, so a change announced in the meantime may be
+// newer than the answer, and replacing the screen with the answer would erase it. Applying each
+// message again is safe, because a card only replaces one of an older revision.
+export function settleLoad(
+  loaded: DisplayShift,
+  heardDuringLoad: readonly DisplayMessage[],
+  today: string,
+): DisplayShift {
+  let settled: KnownDisplayShift = loaded;
+  for (const message of heardDuringLoad) {
+    settled = applyDisplayMessage(settled, message, today);
+  }
+  return settled as DisplayShift;
+}
+
 export interface QueueGroup {
   shown: DisplayCard[];
   // Families further back that there is no room to show.
