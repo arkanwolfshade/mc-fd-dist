@@ -39,13 +39,13 @@ This Code of Conduct applies within all community spaces of this repository: its
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement through GitHub. On the comment, issue or pull request, open its menu (the three dots) and choose **Report content**. The repository is set up so that these reports reach the maintainer as well as GitHub. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement by email at [mc-gh.um8sm@simplelogin.com](mailto:mc-gh.um8sm@simplelogin.com). All complaints will be reviewed and investigated promptly and fairly.
 
-This project publishes no email address or other private line for reports. If the behavior you want to report is the maintainer's, report it to GitHub Support instead, at [https://support.github.com/contact/report-abuse](https://support.github.com/contact/report-abuse), because there is no one else in the project to receive it. GitHub's own [terms and community guidelines](https://docs.github.com/en/site-policy/github-terms/github-community-code-of-conduct) apply on GitHub whatever this file says.
+That address is used only for reports under this Code of Conduct, and only the maintainer reads it. If the behavior you want to report is the maintainer's, report it to GitHub Support instead, at [https://support.github.com/contact/report-abuse](https://support.github.com/contact/report-abuse), because there is no one else in the project to receive it. You can also use **Report content** on a comment, issue or pull request, which reports it to GitHub. On a repository owned by a person, as this one is, GitHub does not pass that report to the maintainer, so email the address above too if you want the maintainer to act. GitHub's own [terms and community guidelines](https://docs.github.com/en/site-policy/github-terms/github-community-code-of-conduct) apply on GitHub whatever this file says.
 
 A security problem is not a conduct report. Report one privately through the repository's [private vulnerability reporting](https://github.com/arkanwolfshade/mc-fd-dist/security/advisories/new), as [SECURITY.md](SECURITY.md) describes.
 
-Because the maintainer is one volunteer, these are aims and not guarantees: an acknowledgement within 7 days of a report arriving.
+Because the maintainer is one volunteer, these are aims and not guarantees: an acknowledgement within 7 days of an email arriving.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
