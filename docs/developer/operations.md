@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.7.0** · mc-fd-dist · 2026-11-22 · For the maintainer and the staff owner
+**Version 1.8.0** · mc-fd-dist · 2026-11-23 · For the maintainer and the staff owner
 
 ---
 
@@ -85,6 +85,24 @@ A release is cut, then deployed (ADRs 0022 and 0029):
 **[SPEC]**
 - To go back to an earlier version, run **Deploy** by hand with that release's version. Only releases cut after the deploy workflow changed to use versions can be deployed. An earlier version does not start on a database that a later release changed; see the bug below.
 - `/opt/mc-fd-dist/release-version` holds the version and image digest now running.
+
+**[SPEC]**
+After a release, check it on the live site outside shift hours (about 10 minutes). `/api/health` answering `{"status":"ok"}` only shows that the app started. A browser keeps one login per site, so use three different browsers or devices for the front desk, distribution and wall display. Card numbers 901 to 903 stand out from real cards, and `ZZ` as the initials marks the test.
+1. On the wall display's device, sign in as the display login (section 7). It says **Distribution queue**, today's date and **No shift is open today**, or **No families are waiting** if a shift is open.
+2. On the front desk, sign in and choose **Open today's shift** if none is open. The wall says **No families are waiting** within a few seconds.
+3. On the front desk, add card 901 (5 people, East, Senior Box, note `SMOKE TEST`), card 902 (2 people, Walk) and card 903 (4 people, Bus), each with initials `ZZ`. The wall still says nobody is waiting, because nobody has been called.
+4. Press **Call back** on card 903, then 901, then 902. The wall's **Called (3)** lists 903, 901, 902: the order called, not the order of the numbers. Card 901 shows `5 people · 2 carts` and a Senior Box badge. Neither `SMOKE TEST` nor `ZZ` appears anywhere on the wall.
+5. On the distribution tablet, the queue lists the same order: 903, 901, 902.
+6. On distribution, choose **Confirm** on card 903. The wall shows **Confirmed (1)** with 903, and **Called (2)** with 901 and 902.
+7. On the front desk, press **Undo call back** on card 901. It leaves the wall. Call it again, and it returns below 902.
+8. On distribution, enter a weight for card 903 and choose **Mark distributed**. It leaves the wall.
+9. In a new tab on the wall's device, open `/api/shifts?date=` followed by today's date as year-month-day. It answers `{"error":"Not allowed"}`, which shows the wall cannot read full cards.
+10. Turn Wi-Fi off on the wall's device for about 40 seconds. It switches to a full-screen **Not connected** with the time it last updated, and shows no queue. Turn Wi-Fi on, and the queue returns within about 30 seconds.
+11. A station that was signed in before the release is still signed in, without asking for a password.
+12. Clean up: an admin deletes the test cards on the Admin screen, and the wall says **No families are waiting** again. A shift cannot be deleted, so close it from distribution's **Finish** panel if it was opened only for this test.
+
+**[?]**
+Steps 1 to 10 were written for v0.3.0 and have not been run yet. Record the date, the version and anything that failed here when they are. If a step fails, do not restore a backup before deciding with the developer: section 6 explains how, and a release's backup is the `nightly/` file that `release.sh` uploaded before the release (it is named in the Deploy job's log).
 
 **[SPEC]**
 To release by hand, for example when GitHub is down, use the Lightsail browser SSH client:
