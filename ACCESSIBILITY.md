@@ -40,7 +40,7 @@ Automated browser tests check these on every change. They check the page's marku
 
 If something in the app or the guides is hard or impossible to use, please [open an Accessibility barrier issue](https://github.com/arkanwolfshade/mc-fd-dist/issues/new?template=accessibility_barrier.yml). It asks what you were trying to do, what got in the way, and what device and assistive technology you use. You do not need to find steps to reproduce it.
 
-If you cannot use GitHub, ask someone to open the issue for you. The project has no email address for reports.
+If you cannot use GitHub, ask someone to open the issue for you. The project's one email address is for conduct reports only (see the [Code of Conduct](CODE_OF_CONDUCT.md)), not for accessibility barriers.
 
 Please do not put details about Families, passwords or screenshots of the live site in a public issue (see the [Code of Conduct](CODE_OF_CONDUCT.md)).
 
