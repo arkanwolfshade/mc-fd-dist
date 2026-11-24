@@ -1,0 +1,46 @@
+# 0037. Choose the deploy target with an input, and check a release before approval
+
+- **Status:** Accepted
+- **Date:** 2026-11-24
+
+## Context
+
+The app runs on one Lightsail server in AWS (ADRs 0005 and 0015). After positive feedback from the food bank's director, the maintainer wants to try running it on Google Cloud as well, on their personal Google account, to compare cost and effort. Google's free tier covers one small VM, so the trial should cost about $4 a month, mostly for a static IP address. AWS must stay the production target and keep deploying exactly as before.
+
+The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environment: a reviewer approved it, then it checked the release, waited for a window outside shift hours, applied the AWS stack and released on the server. A second target needs its own credentials, its own approval and its own queue, without any way to send a release to the wrong place.
+
+## Decision
+
+- **A `target` input:** Deploy takes a `target`, chosen from a fixed list and defaulting to `aws`. The Release workflow starts Deploy without one, so an automatic deploy always goes to AWS.
+- **One job per target:** a `verify` job checks the release (signature, image digest and build attestation) and passes on its tag, digest and commit. Each target has its own job, which runs only when chosen, deploys only the commit `verify` checked, and has its own GitHub environment and concurrency group. A deploy waiting for approval on one target can't replace one waiting on another. `tools/deploy-workflow.test.ts` keeps these rules.
+- **Checked before approval:** `verify` runs before anyone is asked to approve, and needs no cloud credentials. A reviewer is only asked about a release that has already passed its checks. Before this, the checks ran after approval.
+- **The shift-hours guard stays on the AWS job.** It protects the shifts that run against production.
+- **Shared server scripts:** both targets install the same files the same way, through `deploy/push-release.sh`. Each target's `release-on-server.sh` only opens the way in.
+- **Backups can stay on the server:** `BACKUP_UPLOAD=off` in a server's `.env` keeps each backup on the server and skips the upload. It is for a server with test data only. Unset means on, and any other value is refused before a backup is written, so a production server with a missing bucket still fails as before.
+- **Setup works on other images:** `server-setup.sh` adds the `ubuntu` user to the `docker` group only if the image has that user.
+- **The Google target follows in a separate change.** As decided:
+  - **Scope:** a trial with test data only, built so that parity can be added later.
+  - **Infrastructure:** Terraform applied through Google's Infrastructure Manager. Its bootstrap (the GitHub identity link and the deploy service account) is applied by the maintainer; its stack (VM, static IP, firewall) is applied by Deploy through a narrower service account that cannot grant IAM.
+  - **Approval:** a `gcp-trial` environment.
+  - **Server access:** SSH only through Google's Identity-Aware Proxy with OS Login.
+  - **Backups:** `BACKUP_UPLOAD=off`.
+  - **Shift guard:** none.
+  - **Spend:** a budget alert set by hand.
+
+## Alternatives considered
+
+- **A second workflow for Google:** no change to the production workflow, but the release checks would be copied, and the two copies could drift apart.
+- **One job with steps for each target:** fewer jobs, but every step would need its own condition, and the approval and queue would be shared between targets.
+- **Checking the release after approval, as before:** keeps the old order, but asks a reviewer to approve a release that might still fail its checks.
+- **Reusing the `production` environment for every target:** one approval rule, but a trial deploy could replace a waiting production deploy, and both targets' settings would sit together.
+
+## Consequences
+
+- AWS deploys run the same steps as before, now split across two jobs. The `production` environment and the `deploy-production` queue are unchanged.
+- The workflow and the release's scripts move apart. Deploy always checks out the release's own commit, so `push-release.sh` and the backup opt-out reach a server only in a release cut after this change. A Google deploy needs such a release too.
+- Making Google production would need:
+  - backups to Cloud Storage through the VM's own service account (no stored key);
+  - a check that refuses replacing or deleting resources, as `tools/check-change-set.ts` does for AWS;
+  - the shift-hours guard;
+  - disk snapshots;
+  - moving off a personal account.

@@ -1,10 +1,11 @@
 name: Deploy
 
-# Deploys a published release to the Lightsail server, once a reviewer approves the job in the
-# production environment. The Release workflow starts it after publishing; it can also be run
-# by hand with a version, which is how to go back to an earlier release. An approval during
-# shift hours waits for the shift to end (or fails at once if that is too far off); "force"
-# deploys without waiting. See ADRs 0022 and 0029.
+# Deploys a published release to one target, once a reviewer approves the target's job in its
+# environment. "aws" is the Lightsail server in production. The Release workflow starts this
+# after publishing, and its deploy goes to aws; it can also be run by hand with a version, which
+# is how to go back to an earlier release. The release is checked before anyone is asked to
+# approve. An AWS approval during shift hours waits for the shift to end (or fails at once if
+# that is too far off); "force" deploys without waiting. See ADRs 0022, 0029 and 0037.
 # checkov:skip=CKV_GHA_7: the version only selects which release to deploy. It must be a
 # published release that verifies, naming an image that CI attested, and a reviewer must
 # approve every run. "force" only skips the shift-hours guard.
@@ -15,6 +16,11 @@ on:
         description: Release to deploy, for example 0.2.0
         type: string
         required: true
+      target:
+        description: Where to deploy
+        type: choice
+        options: [aws]
+        default: aws
       force:
         description: Deploy even though a shift is running
         type: boolean
@@ -23,26 +29,22 @@ on:
 permissions:
   contents: read
 
-# One deploy at a time. A newer deploy waiting for approval replaces an older one that is also waiting.
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  # Checks the release before anyone is asked to approve it. It needs no cloud credentials.
+  verify:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 360 # the most GitHub allows; the wait is capped to leave room for the release
-    environment: production
+    timeout-minutes: 15
     permissions:
       contents: read
-      id-token: write
       attestations: read # checks the image's build attestation
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      digest: ${{ steps.release.outputs.digest }}
+      commit: ${{ steps.release.outputs.commit }}
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
-      STACK: mc-fd-dist
-      AWS_REGION: us-west-2
     steps:
       # The tools that check a release come from main, so that they can check any release.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,11 +78,33 @@ jobs:
             echo "commit=$(git rev-list -n 1 "refs/tags/$tag")"
           } >> "$GITHUB_OUTPUT"
 
+  aws:
+    needs: verify
+    if: inputs.target == 'aws'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # the most GitHub allows; the wait is capped to leave room for the release
+    environment: production
+    # One deploy at a time. A newer deploy waiting for approval replaces an older one that is
+    # also waiting.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      STACK: mc-fd-dist
+      AWS_REGION: us-west-2
+    steps:
       # The release's own scripts and templates deploy it, as they were when it was cut.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.release.outputs.commit }}
+          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
       - run: npm ci
       - name: Wait for a window outside shift hours
         if: ${{ !inputs.force }}
@@ -92,10 +116,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Update the stack
         env:
-          COMMIT: ${{ steps.release.outputs.commit }}
+          COMMIT: ${{ needs.verify.outputs.commit }}
         run: deploy/aws/update-stack.sh "$STACK" "release-${COMMIT:0:12}-$GITHUB_RUN_ID"
       - name: Release on the server
         env:
-          TAG: ${{ steps.release.outputs.tag }}
-          DIGEST: ${{ steps.release.outputs.digest }}
+          TAG: ${{ needs.verify.outputs.tag }}
+          DIGEST: ${{ needs.verify.outputs.digest }}
         run: deploy/aws/release-on-server.sh "$STACK" "$TAG" "$DIGEST"

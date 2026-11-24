@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Prepares a fresh Ubuntu 24.04 Lightsail server to run the app. It runs as root from
-# the server's launch script, and is safe to run again.
+# Prepares a fresh Ubuntu 24.04 server to run the app. It runs as root from the server's
+# launch script, and is safe to run again.
 #   server-setup.sh <git commit>
 # The app is not started here: fill in /opt/mc-fd-dist/.env first.
 set -euo pipefail
@@ -13,7 +13,10 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends docker.io docker-compose-v2 unattended-upgrades
 systemctl enable --now docker
-usermod -aG docker ubuntu
+# Lightsail's images have an "ubuntu" user for console sign-in; other clouds' may not.
+if id ubuntu > /dev/null 2>&1; then
+  usermod -aG docker ubuntu
+fi
 timedatectl set-timezone America/Phoenix
 
 # Swap, so that a memory spike slows the server down instead of stopping the app.

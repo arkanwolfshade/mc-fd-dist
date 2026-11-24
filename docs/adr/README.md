@@ -44,3 +44,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0034](0034-show-the-queue-on-a-wall-display.md) | Show the queue on a wall display | Accepted |
 | [0035](0035-publish-community-standards-files.md) | Publish a Code of Conduct, issue forms and an accessibility commitment | Accepted |
 | [0036](0036-add-free-aws-security-features-in-a-separate-stack.md) | Add free AWS security features in a stack the release pipeline cannot change | Accepted |
+| [0037](0037-choose-the-deploy-target-with-an-input.md) | Choose the deploy target with an input, and check a release before approval | Accepted |

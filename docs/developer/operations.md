@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.9.0** · mc-fd-dist · 2026-11-23 · For the maintainer and the staff owner
+**Version 1.10.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
 
 ---
 
@@ -78,13 +78,13 @@ The server's launch script already installed Docker, swap, automatic security up
 **[SPEC]**
 A release is cut, then deployed (ADRs 0022 and 0029):
 1. In the Actions tab, run **Release** from `main` with the new version, for example `0.2.0`. Leave **Dry run** ticked the first time: it publishes nothing and shows the release notes. Run it again with **Dry run** unticked to publish. A published release and its version can never be changed or reused.
-2. Publishing starts **Deploy** for that version, which waits for approval. Open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**. The job first checks the release and that its image carries this repository's build attestation.
-3. It does not deploy during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. While a job waits, it holds the release slot: a newer commit's **Deploy** queues behind it, so the older commit goes out first and the newer one then needs its own approval. To deploy during a shift, run **Deploy** by hand from the Actions tab with the version and **force** ticked.
+2. Publishing starts **Deploy** for that version, with **target** `aws`. Its first job checks the release and that its image carries this repository's build attestation. Only then does the deploy wait for approval: open it in the Actions tab and choose **Review deployments**, then **Approve and deploy**.
+3. It does not deploy during shifts: Monday, Tuesday, Thursday and Friday 7am–2pm, and Wednesday 1pm–8pm, Phoenix time. If you approve during a shift, the job waits until the shift ends and then releases. A job can wait about 5 hours 40 minutes, so an approval before about 8:20am (Wednesday: 2:20pm) fails at once and says when to approve again. While a job waits, it holds the release slot: a newer commit's **Deploy** queues behind it, so the older commit goes out first and the newer one then needs its own approval. To deploy during a shift, run **Deploy** by hand from the Actions tab with the version, **target** `aws` and **force** ticked.
 4. It applies `deploy/aws/stack.yaml` to the stack, and stops if any resource would be replaced or removed.
 5. On the server, `release.sh` backs the database up to S3, runs the release's image by its digest, and goes back to the previous image if the new one is not healthy.
 
 **[SPEC]**
-- To go back to an earlier version, run **Deploy** by hand with that release's version. Only releases cut after the deploy workflow changed to use versions can be deployed. An earlier version does not start on a database that a later release changed; see the bug below.
+- To go back to an earlier version, run **Deploy** by hand with that release's version and **target** `aws`. Only releases cut after the deploy workflow changed to use versions can be deployed. An earlier version does not start on a database that a later release changed; see the bug below.
 - `/opt/mc-fd-dist/release-version` holds the version and image digest now running.
 
 **[SPEC]**
@@ -174,6 +174,7 @@ Fix: The next release puts them back. To fix it at once, delete the extra port 2
 - S3 keeps backups for 365 days. After 30 days they move to Glacier Instant Retrieval, which still restores at once.
 - Overwritten versions are kept as long as current ones, so a stolen backup key cannot quietly replace the history.
 - Copies on the server are kept for 7 days.
+- `BACKUP_UPLOAD=off` in `.env` keeps backups on the server only. It is for a server with test data alone, never this one: leave it unset or `on` (ADR 0037).
 - Lightsail also takes a snapshot of the whole server at 04:00 Phoenix time.
 
 **[NOTE]**
