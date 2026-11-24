@@ -75,24 +75,30 @@ jobs:
   # reflow 62, wall 10), because Playwright's own --shard splits by test count and would put
   # all the slow WebKit tests together. A group that fails does not stop the others, so one run
   # shows every failure. Every profile in playwright.config.ts must be in exactly one group,
-  # and tools/ci-gate.test.ts fails until it is. Each group installs only the browsers its
-  # profiles run in, because the install downloads system packages and is the step most likely
-  # to stall. The same test fails if the list and the profiles disagree.
+  # and tools/ci-gate.test.ts fails until it is.
+  #
+  # The groups run in Playwright's own image, which holds every browser and the system packages
+  # they need, so nothing is installed from Ubuntu's mirror, the step that most often stalled.
+  # The image must be the same version as @playwright/test in package.json, or Playwright finds
+  # no browsers, and the same test fails until they match. Playwright recommends --ipc=host, so
+  # that Chromium does not run out of shared memory, and --init. Root is the image's default,
+  # which its documentation says is fine for tests that only visit our own test server.
   e2e:
     runs-on: ubuntu-latest
+    container:
+      # v1.65.1-resolute (Ubuntu 26.04)
+      image: mcr.microsoft.com/playwright:v1.65.1-resolute@sha256:dcf385f7a31aa1cbb0a7a0c97a539142bf70480b661f89f26a774ec1fe2edd1d
+      options: --ipc=host --init
     strategy:
       fail-fast: false
       matrix:
         include:
           - group: iPad and Android
             projects: --project=ipad --project=android
-            browsers: chromium webkit
           - group: iPhones
             projects: --project=iphone --project=iphone-landscape
-            browsers: webkit
           - group: desktop, wall and 320 px
             projects: --project=desktop --project=wall --project=reflow
-            browsers: chromium
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,8 +107,11 @@ jobs:
         with:
           node-version: 26
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps ${{ matrix.browsers }}
+      # npm 11 already skips these packages' install scripts on the runner, because none are
+      # approved, and each ships a prebuilt binary that is used instead. In this image npm ran
+      # better-sqlite3's build, which needs make, and failed. Skipping scripts here makes the
+      # image do what the runner does.
+      - run: npm ci --ignore-scripts
       - run: npm run test:e2e -- ${{ matrix.projects }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()

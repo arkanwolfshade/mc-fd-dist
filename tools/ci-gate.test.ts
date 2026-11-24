@@ -14,8 +14,9 @@ interface Job {
   if?: string;
   strategy?: {
     "fail-fast"?: boolean;
-    matrix?: { include?: { group: string; projects: string; browsers: string }[] };
+    matrix?: { include?: { group: string; projects: string }[] };
   };
+  container?: string | { image: string; options?: string };
   steps?: { run?: string; env?: Record<string, string> }[];
 }
 
@@ -137,19 +138,31 @@ describe("the browser tests", () => {
     }
   });
 
-  it("install each group's browsers, and only the ones its profiles use", () => {
+  // The browsers and their system packages come in Playwright's own image, because installing
+  // them on the runner downloads packages from Ubuntu's mirror, which often stalls.
+  const image = typeof e2e.container === "string" ? e2e.container : (e2e.container?.image ?? "");
+  const pinned =
+    /^mcr\.microsoft\.com\/playwright:v(\d+\.\d+\.\d+)-[a-z]+@sha256:[0-9a-f]{64}$/.exec(image);
+
+  it("run in Playwright's own image, pinned by its digest", () => {
+    expect(image, "the browser tests do not run in Playwright's image").not.toBe("");
+    expect(
+      pinned,
+      `${image} is not mcr.microsoft.com/playwright:v<version>-<ubuntu>@sha256:<digest>`,
+    ).not.toBeNull();
+  });
+
+  it("use the image made for the Playwright version the project installs", () => {
+    const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
+      devDependencies: Record<string, string>;
+    };
+    // Playwright finds no browsers when the package and the image are different versions.
+    expect(pinned?.[1]).toBe(manifest.devDependencies["@playwright/test"]);
+  });
+
+  it("install no browsers or system packages of their own", () => {
     const script = (e2e.steps ?? []).map((step) => step.run ?? "").join("\n");
-    expect(script).toContain("playwright install --with-deps ${{ matrix.browsers }}");
-    for (const group of groups) {
-      const needed = profilesOf(group.projects).map(
-        (name) => configured.find((project) => project.name === name)?.browser ?? "unknown",
-      );
-      const byName = (a: string, b: string) => a.localeCompare(b);
-      const installed = group.browsers.split(/\s+/).filter(Boolean);
-      expect([...new Set(installed)].sort(byName), `the ${group.group} group's browsers`).toEqual(
-        [...new Set(needed)].sort(byName),
-      );
-    }
+    expect(script).not.toMatch(/playwright install|apt-get/);
   });
 
   it("name the groups' trace files apart, so that one does not overwrite another", () => {
