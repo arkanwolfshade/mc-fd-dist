@@ -34,6 +34,7 @@ resource "google_iam_workload_identity_pool" "github" {
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
+  # checkov:skip=CKV_GCP_125: the condition pins the sub claim exactly, but in GitHub's owner@id/repo@id form, which this check's owner/repo pattern does not recognize.
   workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "github"
   display_name                       = "GitHub Actions"
@@ -42,7 +43,10 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.repository_id" = "assertion.repository_id"
     "attribute.environment"   = "assertion.environment"
   }
+  # The subject is the same one the AWS role trusts (deploy/aws/github-deploy.yaml), with this
+  # environment. The separate checks repeat it claim by claim.
   attribute_condition = join(" && ", [
+    "assertion.sub == '${var.github_subject_repository}:environment:${var.github_environment}'",
     "assertion.repository_owner_id == '${var.github_owner_id}'",
     "assertion.repository_id == '${var.github_repository_id}'",
     "assertion.environment == '${var.github_environment}'",
@@ -79,13 +83,33 @@ resource "google_service_account_iam_member" "github_can_deploy" {
 resource "google_project_iam_member" "deploy" {
   for_each = toset([
     "roles/config.editor",
-    "roles/iap.tunnelResourceAccessor", # SSH only through Google's proxy
-    "roles/compute.osAdminLogin",       # sudo on the server, as AWS's one-time key gives
-    "roles/compute.viewer",             # finds the server and reads its host keys
+    "roles/compute.viewer", # finds the server and reads its host keys; gcloud needs it here
   ])
   project = var.project_id
   role    = each.value
   member  = local.deploy_member
+}
+
+# The project may hold other machines, so sign-in is limited to the trial server and the
+# tunnel to SSH. OS Login refuses github-deploy anywhere else.
+resource "google_project_iam_member" "deploy_admin_on_server" {
+  project = var.project_id
+  role    = "roles/compute.osAdminLogin" # sudo on the server, as AWS's one-time key gives
+  member  = local.deploy_member
+  condition {
+    title      = "The trial server only"
+    expression = "resource.name == \"projects/${var.project_id}/zones/${var.zone}/instances/${var.server_name}\""
+  }
+}
+
+resource "google_project_iam_member" "deploy_tunnels_ssh" {
+  project = var.project_id
+  role    = "roles/iap.tunnelResourceAccessor"
+  member  = local.deploy_member
+  condition {
+    title      = "SSH only"
+    expression = "destination.port == 22"
+  }
 }
 
 resource "google_service_account_iam_member" "deploy_runs_stack" {

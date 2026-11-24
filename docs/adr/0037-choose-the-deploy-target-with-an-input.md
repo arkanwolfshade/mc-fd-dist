@@ -32,7 +32,7 @@ The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environ
 - **Where:** the existing MC-FD-DIST project on the maintainer's own Google account, in us-west1 (Oregon), which is in both Google's free tier and Infrastructure Manager's regions. The project's ID is kept only in the `gcp-trial` environment's variables.
 - **Terraform 1.5.7**, the newest version Infrastructure Manager's free tier runs, with the Google provider pinned to 8.12 or later 8.x. CI runs `terraform fmt`, `terraform validate` and checkov on `deploy/gcp`.
 - **Three service accounts from the bootstrap:**
-  - `github-deploy`, which only the `gcp-trial` environment of this repository may use, identified by GitHub's fixed numbers for the repository and its owner. It holds Infrastructure Manager's editor role (no access to IAM policies), IAP tunnel access, OS Login admin (sudo, as AWS's one-time key gives), and compute viewer.
+  - `github-deploy`, which only the `gcp-trial` environment of this repository may use, identified by GitHub's fixed numbers for the repository and its owner. It holds Infrastructure Manager's editor role (no access to IAM policies) and compute viewer across the project. OS Login admin (sudo, as AWS's one-time key gives) is limited by an IAM condition to the trial server, and IAP tunnel access to port 22, because the project may hold other machines.
   - `im-stack`, which runs the stack and can manage only the server, its network, its address and its firewall.
   - `mc-fd-dist-vm`, the server's own account, with no roles.
   
@@ -60,4 +60,5 @@ The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environ
   - a check that refuses replacing or deleting resources, as `tools/check-change-set.ts` does for AWS;
   - the shift-hours guard;
   - disk snapshots;
+  - a custom role for `im-stack` with only the permissions the stack uses, in place of the predefined compute roles, which can also set IAM and project-wide metadata on instances (found by an automated security review; the list can only be tested by applying it);
   - moving off a personal account.
