@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import playwrightConfig from "../playwright.config.js";
 
 // CI runs its work in parallel jobs, and the branch ruleset requires one job, `check`, to stand
 // for the ones that do not have a rule of their own. A required check that is skipped counts as
@@ -13,7 +14,7 @@ interface Job {
   if?: string;
   strategy?: {
     "fail-fast"?: boolean;
-    matrix?: { include?: { group: string; projects: string }[] };
+    matrix?: { include?: { group: string; projects: string; browsers: string }[] };
   };
   steps?: { run?: string; env?: Record<string, string> }[];
 }
@@ -99,13 +100,18 @@ describe("the CI gate", () => {
 describe("the browser tests", () => {
   const e2e = jobNamed("e2e");
   const groups = e2e.strategy?.matrix?.include ?? [];
-  const inGroups = groups
-    .flatMap((group) => [...group.projects.matchAll(/--project=(\S+)/g)])
-    .map((match) => match[1]);
-  // Every device profile in playwright.config.ts, each of which is a project there.
-  const profiles = [
-    ...readFileSync("playwright.config.ts", "utf8").matchAll(/^\s+(?:\{ )?name: "([a-z-]+)"/gm),
-  ].map((match) => match[1]);
+  const profilesOf = (projects: string) =>
+    [...projects.matchAll(/--project=(\S+)/g)].map((match) => match[1]);
+  const inGroups = groups.flatMap((group) => profilesOf(group.projects));
+  // Every device profile in playwright.config.ts, each of which is a project there, and the
+  // browser it runs in. A project that names none runs in Chromium.
+  const configured = (playwrightConfig.projects ?? []).map((project) => ({
+    name: project.name ?? "",
+    browser:
+      (project.use as { defaultBrowserType?: string } | undefined)?.defaultBrowserType ??
+      "chromium",
+  }));
+  const profiles = configured.map((project) => project.name);
 
   it("run as parallel groups, each of which is allowed to finish when another fails", () => {
     expect(groups.length).toBeGreaterThan(1);
@@ -128,6 +134,21 @@ describe("the browser tests", () => {
     expect(new Set(inGroups).size, "a profile is in two groups").toBe(inGroups.length);
     for (const name of inGroups) {
       expect(profiles, `${name} is not a profile in playwright.config.ts`).toContain(name);
+    }
+  });
+
+  it("install each group's browsers, and only the ones its profiles use", () => {
+    const script = (e2e.steps ?? []).map((step) => step.run ?? "").join("\n");
+    expect(script).toContain("playwright install --with-deps ${{ matrix.browsers }}");
+    for (const group of groups) {
+      const needed = profilesOf(group.projects).map(
+        (name) => configured.find((project) => project.name === name)?.browser ?? "unknown",
+      );
+      const byName = (a: string, b: string) => a.localeCompare(b);
+      const installed = group.browsers.split(/\s+/).filter(Boolean);
+      expect([...new Set(installed)].sort(byName), `the ${group.group} group's browsers`).toEqual(
+        [...new Set(needed)].sort(byName),
+      );
     }
   });
 
