@@ -63,5 +63,10 @@
     "vite": "8.3.8",
     "vitest": "5.1.1",
     "yaml": "2.9.1"
+  },
+  "allowScripts": {
+    "argon2@0.45.2": true,
+    "esbuild@0.28.2": true,
+    "better-sqlite3": false
   }
 }

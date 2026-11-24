@@ -1,5 +1,5 @@
 # Development
-**Version 1.10.0** · mc-fd-dist · 2026-11-23 · For developers
+**Version 1.11.0** · mc-fd-dist · 2026-11-23 · For developers
 
 ---
 
@@ -66,6 +66,7 @@ The npm scripts:
 - Unit test coverage has a floor of 96% for lines, statements and functions, and 91% for branches, set in `vitest.config.ts`. Below it, `npm run test:coverage` fails, so the commit hook refuses the commit and the required `check` job fails the pull request. Raise the floor as coverage grows; ask the maintainer before lowering it.
 - Add an ADR in the same commit as any decision that is hard to reverse or crosses parts of the system.
 - Dependencies in `package.json` are pinned to exact versions, and `.npmrc` sets `save-exact` so that `npm install <package>` records one. Dependabot raises the pins.
+- npm runs a dependency's install script only if `allowScripts` in `package.json` approves it. `argon2` and `esbuild` are approved at their pinned versions. `better-sqlite3` is denied: it ships a prebuilt binary for every platform the app runs on, and its script would compile SQLite from source, which fails on a machine with no C++ compiler. When Dependabot raises an approved package, npm skips the new version's script and warns until it is reviewed with `npm install-scripts ls` and approved with `npm install-scripts approve <package>`. Both packages load prebuilt binaries, so a skipped script does not break the app.
 - When a screen changes, run `npm run docs:screenshots` and check the guides still describe it.
 
 **[SPEC]**
