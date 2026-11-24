@@ -1,5 +1,5 @@
 # Development
-**Version 1.11.0** · mc-fd-dist · 2026-11-23 · For developers
+**Version 1.12.0** · mc-fd-dist · 2026-11-23 · For developers
 
 ---
 
@@ -182,8 +182,8 @@ Fix: Lint with Oxlint and oxlint-tsgolint, as configured in `.oxlintrc.json`. Re
 
 **[BUG] The container build fails while installing better-sqlite3**
 Symptom: `npm ci` fails in the Docker build with a node-gyp error.
-Cause: npm compiles better-sqlite3 from source, and the runtime image has no compiler.
-Fix: The build stage uses Chainguard's `latest-dev` node image, which has `make` and `g++`, and installs `python3` with `apk`. Keep them there, not in the final stage.
+Cause: npm ran better-sqlite3's compile, which needs Python, `make` and a C++ compiler. The package ships prebuilt binaries for every platform the app runs on, so the compile is not needed.
+Fix: Keep `"better-sqlite3": false` in `allowScripts` in `package.json`, so npm uses the prebuilt binary. If a new version stops shipping one for `linux-x64`, approve the script and add `python3` back to the build stage with `apk`; `latest-dev` already has `make` and `g++`.
 
 **[BUG] The deploy scripts or the smoke test fail on Windows with `C:/Program Files/Git/...` in an error**
 Symptom: `deploy/smoke-test.sh` or a `docker` command run from Git Bash fails with, for example, `ENOENT: no such file or directory, mkdir 'C:/Program Files/Git/data/backups'`.

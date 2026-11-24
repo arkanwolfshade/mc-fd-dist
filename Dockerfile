@@ -1,17 +1,16 @@
 # Chainguard's free node images carry only the "latest" tags, so each is pinned by digest and
 # Dependabot moves the digest (ADR 0027). The two stages must stay on the same Node major,
-# because better-sqlite3 is compiled in the first and loaded by the second.
-# Builds on the CI runner rather than the server, which is too small to compile comfortably.
+# because the first installs node_modules and the second runs them.
+# Builds on the CI runner rather than the server, which is too small to build the app comfortably.
 FROM cgr.dev/chainguard/node:latest-dev@sha256:8e8d45dd674724ccc71aed270223c3e2efc74edde6c841158d618d2baaaf5527 AS build
-# The image's own user cannot install packages, and this stage is discarded: only files are
+# Root owns /app and can give /data to user 1000, and this stage is discarded: only files are
 # copied out of it, never its user.
 # hadolint ignore=DL3002
 USER 0
-# npm compiles better-sqlite3 from source. The image has make and g++; node-gyp also needs
-# Python. Only this stage has them.
-RUN apk add --no-cache python3
 WORKDIR /app
 COPY package.json package-lock.json ./
+# Nothing is compiled: better-sqlite3 and argon2 load the prebuilt binaries they ship, and
+# allowScripts in package.json denies better-sqlite3's compile.
 RUN npm ci
 COPY . .
 RUN npm run build && npm prune --omit=dev

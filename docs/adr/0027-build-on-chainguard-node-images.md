@@ -14,6 +14,8 @@ Chainguard's free tier gives only the `latest` and `latest-dev` tags. Versioned 
 
 Build on `cgr.dev/chainguard/node:latest-dev` and run on `cgr.dev/chainguard/node:latest`. Each is pinned by digest, and Dependabot's Docker updates move the digest. The build stage adds Python for node-gyp; the image already has make and g++.
 
+*Amended 2026-11-23:* the build stage no longer adds Python or compiles anything. `better-sqlite3` and `argon2` ship prebuilt binaries, and `allowScripts` in `package.json` denies `better-sqlite3`'s compile. The two stages still share a Node major, because the first installs `node_modules` and the second runs them.
+
 The runtime image has a busybox shell and tools but no package manager, and it still carries npm and npx. The Dockerfile no longer removes npm or upgrades packages, because a scan of the finished image with Grype on 2026-11-13 reported no vulnerabilities. If a scan flags npm's own dependencies again, restore the removal step the old Dockerfile had.
 
 The app still runs as user 1000, not the image's own `node` user (65532), because the live data volume is owned by 1000. The data folder is created in the build stage and copied with that ownership. The Dockerfile clears the image's `node` entrypoint, so `docker compose exec app node ...` in the deploy scripts works as before.
