@@ -1,0 +1,10 @@
+#!/bin/bash
+# Google runs a server's startup script on every boot, unlike Lightsail's launch script, which
+# runs once. Setting up again after the nightly update restart would put the setup commit's
+# files back over the last release's, so setup runs only on a server that hasn't had it.
+set -eu
+if [ -f /opt/mc-fd-dist/setup-commit ]; then
+  exit 0
+fi
+curl -fsSL "https://raw.githubusercontent.com/arkanwolfshade/mc-fd-dist/${commit}/deploy/server-setup.sh" -o /root/server-setup.sh
+bash /root/server-setup.sh "${commit}"

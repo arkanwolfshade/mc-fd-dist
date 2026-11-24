@@ -144,3 +144,33 @@ describe("the AWS target", () => {
     expect(wait?.if).toBe("${{ !inputs.force }}");
   });
 });
+
+describe("the Google Cloud target", () => {
+  const stepsOf = (id: string) => jobNamed(id).steps ?? [];
+  const textOf = (id: string) => JSON.stringify(jobNamed(id));
+
+  it("is offered, and deploys to the trial, queued apart from production", () => {
+    expect(targets).toContain("gcp");
+    const gcp = jobNamed("gcp");
+    expect(environmentOf(gcp)).toBe("gcp-trial");
+    expect(concurrencyOf(gcp)).toBe("deploy-gcp-trial");
+  });
+
+  it("signs in through workload identity, never with a key or the AWS role", () => {
+    const auth = stepsOf("gcp").find((step) =>
+      step.uses?.startsWith("google-github-actions/auth@"),
+    );
+    expect(auth, "the Google job does not sign in to Google").toBeDefined();
+    expect(auth?.with?.workload_identity_provider).toBe(
+      "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}",
+    );
+    expect(auth?.with?.service_account).toBe("${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}");
+    expect(auth?.with).not.toHaveProperty("credentials_json");
+    expect(textOf("gcp")).not.toContain("AWS_DEPLOY_ROLE_ARN");
+    expect(textOf("aws")).not.toMatch(/vars\.GCP_/);
+  });
+
+  it("does not wait for a shift to end, because no shift runs on the trial", () => {
+    expect(textOf("gcp")).not.toContain("deploy-checks.ts wait");
+  });
+});

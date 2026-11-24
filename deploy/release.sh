@@ -23,6 +23,12 @@ if [ ! -f .env ]; then
   exit 1
 fi
 docker compose config --quiet
+# A server set up from .env.example still has the example site address, and starting would
+# ask Let's Encrypt for a certificate the server can't get.
+if grep -Eq '^SITE_ADDRESS=shifts\.example\.org$' .env; then
+  echo "Fill in SITE_ADDRESS (and ACME_EMAIL) in .env first (docs/developer/operations.md)." >&2
+  exit 1
+fi
 
 # The first release has no database to back up yet.
 if [ -n "$(docker compose ps --status running --quiet app)" ]; then
