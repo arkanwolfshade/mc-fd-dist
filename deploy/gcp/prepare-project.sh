@@ -45,8 +45,10 @@ for role in roles/config.agent roles/iam.serviceAccountAdmin \
   grant "$role"
 done
 
+# gcloud wants the project as a flag too, even though the deployment's name contains it.
 gcloud infra-manager deployments apply \
   "projects/$project/locations/$region/deployments/mc-fd-dist-bootstrap" \
+  --project "$project" \
   --service-account "projects/$project/serviceAccounts/$bootstrap" \
   --local-source deploy/gcp/bootstrap \
   --tf-version-constraint "=1.5.7" \
