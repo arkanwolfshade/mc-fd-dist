@@ -17,6 +17,14 @@ GitHub's immutable releases are switched on for the repository. Once a release i
 - **The image carries proof.** CI attests where each published image was built. The Release workflow refuses a commit whose image does not carry that attestation from this repository's CI workflow. Each release has two files: `image.txt`, the image's name by digest, and an SBOM (`sbom.spdx.json`).
 - **Production deploys only releases, by digest.** The Deploy workflow takes a version, verifies the release and the image's attestation, and the server runs the image by its digest, which cannot move. Rollback is deploying an earlier version. The approval, the wait for a window outside shift hours, and the backup before a release are unchanged (ADR 0022).
 
+*Amended 2026-11-24:* the server pulls two other images, and they are pinned too.
+
+- **Pinned by digest:** `deploy/compose.yaml` runs Caddy and the AWS CLI by version and digest (`caddy:2.11.9@sha256:...`), not by a floating tag that could point elsewhere when a server is built or a backup restored. `tools/compose-images.test.ts` fails if either goes back to a floating tag.
+- **Dependabot moves them:** its `docker-compose` ecosystem already watches `/deploy`, and its parser reads a tag followed by a digest. Its pull request is the review point, and CI starts the new Caddy image in the container job (`deploy/dast.sh`). The AWS CLI image is only used for backups and restores, so CI does not start it. That Dependabot rewrites the digest as well as the tag is read from its source, and is confirmed by its first pull request here.
+- **Neither can be verified:** checked on 2026-11-24, neither image has a cosign signature or any referrer in the registry. Caddy's official image carries BuildKit provenance and SBOM attestations inside its image index, which are not signed. The AWS CLI image carries none. A new digest is therefore trusted as Docker Hub serves it, after review of the pull request. Look again if either publisher starts signing.
+- **Not checked:** how long Docker Hub keeps a superseded digest of these two images pullable. If one disappears, a release or a restore stops at the pull, and the fix is a pull request that moves the pin to the current digest.
+- The AWS CLI image is released almost daily, so its pull request will come most weeks.
+
 ## Alternatives considered
 
 - **A release bot (release-please):** more automatic, but it adds a third-party action and picks the version from Conventional Commit titles, and not every title here has a prefix.

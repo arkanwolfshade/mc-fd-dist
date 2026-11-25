@@ -1,5 +1,5 @@
 # Development
-**Version 1.14.0** · mc-fd-dist · 2026-11-24 · For developers
+**Version 1.15.0** · mc-fd-dist · 2026-11-24 · For developers
 
 ---
 
@@ -129,7 +129,7 @@ The `quality` job uploads coverage to Codacy:
 **[SPEC]**
 Dependabot (`.github/dependabot.yml`) covers these dependencies:
 
-- Weekly, Sunday 03:00 Phoenix time, so no pull request arrives during a shift. It checks npm (`/`), the Dockerfile (`/`, which pins Chainguard's two node images by digest, ADR 0027), `deploy/compose.yaml` (`/deploy`, the Caddy and aws-cli images) and GitHub Actions (`/`).
+- Weekly, Sunday 03:00 Phoenix time, so no pull request arrives during a shift. It checks npm (`/`), the Dockerfile (`/`, which pins Chainguard's two node images by digest, ADR 0027), `deploy/compose.yaml` (`/deploy`, the Caddy and aws-cli images, which are pinned by version and digest, ADR 0029) and GitHub Actions (`/`).
 - Minor and patch updates are one pull request per ecosystem. A major update is its own pull request. Titles are `chore(deps): ...`, or `ci: ...` for Actions.
 - Dependabot rewrites a pinned action's commit and the version in the comment on the same line, so keep that comment on the `uses:` line.
 - It cannot update the gitleaks image digest in `ci.yml`, the ZAP digest in `deploy/dast.sh` or the CloudFormation templates. Bump those by hand.
