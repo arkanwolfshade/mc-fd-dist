@@ -23,7 +23,8 @@ services:
         max-file: "3"
 
   caddy:
-    image: caddy:2
+    # Pinned by digest; Dependabot moves the digest and the version. See ADR 0029.
+    image: caddy:2.11.9@sha256:4851e54a46b206517c574821bb5cc67f170d2156041e9fbc4c9193b45e84a75b
     restart: unless-stopped
     depends_on:
       app:
@@ -43,7 +44,7 @@ services:
 
   # Used by the backup and restore scripts only. It sees the backups, never the live database.
   aws:
-    image: amazon/aws-cli
+    image: amazon/aws-cli:2.42.3@sha256:271de464e935f765aa2afb6ec69881e9f4a9afd3e978214a2b5f5ddcbbc161b5
     profiles:
       - tools
     environment:
