@@ -80,6 +80,12 @@ function Reports(props: { onChanged: () => void }) {
     }
   }
 
+  // The shifts of the month so far are listed on opening, so Reopen is in reach at once.
+  useEffect(() => {
+    void load();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs once, when the tab opens
+  }, []);
+
   async function change(url: string) {
     setError("");
     try {

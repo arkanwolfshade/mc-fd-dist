@@ -16,6 +16,7 @@ test("distribution closes the shift, and every station sees it lock", async ({ s
   for (const station of [frontDesk, distribution]) {
     await expect(station.getByText("This shift is closed")).toBeVisible();
     await expect(station.getByRole("heading", { name: "Shift totals" })).toBeVisible();
+    await expect(station.getByRole("button", { name: "Reopen shift" })).toHaveCount(0);
   }
   await expect(frontDesk.getByRole("heading", { name: "New card" })).toHaveCount(0);
 });
@@ -96,6 +97,34 @@ test("an admin reopens a closed shift, and stations can work again", async ({ si
 
   await expect(frontDesk.getByRole("heading", { name: "New card" })).toBeVisible();
   await expect(frontDesk.getByText("This shift is closed")).toHaveCount(0);
+});
+
+test("an admin reopens a closed shift from the closed message", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  const admin = await signIn("pat");
+  await openShift(frontDesk);
+  await addCard(frontDesk, { familySize: 3, method: "East" });
+  await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
+  await distribution.getByRole("button", { name: "Close shift" }).click();
+  await distribution.getByRole("button", { name: "Yes, close the shift" }).click();
+  await expect(admin.getByText("This shift is closed")).toBeVisible();
+
+  await admin.getByRole("button", { name: "Reopen shift" }).click();
+  await admin.getByRole("button", { name: "Yes, reopen the shift" }).click();
+
+  await expect(admin.getByRole("heading", { name: "New card" })).toBeVisible();
+  await expect(frontDesk.getByRole("heading", { name: "New card" })).toBeVisible();
+  await expect(frontDesk.getByText("This shift is closed")).toHaveCount(0);
+});
+
+test("the Admin tab lists the month's shifts before Show totals is tapped", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const admin = await signIn("pat");
+  await openShift(frontDesk);
+
+  await admin.getByRole("button", { name: "Admin", exact: true }).click();
+  await expect(admin.getByRole("button", { name: /^Close the shift on / })).toBeVisible();
 });
 
 test("stations have no Admin tab", async ({ signIn }) => {
