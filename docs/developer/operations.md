@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.12.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
+**Version 1.13.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
 
 ---
 
@@ -291,6 +291,20 @@ Making the first server:
 
 **[SPEC]**
 Deploying: run **Deploy** from the Actions tab with the version and **target** `gcp`, then approve it in the `gcp-trial` environment. It does not wait for shift hours. It applies `deploy/gcp/stack`, then releases through the proxy with a key made for that run. Check the site afterwards with `/api/health` and the post-release check in section 4, using test cards only.
+
+**[SPEC]**
+Creating the logins, once, after the first deploy. The trial's database starts empty and the app has no default logins, so nobody can sign in until these exist:
+1. Sign in through Google's proxy, as in step 4 above, and `cd /opt/mc-fd-dist`.
+2. For each login, run the account command and type a password when it asks. Use `sudo`, because your sign-in is not in the server's `docker` group:
+   - `sudo docker compose exec app node dist/server/cli/account.js front-desk front_desk`
+   - `sudo docker compose exec app node dist/server/cli/account.js distribution distribution`
+   - `sudo docker compose exec app node dist/server/cli/account.js admin admin`
+   - `sudo docker compose exec app node dist/server/cli/account.js wall display`
+3. Use passwords that differ from production's, so that a leak from one does not open the other.
+
+**[NOTE]**
+- The command takes a username and a role, then asks for the password. Never add the password to the command: the shell saves commands in its history (`~/.bash_history`). If one gets there, run `history -c && history -w`, and choose a different password.
+- Run these in a terminal window of your own. A command typed in Claude Code with `!` has no keyboard attached, so an SSH session there cannot take input.
 
 **[SPEC]**
 Taking the trial down: `gcloud infra-manager deployments delete projects/<id>/locations/us-west1/deployments/mc-fd-dist-stack --project <id>`, then the same for `mc-fd-dist-bootstrap`. This removes the server, its address and network, and the deploy accounts. The project, its enabled APIs and `im-bootstrap` stay; delete them by hand if you no longer want them. Remove the `gcp-trial` environment in GitHub too.
