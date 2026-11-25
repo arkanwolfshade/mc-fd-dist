@@ -1,5 +1,5 @@
 # Admin guide
-**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · For food bank staff
+**Version 1.2.0** · Food bank shift tracker · 2026-11-24 · For food bank staff
 
 ---
 
@@ -25,10 +25,11 @@ Station sign-ins are shared, so the app records changes by station, not by perso
 ## 2. Shifts and reports
 
 **[SPEC]**
-- Open **Admin**, choose the **From** and **To** dates, then tap **Show totals**.
+- Open **Admin**. The shifts of this month so far are listed at once. To see another period, choose the **From** and **To** dates, then tap **Show totals**.
 - The first line gives the totals for every shift in that range.
 - Each shift is listed with its families and net weight.
 - **Reopen** a closed shift to correct it, then **Close** it again.
+- A closed shift can also be reopened from where it is shown: on **Front desk** or **Distribution**, under **This shift is closed**, tap **Reopen shift** and confirm.
 
 ![Shifts and reports](../images/admin-reports.png)
 

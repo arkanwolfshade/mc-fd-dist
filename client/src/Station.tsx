@@ -7,7 +7,7 @@ import type { WorkingRole } from "../../server/accounts.js";
 import type { LiveMessage } from "../../server/card-routes.js";
 import { Admin } from "./Admin.js";
 import { ApiError, api, connectLive, errorText } from "./api.js";
-import { afterRender, focusHeading, ScreenReaderText } from "./Controls.js";
+import { afterRender, ConfirmButton, focusHeading, ScreenReaderText } from "./Controls.js";
 import { Distribution } from "./Distribution.js";
 import { FrontDesk } from "./FrontDesk.js";
 import { Help } from "./Help.js";
@@ -267,6 +267,16 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
     }
   }
 
+  async function reopenShift(shiftId: number) {
+    setNotice("");
+    try {
+      const reopened = await api<Shift>("POST", `/api/admin/shifts/${shiftId}/reopen`);
+      change({ type: "shift", shift: reopened });
+    } catch (failure) {
+      setNotice(errorText(failure, "Could not reopen the shift"));
+    }
+  }
+
   async function openShift() {
     setNotice("");
     try {
@@ -403,6 +413,7 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
             onDelete={deleteCard}
             onOpenShift={openShift}
             onCloseShift={closeShift}
+            onReopenShift={identity.role === "admin" ? reopenShift : undefined}
           />
         )}
       </main>
@@ -420,6 +431,8 @@ interface ShiftScreenProps {
   onDelete: ((card: Card) => void) | undefined;
   onOpenShift: () => void;
   onCloseShift: (shiftId: number) => void;
+  // Only an admin can reopen a shift (ADR 0013).
+  onReopenShift: ((shiftId: number) => void) | undefined;
 }
 
 // What the tabs that depend on today's shift show: still loading, not opened yet, closed,
@@ -446,11 +459,22 @@ function ShiftScreen(props: ShiftScreenProps) {
     );
   }
   if (shift.status === "closed") {
+    const { onReopenShift } = props;
     return (
       <>
         <p class="warning">
           This shift is closed. An admin can reopen it if something needs correcting.
         </p>
+        {onReopenShift && (
+          <div class="panel">
+            <ConfirmButton
+              label="Reopen shift"
+              question="Reopen this shift? It stays open until someone closes it by hand."
+              yes="Yes, reopen the shift"
+              onYes={() => onReopenShift(shift.id)}
+            />
+          </div>
+        )}
         <Summary shift={shift} />
       </>
     );
