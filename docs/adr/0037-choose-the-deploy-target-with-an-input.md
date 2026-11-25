@@ -42,6 +42,7 @@ The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environ
 - **The startup script runs setup only once.** Google runs it at every boot, so it does nothing when `/opt/mc-fd-dist/setup-commit` exists. Otherwise the nightly update restart would put the setup commit's files back over the last release's.
 - **Trusted host keys:** the server publishes its SSH host keys in its guest attributes, and Deploy trusts only those.
 - **`release.sh` refuses the example site address** from `.env.example`, which would otherwise ask Let's Encrypt for a certificate the server can't get. This guards a new server on either target.
+- **The stack comes from GitHub, not from the runner:** Infrastructure Manager fetches `deploy/gcp/stack` from the public repository at the release's tag, which can't move. The deploy account therefore needs no access to storage. Uploading the files from the runner, as first built, needed object and bucket permissions on Infrastructure Manager's staging bucket and on the project's bucket list, found one failed deploy at a time. The bootstrap is still uploaded from the maintainer's checkout, as the maintainer.
 - **The first server is made by hand** with `deploy/gcp/update-stack.sh`, so that `.env` can be filled in before the first release (operations runbook, section 9).
 
 ## Alternatives considered
