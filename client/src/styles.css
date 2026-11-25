@@ -484,8 +484,9 @@ fieldset .info-from {
   gap: 10px;
 }
 
+/* Sized for up to four letters, not stretched across the row. */
 fieldset .info-from > label {
-  flex: 1 1 130px;
+  flex: 0 1 8rem;
 }
 
 /* Extras added: a real checkbox, sized for a thumb, beside its note. */
