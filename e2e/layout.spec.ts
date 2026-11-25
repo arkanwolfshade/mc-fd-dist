@@ -115,6 +115,9 @@ test("every control fits its panel and the page", async ({ signIn }, testInfo) =
   }
 
   await openShift(frontDesk);
+  // Initials are two to four letters, so their box must not stretch across the row.
+  const initialsBox = await frontDesk.getByLabel("New initials").boundingBox();
+  expect(initialsBox?.width).toBeLessThan(160);
   await addCard(frontDesk, { familySize: 5, method: "East", seniorBox: true });
   await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
   await addCard(frontDesk, { familySize: 2, method: "Walk" });
