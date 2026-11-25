@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.11.1** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
+**Version 1.12.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
 
 ---
 
@@ -283,8 +283,8 @@ Before the first run (once):
 
 **[SPEC]**
 Making the first server:
-1. Choose a release that contains `deploy/gcp` (v0.5.0 or later). Its commit: `git rev-list -n 1 v0.5.0`.
-2. `deploy/gcp/update-stack.sh <id> <commit>`. The server sets itself up from that commit in about five minutes.
+1. Choose a release whose `update-stack.sh` takes a tag (v0.5.1 or later). Its commit: `git rev-list -n 1 v0.5.1`.
+2. `deploy/gcp/update-stack.sh <id> <commit> v0.5.1`. Infrastructure Manager fetches the stack from GitHub at that tag. The server sets itself up from that commit in about five minutes.
 3. Its address: `gcloud compute addresses describe mc-fd-dist --region us-west1 --project <id> --format 'value(address)'`. The site is that address with dashes for dots, followed by `.sslip.io`.
 4. Sign in through Google's proxy: `gcloud compute ssh mc-fd-dist --zone us-west1-b --tunnel-through-iap --project <id>`. When `/opt/mc-fd-dist/setup-commit` exists, setup has finished.
 5. Edit `/opt/mc-fd-dist/.env` with `sudo`: `SITE_ADDRESS` (the sslip.io name), `ACME_EMAIL`, and `BACKUP_UPLOAD=off`. Leave the AWS settings empty.

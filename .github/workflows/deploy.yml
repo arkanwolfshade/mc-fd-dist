@@ -154,10 +154,12 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      # Infrastructure Manager fetches the stack from this repository at the release's tag.
       - name: Update the stack
         env:
           COMMIT: ${{ needs.verify.outputs.commit }}
-        run: deploy/gcp/update-stack.sh "$GCP_PROJECT" "$COMMIT"
+          TAG: ${{ needs.verify.outputs.tag }}
+        run: deploy/gcp/update-stack.sh "$GCP_PROJECT" "$COMMIT" "$TAG"
       - name: Release on the server
         env:
           TAG: ${{ needs.verify.outputs.tag }}
