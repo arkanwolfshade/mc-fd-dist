@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.11.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
+**Version 1.11.1** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
 
 ---
 
@@ -293,7 +293,7 @@ Making the first server:
 Deploying: run **Deploy** from the Actions tab with the version and **target** `gcp`, then approve it in the `gcp-trial` environment. It does not wait for shift hours. It applies `deploy/gcp/stack`, then releases through the proxy with a key made for that run. Check the site afterwards with `/api/health` and the post-release check in section 4, using test cards only.
 
 **[SPEC]**
-Taking the trial down: `gcloud infra-manager deployments delete projects/<id>/locations/us-west1/deployments/mc-fd-dist-stack`, then the same for `mc-fd-dist-bootstrap`. This removes the server, its address and network, and the deploy accounts. The project, its enabled APIs and `im-bootstrap` stay; delete them by hand if you no longer want them. Remove the `gcp-trial` environment in GitHub too.
+Taking the trial down: `gcloud infra-manager deployments delete projects/<id>/locations/us-west1/deployments/mc-fd-dist-stack --project <id>`, then the same for `mc-fd-dist-bootstrap`. This removes the server, its address and network, and the deploy accounts. The project, its enabled APIs and `im-bootstrap` stay; delete them by hand if you no longer want them. Remove the `gcp-trial` environment in GitHub too.
 
 **[BUG] A Google deploy fails at "Release on the server" with "has not published its host keys yet"**
 Symptom: The deploy stops before connecting.

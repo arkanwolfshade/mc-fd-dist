@@ -18,9 +18,11 @@ if ! [[ "$commit" =~ ^[0-9a-f]{40}$ ]]; then
 fi
 region=us-west1
 
-# Waits for Terraform to finish, and fails if it does.
+# Waits for Terraform to finish, and fails if it does. gcloud wants the project as a flag too,
+# even though the deployment's name contains it.
 gcloud infra-manager deployments apply \
   "projects/$project/locations/$region/deployments/mc-fd-dist-stack" \
+  --project "$project" \
   --service-account "projects/$project/serviceAccounts/im-stack@$project.iam.gserviceaccount.com" \
   --local-source deploy/gcp/stack \
   --tf-version-constraint "=1.5.7" \
