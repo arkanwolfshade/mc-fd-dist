@@ -62,4 +62,5 @@ The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environ
   - the shift-hours guard;
   - disk snapshots;
   - a custom role for `im-stack` with only the permissions the stack uses, in place of the predefined compute roles, which can also set IAM and project-wide metadata on instances (found by an automated security review; the list can only be tested by applying it);
-  - moving off a personal account.
+  - moving off a personal account;
+  - App Hub, which the maintainer wants for production on Google (decided 2026-11-24). App Hub registers only managed instance groups as Compute Engine workloads, and only load-balancer parts (forwarding rules, backend services) as services. A standalone VM, a static address or a firewall rule can't be registered. So it needs the server as a one-VM managed instance group with a stateful disk, which keeps the database if Google recreates the VM, behind a forwarding rule. Each forwarding rule is billed hourly, which would raise the monthly cost well above the trial's. App Hub's recommended boundary is a folder, which needs an organization: the food bank's own organization would provide one. Its single-project boundary is in Preview. The trial does not use App Hub.
