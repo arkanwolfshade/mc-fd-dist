@@ -54,6 +54,16 @@ gcloud infra-manager deployments apply \
   --tf-version-constraint "=1.5.7" \
   --input-values "project_id=$project"
 
+# Before updating a deployment, gcloud lists the deployment's folder in Infrastructure
+# Manager's staging bucket to clean up old uploads, and fails on a 403 even when there is
+# nothing to clean. The stack is fetched from GitHub, so nothing is ever staged there for it:
+# github-deploy needs to list, never to write or delete. gcloud made the bucket on the
+# bootstrap's upload above. --condition None: gcloud refuses an unconditional grant on a
+# policy that holds a condition unless told.
+gcloud storage buckets add-iam-policy-binding "gs://${project}_infra_manager_staging" \
+  --member "serviceAccount:github-deploy@$project.iam.gserviceaccount.com" \
+  --role roles/storage.objectViewer --condition None > /dev/null
+
 number="$(gcloud projects describe "$project" --format='value(projectNumber)')"
 cat <<EOF
 
