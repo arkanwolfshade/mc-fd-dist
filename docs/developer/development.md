@@ -1,5 +1,5 @@
 # Development
-**Version 1.13.0** · mc-fd-dist · 2026-11-24 · For developers
+**Version 1.14.0** · mc-fd-dist · 2026-11-24 · For developers
 
 ---
 
@@ -101,7 +101,7 @@ The CI jobs and what each runs:
 | `quality` | Formatting, lint, types, documentation check, license check, unit tests with coverage, coverage upload to Codacy, `npm audit`, PDF build |
 | `e2e` | The browser tests, in three groups of device profiles that run at the same time |
 | `check` | The job the ruleset requires. It waits for `quality` and every group of `e2e`, and fails unless all of them succeeded |
-| `container` | shellcheck, hadolint, cfn-lint, Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
+| `container` | shellcheck, hadolint, cfn-lint, Terraform fmt and validate (1.5.7), Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
 | `secrets` | gitleaks over the whole history |
 | `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main`, and attests where it was built |
 | CodeQL | Separate workflow: security analysis of the TypeScript and the workflows |
@@ -148,7 +148,8 @@ The Deploy workflow (`.github/workflows/deploy.yml`) is started by the Release w
 - The `verify` job checks the release with `gh release verify` and the image's build attestation, and takes the image's digest from the release's `image.txt`. It needs no approval and no cloud credentials.
 - Then only the chosen target's job runs. `target` defaults to `aws`, and the Release workflow's deploy always uses that default. Each target's job has its own GitHub environment, so a reviewer must approve it, and its own concurrency group.
 - The `aws` job runs in the `production` environment. It waits for a window outside shift hours, and fails at once if the window is more than 340 minutes away (ADR 0022). It then checks out the release's own commit, so the release's scripts and templates do the deploy, applies the stack, and releases the image on the server through `deploy/push-release.sh`.
-- `tools/deploy-workflow.test.ts` checks these rules: one job per target, each with its own environment and queue, the default of `aws`, and the shift guard on `aws`.
+- The `gcp` job deploys to the Google Cloud trial, which holds test data only (section 9 of `docs/developer/operations.md`). It runs in the `gcp-trial` environment, signs in through workload identity with no stored key, applies `deploy/gcp/stack` through Infrastructure Manager, and releases through Google's Identity-Aware Proxy. It does not wait for shift hours.
+- `tools/deploy-workflow.test.ts` checks these rules: one job per target, each with its own environment and queue, the default of `aws`, the shift guard on `aws` only, and keyless sign-in on `gcp`.
 
 **[SPEC]**
 The Release workflow (`.github/workflows/release.yml`) is run by hand from `main` (ADR 0029):

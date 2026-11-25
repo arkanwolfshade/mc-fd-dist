@@ -1,7 +1,8 @@
 name: Deploy
 
 # Deploys a published release to one target, once a reviewer approves the target's job in its
-# environment. "aws" is the Lightsail server in production. The Release workflow starts this
+# environment. "aws" is the Lightsail server in production; "gcp" is a trial server on Google
+# Cloud that holds test data only. The Release workflow starts this
 # after publishing, and its deploy goes to aws; it can also be run by hand with a version, which
 # is how to go back to an earlier release. The release is checked before anyone is asked to
 # approve. An AWS approval during shift hours waits for the shift to end (or fails at once if
@@ -19,7 +20,7 @@ on:
       target:
         description: Where to deploy
         type: choice
-        options: [aws]
+        options: [aws, gcp]
         default: aws
       force:
         description: Deploy even though a shift is running
@@ -123,3 +124,42 @@ jobs:
           TAG: ${{ needs.verify.outputs.tag }}
           DIGEST: ${{ needs.verify.outputs.digest }}
         run: deploy/aws/release-on-server.sh "$STACK" "$TAG" "$DIGEST"
+
+  # A trial on Google Cloud with test data only (ADR 0037). No shift runs on it, so it does
+  # not wait for one to end.
+  gcp:
+    needs: verify
+    if: inputs.target == 'gcp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: gcp-trial
+    concurrency:
+      group: deploy-gcp-trial
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      GCP_ZONE: us-west1-b
+      INSTANCE: mc-fd-dist
+    steps:
+      # The release's own scripts and Terraform deploy it, as they were when it was cut.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: Update the stack
+        env:
+          COMMIT: ${{ needs.verify.outputs.commit }}
+        run: deploy/gcp/update-stack.sh "$GCP_PROJECT" "$COMMIT"
+      - name: Release on the server
+        env:
+          TAG: ${{ needs.verify.outputs.tag }}
+          DIGEST: ${{ needs.verify.outputs.digest }}
+        run: deploy/gcp/release-on-server.sh "$GCP_PROJECT" "$GCP_ZONE" "$INSTANCE" "$TAG" "$DIGEST"

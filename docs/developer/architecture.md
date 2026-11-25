@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.6.0** · mc-fd-dist · 2026-11-22 · For developers
+**Version 1.7.0** · mc-fd-dist · 2026-11-24 · For developers
 
 ---
 
@@ -25,7 +25,7 @@ Read `[NOTE]` only if the reasoning behind a design is needed; the ADRs in `docs
 | Client | Preact, built with Vite | `client/` |
 | Offline support | Service worker and a write queue in `localStorage` | `client/public/sw.js`, `client/src/outbox.ts` |
 | Container image | Chainguard's node images, pinned by digest (ADR 0027) | `Dockerfile` |
-| Hosting | Docker Compose behind Caddy, on AWS Lightsail | `deploy/` |
+| Hosting | Docker Compose behind Caddy, on AWS Lightsail; a trial on Google Compute Engine (ADR 0037) | `deploy/`, `deploy/aws/`, `deploy/gcp/` |
 
 **[NOTE]**
 The app replaces two paper sheets, MC-FD and MC-Dist. The design favours one small server that a single maintainer can understand completely over anything distributed. See ADRs 0004 to 0006.

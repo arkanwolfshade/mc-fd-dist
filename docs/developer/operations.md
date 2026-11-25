@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.10.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
+**Version 1.11.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
 
 ---
 
@@ -264,3 +264,38 @@ Fix: Plug in a keyboard and sign in as the display account. If nobody has the pa
 
 **[NOTE]**
 ADR 0015 explains why one account serves as both prototype and production.
+
+---
+
+## 9. The Google Cloud trial
+
+**[NOTE]**
+A trial server on Google Cloud, in the existing MC-FD-DIST project on the maintainer's own Google account (ADR 0037). It holds **test data only**: no copy of its database leaves the server, and nothing here replaces the AWS production server. It costs about $4 a month, mostly for its static address.
+
+**[SPEC]**
+Before the first run (once):
+1. Install the gcloud CLI and sign in with your Google account, which must be an owner of the project: `gcloud auth login`.
+2. Find the project's ID. It is lowercase and may differ from the display name: `gcloud projects list`.
+3. Look at what the project already holds, so nothing here collides with it: `gcloud services list --enabled --project <id>`, `gcloud compute instances list --project <id>` and `gcloud compute firewall-rules list --project <id>`.
+4. In the Billing console, under **Budgets & alerts**, create a $5 monthly budget for the project with email alerts at 50%, 90% and 100%. An alert warns; it does not stop spending.
+5. From the repository's root: `deploy/gcp/prepare-project.sh <id>`. It enables the APIs, creates `im-bootstrap` and applies `deploy/gcp/bootstrap`, then prints three values.
+6. In GitHub, create the `gcp-trial` environment with yourself as a required reviewer, and add the three values as its variables: `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_DEPLOY_SERVICE_ACCOUNT`.
+
+**[SPEC]**
+Making the first server:
+1. Choose a release that contains `deploy/gcp` (v0.5.0 or later). Its commit: `git rev-list -n 1 v0.5.0`.
+2. `deploy/gcp/update-stack.sh <id> <commit>`. The server sets itself up from that commit in about five minutes.
+3. Its address: `gcloud compute addresses describe mc-fd-dist --region us-west1 --project <id> --format 'value(address)'`. The site is that address with dashes for dots, followed by `.sslip.io`.
+4. Sign in through Google's proxy: `gcloud compute ssh mc-fd-dist --zone us-west1-b --tunnel-through-iap --project <id>`. When `/opt/mc-fd-dist/setup-commit` exists, setup has finished.
+5. Edit `/opt/mc-fd-dist/.env` with `sudo`: `SITE_ADDRESS` (the sslip.io name), `ACME_EMAIL`, and `BACKUP_UPLOAD=off`. Leave the AWS settings empty.
+
+**[SPEC]**
+Deploying: run **Deploy** from the Actions tab with the version and **target** `gcp`, then approve it in the `gcp-trial` environment. It does not wait for shift hours. It applies `deploy/gcp/stack`, then releases through the proxy with a key made for that run. Check the site afterwards with `/api/health` and the post-release check in section 4, using test cards only.
+
+**[SPEC]**
+Taking the trial down: `gcloud infra-manager deployments delete projects/<id>/locations/us-west1/deployments/mc-fd-dist-stack`, then the same for `mc-fd-dist-bootstrap`. This removes the server, its address and network, and the deploy accounts. The project, its enabled APIs and `im-bootstrap` stay; delete them by hand if you no longer want them. Remove the `gcp-trial` environment in GitHub too.
+
+**[BUG] A Google deploy fails at "Release on the server" with "has not published its host keys yet"**
+Symptom: The deploy stops before connecting.
+Cause: The server was just created and has not finished starting, so its host keys are not yet in its guest attributes.
+Fix: Wait a few minutes and run **Deploy** again.

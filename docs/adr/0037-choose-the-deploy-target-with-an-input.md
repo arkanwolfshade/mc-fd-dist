@@ -27,6 +27,23 @@ The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environ
   - **Shift guard:** none.
   - **Spend:** a budget alert set by hand.
 
+*Amended 2026-11-24:* the Google target is built as follows.
+
+- **Where:** the existing MC-FD-DIST project on the maintainer's own Google account, in us-west1 (Oregon), which is in both Google's free tier and Infrastructure Manager's regions. The project's ID is kept only in the `gcp-trial` environment's variables.
+- **Terraform 1.5.7**, the newest version Infrastructure Manager's free tier runs, with the Google provider pinned to 8.12 or later 8.x. CI runs `terraform fmt`, `terraform validate` and checkov on `deploy/gcp`.
+- **Three service accounts from the bootstrap:**
+  - `github-deploy`, which only the `gcp-trial` environment of this repository may use, identified by GitHub's fixed numbers for the repository and its owner. It holds Infrastructure Manager's editor role (no access to IAM policies) and compute viewer across the project. OS Login admin (sudo, as AWS's one-time key gives) is limited by an IAM condition to the trial server, and IAP tunnel access to port 22, because the project may hold other machines.
+  - `im-stack`, which runs the stack and can manage only the server, its network, its address and its firewall.
+  - `mc-fd-dist-vm`, the server's own account, with no roles.
+  
+  `im-bootstrap`, which applies the bootstrap, is made by `deploy/gcp/prepare-project.sh` and is never available to the pipeline.
+- **A network of its own:** the stack creates its own network, because a project's `default` network normally carries a rule that opens SSH to the whole internet. Ports 80 and 443 are open to all; 22 only to the proxy's range (35.235.240.0/20).
+- **One e2-micro server** with a 30 GB standard disk, Ubuntu 24.04, Shielded VM and OS Login, and a static address named through sslip.io, as on AWS.
+- **The startup script runs setup only once.** Google runs it at every boot, so it does nothing when `/opt/mc-fd-dist/setup-commit` exists. Otherwise the nightly update restart would put the setup commit's files back over the last release's.
+- **Trusted host keys:** the server publishes its SSH host keys in its guest attributes, and Deploy trusts only those.
+- **`release.sh` refuses the example site address** from `.env.example`, which would otherwise ask Let's Encrypt for a certificate the server can't get. This guards a new server on either target.
+- **The first server is made by hand** with `deploy/gcp/update-stack.sh`, so that `.env` can be filled in before the first release (operations runbook, section 9).
+
 ## Alternatives considered
 
 - **A second workflow for Google:** no change to the production workflow, but the release checks would be copied, and the two copies could drift apart.
@@ -43,4 +60,5 @@ The Deploy workflow (ADRs 0022 and 0029) was one job in the `production` environ
   - a check that refuses replacing or deleting resources, as `tools/check-change-set.ts` does for AWS;
   - the shift-hours guard;
   - disk snapshots;
+  - a custom role for `im-stack` with only the permissions the stack uses, in place of the predefined compute roles, which can also set IAM and project-wide metadata on instances (found by an automated security review; the list can only be tested by applying it);
   - moving off a personal account.

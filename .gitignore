@@ -22,3 +22,6 @@ deploy/zap/*.yaml
 # Local tooling, not part of the project: Codacy's rules for AI tools, and VS Code settings.
 .github/instructions/codacy.instructions.md
 .vscode/
+
+# Terraform's local working folders, made by terraform init.
+.terraform/
