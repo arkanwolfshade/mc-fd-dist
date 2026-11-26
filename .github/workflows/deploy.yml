@@ -71,12 +71,15 @@ jobs:
             echo "::error title=Release refused::image.txt does not name this repository's image by digest"
             exit 1
           fi
+          # The release's tag names the commit its image was built from.
+          commit="$(git rev-list -n 1 "refs/tags/$tag")"
           gh attestation verify "oci://$reference" --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml"
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+            --source-ref refs/heads/main --source-digest "$commit"
           {
             echo "tag=$tag"
             echo "digest=$digest"
-            echo "commit=$(git rev-list -n 1 "refs/tags/$tag")"
+            echo "commit=$commit"
           } >> "$GITHUB_OUTPUT"
 
   aws:
