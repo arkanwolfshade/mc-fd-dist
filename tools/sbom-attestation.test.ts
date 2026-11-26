@@ -61,6 +61,9 @@ describe("the SBOM of a release", () => {
     expect(take?.run).toContain("gh attestation verify");
     expect(take?.run).toContain(`--predicate-type ${SPDX_PREDICATE_TYPE}`);
     expect(take?.run).toContain('--signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml"');
+    // Only a run on main, of the commit being released, may have made the SBOM.
+    expect(take?.run).toContain("--source-ref refs/heads/main");
+    expect(take?.run).toContain('--source-digest "$COMMIT"');
     expect(take?.run).toContain("verificationResult.statement.predicate");
   });
 

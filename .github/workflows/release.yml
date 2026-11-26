@@ -100,9 +100,12 @@ jobs:
       - name: Take the image's attested SBOM
         env:
           REFERENCE: ${{ steps.image.outputs.reference }}
+          COMMIT: ${{ steps.plan.outputs.commit }}
         run: |
+          # Only a run on main, of the commit being released, may have made the SBOM.
           if ! gh attestation verify "oci://$REFERENCE" --repo "$GITHUB_REPOSITORY" \
             --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+            --source-ref refs/heads/main --source-digest "$COMMIT" \
             --predicate-type https://spdx.dev/Document/v2.3 --format json \
             --jq '.[0].verificationResult.statement.predicate' > sbom.spdx.json; then
             echo "::error title=No SBOM::The image has no SBOM attestation from this repository's CI. Release a commit built after CI began attesting SBOMs (ADR 0029)."
