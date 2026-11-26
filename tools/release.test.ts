@@ -82,7 +82,9 @@ function release({ failing, previous = PREVIOUS, version = VERSION, digest = REL
   };
 }
 
-describe.skipIf(WINDOWS && !existsSync(BASH))("release.sh", () => {
+// Each test starts bash and runs the script, which takes over 5 s (Vitest's default limit) on
+// Windows when the whole suite runs in parallel, as the commit hook's coverage run does.
+describe.skipIf(WINDOWS && !existsSync(BASH))("release.sh", { timeout: 30_000 }, () => {
   it("records the release when the new image comes up healthy", () => {
     const result = release({ failing: "no-such-image" });
     expect(result.status).toBe(0);
