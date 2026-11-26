@@ -1,5 +1,5 @@
 # Development
-**Version 1.15.0** · mc-fd-dist · 2026-11-24 · For developers
+**Version 1.16.0** · mc-fd-dist · 2026-11-25 · For developers
 
 ---
 
@@ -103,7 +103,7 @@ The CI jobs and what each runs:
 | `check` | The job the ruleset requires. It waits for `quality` and every group of `e2e`, and fails unless all of them succeeded |
 | `container` | shellcheck, hadolint, cfn-lint, Terraform fmt and validate (1.5.7), Checkov, image build, Grype, smoke test, OWASP ZAP baseline |
 | `secrets` | gitleaks over the whole history |
-| `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main`, and attests where it was built |
+| `publish` | Pushes the image to `ghcr.io` after the other jobs pass on `main`, attests where it was built, and attests its SBOM |
 | CodeQL | Separate workflow: security analysis of the TypeScript and the workflows |
 
 **[SPEC]**
@@ -155,10 +155,10 @@ The Deploy workflow (`.github/workflows/deploy.yml`) is started by the Release w
 The Release workflow (`.github/workflows/release.yml`) is run by hand from `main` (ADR 0029):
 
 - It takes a version such as `0.2.0`, and refuses one that is not higher than every existing `v` tag. The rules are in `tools/release-version.ts`.
-- It takes the latest commit on `main`, or a full commit hash you give, and requires that CI passed for it and that its image carries this repository's build attestation.
-- **Dry run** is ticked by default. It runs every check, builds the SBOM and shows the release notes in the job summary, and publishes nothing.
+- It takes the latest commit on `main`, or a full commit hash you give, and requires that CI passed for it and that its image carries this repository's build attestation and an SBOM attestation. An image built before CI attested SBOMs is refused.
+- **Dry run** is ticked by default. It runs every check, takes the image's attested SBOM and shows the release notes in the job summary, and publishes nothing.
 - Unticked, it creates a draft release with `image.txt` (the image's name by digest) and `sbom.spdx.json`, adds the version tag to the image, publishes the release and verifies it with `gh release verify`, retrying for two minutes because GitHub writes the release's attestation a moment after publishing. Publishing makes the tag and files permanent. It then starts Deploy for the version, which waits for approval.
-- To check a release yourself: `gh release verify v0.2.0`, and `gh attestation verify oci://<image from image.txt> --repo arkanwolfshade/mc-fd-dist`.
+- To check a release yourself: `gh release verify v0.2.0`, and `gh attestation verify oci://<image from image.txt> --repo arkanwolfshade/mc-fd-dist`. Add `--predicate-type https://spdx.dev/Document/v2.3` to check the SBOM attestation, whose document is the release's `sbom.spdx.json`.
 
 **[NOTE]**
 Findings from Grype, hadolint and ZAP are written as annotations, because the job logs need a signed-in GitHub session and the annotations do not.
