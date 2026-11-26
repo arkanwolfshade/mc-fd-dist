@@ -14,6 +14,8 @@ async function controlsOutsidePanels(page: Page): Promise<string[]> {
       const panelBox = panel.getBoundingClientRect();
       for (const control of panel.querySelectorAll("button, input, a, select")) {
         const box = control.getBoundingClientRect();
+        // Nothing to tap in what is not shown, such as a closed help popout.
+        if (box.width === 0 && box.height === 0) continue;
         if (box.right > panelBox.right + 0.5 || box.left < panelBox.left - 0.5) {
           problems.push(
             `${control.textContent || control.outerHTML.slice(0, 60)} leaves its panel`,
@@ -124,7 +126,7 @@ test("every control fits its panel and the page", async ({ signIn }, testInfo) =
   await expect(frontDesk.getByRole("heading", { name: "Cards (2)" })).toBeVisible();
   expect(await check(frontDesk, true)).toEqual([]);
 
-  await frontDesk.getByRole("button", { name: "Help" }).click();
+  await frontDesk.getByRole("button", { name: "Help", exact: true }).click();
   await expect(frontDesk.getByRole("heading", { name: "Help", level: 1 })).toBeVisible();
   expect(await check(frontDesk, true)).toEqual([]);
   await frontDesk.getByRole("button", { name: "Front desk", exact: true }).click();

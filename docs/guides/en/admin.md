@@ -1,5 +1,5 @@
 # Admin guide
-**Version 1.2.0** · Food bank shift tracker · 2026-11-24 · For food bank staff
+**Version 1.3.0** · Food bank shift tracker · 2026-11-26 · For food bank staff
 
 ---
 
@@ -25,11 +25,11 @@ Station sign-ins are shared, so the app records changes by station, not by perso
 ## 2. Shifts and reports
 
 **[SPEC]**
-- Open **Admin**. The shifts of this month so far are listed at once. To see another period, choose the **From** and **To** dates, then tap **Show totals**.
-- The first line gives the totals for every shift in that range.
-- Each shift is listed with its families and net weight.
-- **Reopen** a closed shift to correct it, then **Close** it again.
-- A closed shift can also be reopened from where it is shown: on **Front desk** or **Distribution**, under **This shift is closed**, tap **Reopen shift** and confirm.
+- Open **Admin**. The shifts of this month so far are listed at once. To see another period, choose the **From** and **To** dates, then tap **Show totals**. <!-- help:reports -->
+- The first line gives the totals for every shift in that range. <!-- help:reports -->
+- Each shift is listed with its families and net weight. <!-- help:reports -->
+- **Reopen** a closed shift to correct it, then **Close** it again. <!-- help:reports -->
+- A closed shift can also be reopened from where it is shown: on **Front desk** or **Distribution**, under **This shift is closed**, tap **Reopen shift** and confirm. <!-- help:reports -->
 
 ![Shifts and reports](../images/admin-reports.png)
 
@@ -44,7 +44,7 @@ Station sign-ins are shared, so the app records changes by station, not by perso
 The cart columns were called `load_1` to `load_3` before 2026-11-11. A spreadsheet built on the old names needs updating.
 
 **[NOTE]**
-A reopened shift does not close by itself overnight. Remember to close it once the correction is made.
+A reopened shift does not close by itself overnight. Remember to close it once the correction is made. <!-- help:reports -->
 
 ---
 
@@ -64,9 +64,9 @@ Deleting cannot be undone. When in doubt, record the Family as left without food
 ## 4. Accounts
 
 **[SPEC]**
-- **Change password** for a station or an admin. Changing a station's password signs that station out on every device.
-- **Add admin** to give another staff member their own sign-in.
-- **Remove** an admin who no longer needs access. You cannot remove yourself.
+- **Change password** for a station or an admin. Changing a station's password signs that station out on every device. <!-- help:accounts -->
+- **Add admin** to give another staff member their own sign-in. <!-- help:accounts -->
+- **Remove** an admin who no longer needs access. You cannot remove yourself. <!-- help:accounts -->
 
 ![Accounts](../images/admin-accounts.png)
 
@@ -80,7 +80,7 @@ Fix: Change that station's password at once, then sign the station devices in ag
 ## 5. Recent activity
 
 **[SPEC]**
-- **Recent activity** lists recent changes: which station or admin made them, and when.
+- **Recent activity** lists recent changes: which station or admin made them, and when. <!-- help:activity -->
 
 ![Recent activity](../images/admin-activity.png)
 

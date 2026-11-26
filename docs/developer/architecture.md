@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.7.0** · mc-fd-dist · 2026-11-24 · For developers
+**Version 1.8.0** · mc-fd-dist · 2026-11-26 · For developers
 
 ---
 
@@ -70,7 +70,7 @@ Decision logic lives in plain `.ts` files, because there is no DOM test environm
 | `forms.ts`, `types.ts` | Card entry rules and shared types |
 | `Display.tsx`, `display-state.ts` | The wall display's screen (ADR 0034) and its logic: merging live messages, the two groups, how many rows fit, when the queue can no longer be trusted, and which screen to show |
 | `FrontDesk.tsx`, `Distribution.tsx`, `Batches.tsx`, `CardActions.tsx` | The two stations' screens, partner Families and returned items, and the status buttons |
-| `Summary.tsx`, `Admin.tsx`, `Login.tsx`, `Help.tsx` | Shift totals, the admin screen, sign-in, and the guides in the Help tab |
+| `Summary.tsx`, `Admin.tsx`, `Login.tsx`, `Help.tsx`, `HelpPopout.tsx` | Shift totals, the admin screen, sign-in, the guides in the Help tab, and the help popouts |
 
 **[SPEC]**
 The tools in `tools/` run in CI, in the Deploy workflow or at build time:
@@ -80,7 +80,7 @@ The tools in `tools/` run in CI, in the Deploy workflow or at build time:
 | `deploy-checks.ts`, `deploy-window.ts` | The Deploy workflow's wait for a window outside shift hours (ADR 0022), and the shift times it uses |
 | `check-change-set.ts` | Refuses a release whose stack change replaces or removes a resource |
 | `check-docs.ts`, `hads.ts`, `links.ts` | `npm run docs:check`: HADS format, links and pictures |
-| `guides.ts`, `vite-guides.ts`, `guides-pdf.ts` | Turn the volunteer guides into the Help tab's HTML and the printable PDFs |
+| `guides.ts`, `vite-guides.ts`, `guides-pdf.ts` | Turn the volunteer guides into the Help tab's HTML, the help popouts and the printable PDFs |
 | `check-licenses.ts`, `licenses.ts`, `vite-notices.ts` | The license allowlist and `third-party-notices.txt` (ADR 0026) |
 
 ---

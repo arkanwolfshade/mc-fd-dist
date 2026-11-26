@@ -69,3 +69,13 @@ test("signing out is a quiet link, not a tab", async ({ signIn }) => {
   await expect(frontDesk.locator(".tabs").getByRole("button", { name: "Sign out" })).toHaveCount(0);
   await expect(frontDesk.locator(".bar .signout")).toHaveText("Sign out");
 });
+
+test("on a wide screen the card number, family size and TEFAP bags share a row", async ({
+  signIn,
+}) => {
+  const frontDesk = await signIn("front-desk");
+  await openShift(frontDesk);
+  const number = await frontDesk.getByLabel("Card #").boundingBox();
+  const bags = await frontDesk.locator(".tefap").boundingBox();
+  expect(bags?.y).toBeLessThan((number?.y ?? 0) + (number?.height ?? 0));
+});

@@ -12,6 +12,7 @@ import {
 } from "./CardActions.js";
 import { EMPTY_FORM, frontDeskView, isEmpty, prepareCard } from "./forms.js";
 import { ErrorMessage, ScreenReaderText } from "./Controls.js";
+import { HelpPopout } from "./HelpPopout.js";
 import type { CardForm, SavedCard } from "./forms.js";
 import type { ShiftView } from "./pending.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
@@ -130,17 +131,20 @@ export function FrontDesk(props: {
           </span>
         </div>
         <div class="row">
-          <label>
-            Card #
-            <input
-              type="number"
-              inputmode="numeric"
-              min="1"
-              placeholder={String(suggested)}
-              value={number}
-              onInput={(e) => change({ number: e.currentTarget.value })}
-            />
-          </label>
+          <div class="with-help">
+            <label>
+              Card #
+              <input
+                type="number"
+                inputmode="numeric"
+                min="1"
+                placeholder={String(suggested)}
+                value={number}
+                onInput={(e) => change({ number: e.currentTarget.value })}
+              />
+            </label>
+            <HelpPopout topic="card-number" />
+          </div>
           <label>
             # in Family
             <input
@@ -185,14 +189,20 @@ export function FrontDesk(props: {
           </div>
         </fieldset>
 
-        <InitialsField
-          known={knownInitials}
-          initials={initials}
-          typed={typedInitials}
-          onChange={change}
-        />
+        <div class="with-help">
+          <InitialsField
+            known={knownInitials}
+            initials={initials}
+            typed={typedInitials}
+            onChange={change}
+          />
+          <HelpPopout topic="info-from" />
+        </div>
 
-        <SeniorBoxAndCheese seniorBox={seniorBox} cheese={cheese} onChange={change} />
+        <div class="with-help">
+          <SeniorBoxAndCheese seniorBox={seniorBox} cheese={cheese} onChange={change} />
+          <HelpPopout topic="boxes" />
+        </div>
 
         <label>
           Other

@@ -1,5 +1,5 @@
 # Getting started
-**Version 1.2.0** · Food bank shift tracker · 2026-11-19 · For volunteers and staff
+**Version 1.3.0** · Food bank shift tracker · 2026-11-26 · For volunteers and staff
 
 ---
 
@@ -99,6 +99,7 @@ Fix: Tell staff. If they say so, switch to the paper sheets for the rest of the 
 
 **[SPEC]**
 - Tap **Help** at the top of the screen to read the guide for your station.
+- Tap a round **?** button on a screen for a short note about what is beside it. Tap **Close** to go back. Nothing you have typed is lost.
 - The guides work without a connection.
 - **Help** is also where you choose light or dark colors, under **Colors on this device**. **Same as this device** follows the device's own setting. The choice is kept on that device only.
 - For anything the guides don't cover, ask the staff member on duty.

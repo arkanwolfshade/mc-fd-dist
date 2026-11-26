@@ -42,6 +42,17 @@ describe("guides plugin", () => {
     expect(code).not.toContain("[SPEC]");
   });
 
+  it("gives a guide's marked lines as help topics, and rebuilds when it changes", async () => {
+    writeFileSync(join(dir, "guide.md"), "# A guide\n- A step. <!-- help:steps -->\n");
+
+    const code = await load.call(context, `${join(dir, "guide.md")}?help`);
+
+    expect(code).toBe(
+      `export default ${JSON.stringify({ steps: "<ul>\n<li>A step.</li>\n</ul>\n" })};\n`,
+    );
+    expect(watched).toEqual([join(dir, "guide.md")]);
+  });
+
   it("rebuilds when the guide changes", async () => {
     await load.call(context, `${join(dir, "guide.md")}?guide`);
     expect(watched).toEqual([join(dir, "guide.md")]);

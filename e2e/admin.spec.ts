@@ -127,6 +127,22 @@ test("the Admin tab lists the month's shifts before Show totals is tapped", asyn
   await expect(admin.getByRole("button", { name: /^Close the shift on / })).toBeVisible();
 });
 
+test("each Admin panel has a help popout", async ({ signIn }) => {
+  const admin = await signIn("pat");
+  await admin.getByRole("button", { name: "Admin", exact: true }).click();
+  for (const [title, words] of [
+    ["Reports and past shifts", "The shifts of this month so far"],
+    ["Sign-ins for staff and stations", "You cannot remove yourself"],
+    ["The record of changes", "which station or admin made them"],
+  ] as const) {
+    await admin.getByRole("button", { name: `Help: ${title}`, exact: true }).click();
+    const card = admin.getByRole("dialog", { name: title });
+    await expect(card).toContainText(words);
+    await card.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(card).toBeHidden();
+  }
+});
+
 test("stations have no Admin tab", async ({ signIn }) => {
   const distribution = await signIn("distribution");
   await expect(distribution.getByRole("button", { name: "Sign out" })).toBeVisible();

@@ -1,5 +1,5 @@
 # Front desk guide
-**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · For front desk volunteers
+**Version 1.2.0** · Food bank shift tracker · 2026-11-26 · For front desk volunteers
 
 ---
 
@@ -24,11 +24,11 @@ Read `[NOTE]` only if the reason behind a step is needed.
 ## 2. Entering a Family
 
 **[SPEC]**
-1. **Card #**: the yellow ticket at the top shows the number the card will get. Leave **Card #** blank to use it, or type the number on the Family's card.
-2. **Info from**: who gave you the Family's details, from the intake computers. Tap their initials if they are already shown, or type new ones (2 to 4 letters) in the box.
+1. **Card #**: the yellow ticket at the top shows the number the card will get. Leave **Card #** blank to use it, or type the number on the Family's card. <!-- help:card-number -->
+2. **Info from**: who gave you the Family's details, from the intake computers. Tap their initials if they are already shown, or type new ones (2 to 4 letters) in the box. <!-- help:info-from -->
 3. **# in Family**: type how many people are in the Family.
 4. **Location or transport**: tap one: East, West, Around corner, Bus or Walk.
-5. Tap **Senior Box** if it applies. **Cheese** comes only with a Senior Box, so it can be tapped once **Senior Box** is ticked. Tap again to undo.
+5. Tap **Senior Box** if it applies. **Cheese** comes only with a Senior Box, so it can be tapped once **Senior Box** is ticked. Tap again to undo. <!-- help:boxes -->
 6. **Other**: anything else distribution should know. Optional. It appears on distribution's card as a note from the front desk.
 7. Tap **Save card**, which shows the card number, for example **Save card 18**. A green line below confirms what was saved, for example **Saved: Family of 4**.
 

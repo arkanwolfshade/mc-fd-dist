@@ -18,6 +18,7 @@ import {
   Ticket,
 } from "./CardActions.js";
 import { afterRender, ScreenReaderText } from "./Controls.js";
+import { HelpPopout } from "./HelpPopout.js";
 import type { ShiftView } from "./pending.js";
 import {
   distributionLists,
@@ -59,7 +60,10 @@ export function Distribution(props: {
   return (
     <div class="columns">
       <section class="panel">
-        <h2>Queue ({queue.length})</h2>
+        <div class="panel-head">
+          <h2>Queue ({queue.length})</h2>
+          <HelpPopout topic="serving" />
+        </div>
         {queue.length === 0 && <p class="notice">No families are waiting.</p>}
         <ul class="cards">
           {queue.map((card) => (
@@ -104,7 +108,10 @@ export function Distribution(props: {
       <PartnerCards shift={shift} submit={submit} onSaved={onSaved} />
 
       <section class="panel">
-        <h2>Finish</h2>
+        <div class="panel-head">
+          <h2>Finish</h2>
+          <HelpPopout topic="closing" />
+        </div>
         {confirmClose ? (
           <div class="confirm">
             {unserved.length > 0 && (

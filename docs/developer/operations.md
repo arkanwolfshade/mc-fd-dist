@@ -1,5 +1,5 @@
 # Operations runbook
-**Version 1.13.0** · mc-fd-dist · 2026-11-24 · For the maintainer and the staff owner
+**Version 1.14.0** · mc-fd-dist · 2026-11-26 · For the maintainer and the staff owner
 
 ---
 
@@ -231,6 +231,7 @@ Try the app on the real devices before the first shift, and again when the devic
 5. Turn on airplane mode, enter a card, then turn it off. Check that the card is sent once, and none is lost or doubled.
 6. Turn on airplane mode, close the app, and open it again. Check that it opens with its fonts and the saved shift. Then open Help and check that each missing picture shows its description.
 7. On iOS, set Larger Text to its biggest sizes (Settings, Accessibility, Display & Text Size). Check that every button can still be reached and tapped.
+8. Tap each round **?** button. Check that its card opens, that **Close** closes it, that tapping outside it closes it on iOS 18.3 or later, and that nothing typed is lost.
 
 **[?]**
 This checklist has not been run yet. Record the date, the devices and anything that failed here when it is.

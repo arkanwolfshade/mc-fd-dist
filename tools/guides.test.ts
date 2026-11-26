@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { forReaders, guideToHtml } from "./guides.js";
+import { forReaders, guideToHtml, helpTopics } from "./guides.js";
 
 const SOURCE = `# Front desk guide
 **Version 1.0.0** · mc-fd-dist · 2026-11-08
@@ -72,5 +72,53 @@ describe("guideToHtml", () => {
     const html = guideToHtml(SOURCE, (src) => `/assets/${src.replace("images/", "")}`);
     expect(html).toContain('src="/assets/new-card.png"');
     expect(html).toContain('alt="The new card form"');
+  });
+});
+
+const MARKED = `# Guide
+
+**[SPEC]**
+1. **Card #**: the ticket shows the number. <!-- help:card-number -->
+2. A line no popout wants.
+- Weigh each cart. <!-- help:serving -->
+  - A detail under it. <!-- help:serving -->
+A paragraph on its own. <!-- help:other -->
+3. Tick the extras. <!-- help:serving -->
+`;
+
+describe("helpTopics", () => {
+  const topics = helpTopics(MARKED);
+
+  it("gives each topic its marked lines, in order, and no others", () => {
+    expect(Object.keys(topics)).toEqual(["card-number", "serving", "other"]);
+    expect(topics.serving).toMatch(/Weigh each cart\.[\s\S]*A detail under it[\s\S]*Tick the/);
+    expect(JSON.stringify(topics)).not.toContain("no popout wants");
+  });
+
+  it("drops the step numbers and the markers", () => {
+    expect(topics["card-number"]).toContain(
+      "<li><strong>Card #</strong>: the ticket shows the number.</li>",
+    );
+    expect(topics["card-number"]).not.toContain("<ol");
+    expect(JSON.stringify(topics)).not.toContain("help:");
+  });
+
+  it("keeps a nested line nested, and a plain line a paragraph", () => {
+    expect(topics.serving).toMatch(/Weigh each cart\.\s*<ul>\s*<li>A detail under it\./);
+    expect(topics.other).toBe("<p>A paragraph on its own.</p>\n");
+  });
+
+  it("starts a new paragraph for a plain line that follows a list", () => {
+    const html = helpTopics("- A step. <!-- help:a -->\nA note. <!-- help:a -->\n").a;
+    expect(html).toContain("<p>A note.</p>");
+  });
+
+  it("is empty for a guide with no markers", () => {
+    expect(helpTopics(SOURCE)).toEqual({});
+  });
+
+  it("leaves no marker in what readers see", () => {
+    expect(forReaders(MARKED)).not.toContain("help:");
+    expect(forReaders(MARKED)).toContain("2. A line no popout wants.");
   });
 });
