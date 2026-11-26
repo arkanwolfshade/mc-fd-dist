@@ -25,6 +25,15 @@ GitHub's immutable releases are switched on for the repository. Once a release i
 - **Not checked:** how long Docker Hub keeps a superseded digest of these two images pullable. If one disappears, a release or a restore stops at the pull, and the fix is a pull request that moves the pin to the current digest.
 - The AWS CLI image is released almost daily, so its pull request will come most weeks.
 
+*Amended 2026-11-25:* every published image carries an SBOM attestation.
+
+- **CI attests it:** the `publish` job makes an SBOM of each image it pushes (Syft, SPDX JSON) and attests it to the image's digest with `actions/attest`, stored in the registry beside the build attestation. Images from `main` that never become releases have one too.
+- **Release takes that one:** it no longer makes a second SBOM. It takes the document from the image's attestation, checked as signed by this repository's `ci.yml`, and publishes it as `sbom.spdx.json`. The release's file and the image's SBOM are therefore the same document. Release refuses an image that has no such attestation, and says why.
+- **Deploy does not check it:** Deploy still checks the release and the image's build attestation, and the release's own attestation already covers `sbom.spdx.json`. Asking for the SBOM attestation too would make every release cut before this change undeployable, so a rollback could not go back past it.
+- **Older images are refused by Release:** checked on 2026-11-25, the image of `v0.5.1` has no SBOM attestation. The first release after this change must be of a commit that CI built after it.
+- **What the SBOM lists:** the one of `v0.5.1` names 302 packages (273 npm, 28 apk, the base image). It includes `preact`, the app's only client runtime dependency, because it is in `dependencies` and so is copied into the image's `node_modules`. The build-only tools (Vite, marked) are absent. Client code that Vite bundled into `dist/client` carries no package metadata of its own, so the SBOM names the package, not the bundled copy.
+- **Not decided:** adding CycloneDX (nobody has asked for it), and checking the SBOM against a policy at deploy (Grype already scans the image in CI).
+
 ## Alternatives considered
 
 - **A release bot (release-please):** more automatic, but it adds a third-party action and picks the version from Conventional Commit titles, and not every title here has a prefix.

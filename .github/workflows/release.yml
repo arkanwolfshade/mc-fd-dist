@@ -94,13 +94,20 @@ jobs:
           echo "reference=$reference" >> "$GITHUB_OUTPUT"
           echo "$reference" > image.txt
 
-      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          image: ${{ steps.image.outputs.reference }}
-          format: spdx-json
-          output-file: sbom.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
+      # The release's SBOM is the one CI attested to this image, not a second one generated here,
+      # so the release asset and the image's own SBOM are the same document. An image built before
+      # CI attested SBOMs has none, and is refused.
+      - name: Take the image's attested SBOM
+        env:
+          REFERENCE: ${{ steps.image.outputs.reference }}
+        run: |
+          if ! gh attestation verify "oci://$REFERENCE" --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+            --predicate-type https://spdx.dev/Document/v2.3 --format json \
+            --jq '.[0].verificationResult.statement.predicate' > sbom.spdx.json; then
+            echo "::error title=No SBOM::The image has no SBOM attestation from this repository's CI. Release a commit built after CI began attesting SBOMs (ADR 0029)."
+            exit 1
+          fi
 
       - name: Write the release notes
         env:
