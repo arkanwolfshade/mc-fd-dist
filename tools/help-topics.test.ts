@@ -14,7 +14,13 @@ const marked = Object.fromEntries(
   GUIDES.map((guide) => [guide, helpTopics(readFileSync(`docs/guides/en/${guide}.md`, "utf8"))]),
 );
 const topics = Object.entries(HELP_TOPICS);
-const readable = (html: string) => html.replaceAll(/<[^>]+>/g, "").trim();
+// The text between the tags, to count what a person reads. Text itself has no bare < or >.
+const readable = (html: string) =>
+  html
+    .split("<")
+    .map((part) => part.slice(part.indexOf(">") + 1))
+    .join("")
+    .trim();
 
 describe("help popouts", () => {
   it.each(topics)("finds the words for %s in its guide", (key, topic) => {
