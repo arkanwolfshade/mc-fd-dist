@@ -90,7 +90,8 @@ jobs:
           digest="$(docker buildx imagetools inspect "ghcr.io/$repository:$COMMIT" --format '{{.Manifest.Digest}}')"
           reference="$(npx tsx tools/release-checks.ts image "$repository" "$digest")"
           gh attestation verify "oci://$reference" --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml"
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+            --source-ref refs/heads/main --source-digest "$COMMIT"
           echo "reference=$reference" >> "$GITHUB_OUTPUT"
           echo "$reference" > image.txt
 

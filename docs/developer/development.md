@@ -1,5 +1,5 @@
 # Development
-**Version 1.16.0** · mc-fd-dist · 2026-11-25 · For developers
+**Version 1.17.0** · mc-fd-dist · 2026-11-25 · For developers
 
 ---
 
@@ -145,7 +145,7 @@ Codacy analyses every pull request and reads `.codacy.yaml` from the default bra
 **[SPEC]**
 The Deploy workflow (`.github/workflows/deploy.yml`) is started by the Release workflow after it publishes, or by hand with a version and a `target`. It is not part of CI. Section 4 of `docs/developer/operations.md` describes using it. It does this (ADR 0037):
 
-- The `verify` job checks the release with `gh release verify` and the image's build attestation, and takes the image's digest from the release's `image.txt`. It needs no approval and no cloud credentials.
+- The `verify` job checks the release with `gh release verify` and the image's build attestation (which must come from `ci.yml` on `main`, for the commit the release's tag names), and takes the image's digest from the release's `image.txt`. It needs no approval and no cloud credentials.
 - Then only the chosen target's job runs. `target` defaults to `aws`, and the Release workflow's deploy always uses that default. Each target's job has its own GitHub environment, so a reviewer must approve it, and its own concurrency group.
 - The `aws` job runs in the `production` environment. It waits for a window outside shift hours, and fails at once if the window is more than 340 minutes away (ADR 0022). It then checks out the release's own commit, so the release's scripts and templates do the deploy, applies the stack, and releases the image on the server through `deploy/push-release.sh`.
 - The `gcp` job deploys to the Google Cloud trial, which holds test data only (section 9 of `docs/developer/operations.md`). It runs in the `gcp-trial` environment, signs in through workload identity with no stored key, applies `deploy/gcp/stack` through Infrastructure Manager, and releases through Google's Identity-Aware Proxy. It does not wait for shift hours.
