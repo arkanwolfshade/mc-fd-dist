@@ -12,7 +12,7 @@ function background(page: Page) {
 async function openHelp(page: Page) {
   await page
     .getByRole("navigation", { name: "Screens" })
-    .getByRole("button", { name: "Help" })
+    .getByRole("button", { name: "Help", exact: true })
     .click();
   return page.getByRole("group", { name: "Colors on this device" });
 }

@@ -1,5 +1,5 @@
 # Distribution guide
-**Version 1.3.0** · Food bank shift tracker · 2026-11-22 · For distribution volunteers
+**Version 1.4.0** · Food bank shift tracker · 2026-11-26 · For distribution volunteers
 
 ---
 
@@ -36,8 +36,8 @@ You never type a walk-in Family's details. They arrive from the front desk. Only
 
 **[SPEC]**
 1. When the front desk calls a card back, check its number and details against the call, then tap **Confirm card** with its number, for example **Confirm card 16**. The front desk sees the card confirmed.
-2. Enter the weight of each cart: **Cart 1 (lb)**, and **Cart 2 (lb)** and **Cart 3 (lb)** if shown. The card shows one cart for each TEFAP bag. They are added up for you.
-3. For a Family of 5 to 7, 9 to 11, or 13 or more, tick **Extras added** once you have added the extras. Under **What was added**, you can note what they were, for example meat, deli or bakery. The note is optional.
+2. Enter the weight of each cart: **Cart 1 (lb)**, and **Cart 2 (lb)** and **Cart 3 (lb)** if shown. The card shows one cart for each TEFAP bag. They are added up for you. <!-- help:serving -->
+3. For a Family of 5 to 7, 9 to 11, or 13 or more, tick **Extras added** once you have added the extras. Under **What was added**, you can note what they were, for example meat, deli or bakery. The note is optional. <!-- help:serving -->
 4. Tap **Mark distributed**.
 
 A note from the front desk, if there is one, appears in yellow under the card's details.
@@ -156,15 +156,15 @@ A card entered at the front desk counts as a Family even before it is distribute
 ## 8. Closing the shift
 
 **[SPEC]**
-- When the last Family is served and every Door Dash and Helping Hands Family is entered, tap **Close shift** under **Finish**.
-- If any card has not been distributed, the app lists it. Correct each one before closing:
-  - the Family was served: go back to the queue and finish their card;
-  - the Family left: tap **Left without food**;
-  - the card was entered by mistake: staff can **Delete** it.
-- Then tap **Yes, close the shift**.
-- Both stations lock and show the final totals.
-- Only staff can reopen a closed shift.
-- A shift left open closes by itself overnight.
+- When the last Family is served and every Door Dash and Helping Hands Family is entered, tap **Close shift** under **Finish**. <!-- help:closing -->
+- If any card has not been distributed, the app lists it. Correct each one before closing: <!-- help:closing -->
+  - the Family was served: go back to the queue and finish their card; <!-- help:closing -->
+  - the Family left: tap **Left without food**; <!-- help:closing -->
+  - the card was entered by mistake: staff can **Delete** it. <!-- help:closing -->
+- Then tap **Yes, close the shift**. <!-- help:closing -->
+- Both stations lock and show the final totals. <!-- help:closing -->
+- Only staff can reopen a closed shift. <!-- help:closing -->
+- A shift left open closes by itself overnight. <!-- help:closing -->
 
 ![Closing the shift](../images/close-shift.png)
 

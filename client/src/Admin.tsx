@@ -3,6 +3,7 @@ import type { AuditEntry } from "../../server/audit.js";
 import type { ShiftSummary } from "../../server/summary.js";
 import { api, errorText } from "./api.js";
 import { ConfirmButton, ErrorMessage, ScreenReaderText } from "./Controls.js";
+import { HelpPopout } from "./HelpPopout.js";
 import { isoDate } from "./state.js";
 import type { Identity, Shift } from "./types.js";
 
@@ -100,7 +101,10 @@ function Reports(props: { onChanged: () => void }) {
   const range = `from=${from}&to=${to}`;
   return (
     <section class="panel">
-      <h2>Shifts and reports</h2>
+      <div class="panel-head">
+        <h2>Shifts and reports</h2>
+        <HelpPopout topic="reports" />
+      </div>
       <div class="row end">
         <label>
           From
@@ -169,7 +173,10 @@ function Accounts(props: { identity: Identity; onChanged: () => void }) {
 
   return (
     <section class="panel">
-      <h2>Accounts</h2>
+      <div class="panel-head">
+        <h2>Accounts</h2>
+        <HelpPopout topic="accounts" />
+      </div>
       {message && <p class="success">{message}</p>}
       <ErrorMessage text={error} />
       <ul class="cards">
@@ -310,7 +317,10 @@ function Activity(props: { version: number }) {
 
   return (
     <section class="panel">
-      <h2>Recent activity</h2>
+      <div class="panel-head">
+        <h2>Recent activity</h2>
+        <HelpPopout topic="activity" />
+      </div>
       <ErrorMessage text={error} />
       <ul class="activity">
         {entries.map((entry) => (

@@ -9,6 +9,7 @@ const STATION_TESTS = [
   "help.spec.ts",
   "layout.spec.ts",
   "offline.spec.ts",
+  "popouts.spec.ts",
   "shift-flow.spec.ts",
 ];
 

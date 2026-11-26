@@ -476,6 +476,73 @@ span.info-from {
   font-size: 18px;
 }
 
+/* Help popouts (ADR 0038): the ? beside a field or heading, and the card it opens. */
+.with-help,
+.panel-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.with-help > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sized as the field it holds would be, beside the row's other fields. */
+.row > .with-help {
+  flex: 1 1 130px;
+}
+
+.panel-head {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-head h2 {
+  margin: 0;
+}
+
+.help-button {
+  flex: none;
+  width: 48px;
+  padding: 0;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+/* Hidden until opened, also in a browser too old for popovers, which has no ? to open it. */
+.popout {
+  display: none;
+}
+
+.popout:popover-open {
+  display: block;
+  width: min(32rem, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 20px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.popout::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.popout h3 {
+  margin: 0;
+}
+
+@supports not selector(:popover-open) {
+  .help-button {
+    display: none;
+  }
+}
+
 /* On the front desk form: the quick buttons, then the box for new initials. */
 fieldset .info-from {
   display: flex;

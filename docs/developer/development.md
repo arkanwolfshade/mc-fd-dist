@@ -1,5 +1,5 @@
 # Development
-**Version 1.17.0** · mc-fd-dist · 2026-11-25 · For developers
+**Version 1.18.0** · mc-fd-dist · 2026-11-26 · For developers
 
 ---
 
@@ -171,6 +171,7 @@ Findings from Grype, hadolint and ZAP are written as annotations, because the jo
 - Guides and developer docs follow HADS 1.0.0: a title, a version line, an AI reading instruction, then `[SPEC]`, `[NOTE]`, `[BUG]` and `[?]` blocks.
 - Volunteer guides live in `docs/guides/<language>/`. Pictures live in `docs/guides/images/`.
 - The Help tab and the PDFs remove the AI reading instruction and block tags, and show `[BUG]` blocks as "Problem, What you see, Why, What to do".
+- A guide line ending in `<!-- help:key -->` is also shown in the app's help popout of that name (ADR 0038). The popouts are listed in `client/src/help-topics.ts`, and `tools/help-topics.test.ts` keeps the two in step. Read a marked line as a popout before changing it.
 - `tools/hads.ts` checks the format. Unlike the reference validator, it also checks titled `[BUG]` blocks.
 
 ---
