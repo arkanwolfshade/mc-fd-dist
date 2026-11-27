@@ -1,5 +1,5 @@
 # Getting started
-**Version 1.3.0** · Food bank shift tracker · 2026-11-26 · For volunteers and staff
+**Version 1.4.0** · Food bank shift tracker · 2026-11-26 · For volunteers and staff
 
 ---
 
@@ -21,7 +21,7 @@ Read `[NOTE]` only if the reason behind a step is needed.
 - Totals for the shift are worked out for you. Nobody adds up pages by hand.
 
 **[NOTE]**
-Card numbers are tickets for the day only. The app never records a Family's name or address. For each Family entered at the front desk, it records only the initials of the intake volunteer who gave the details.
+Card numbers are tickets for the day only. The app never records a Family's name or address. For each Family entered at the front desk, it records only the initials of the intake operator, the volunteer who typed the details in.
 
 ---
 
@@ -60,7 +60,8 @@ Fix: Ask staff for the current password and sign in again. Anything typed while 
 
 **[SPEC]**
 - The first station to start opens today's shift. Tap **Open today's shift**.
-- There is one shift per day. The other station sees it open by itself.
+- There is one shift per day, and only one can be open at a time. The other station sees it open by itself.
+- If yesterday's shift is still open, because a card was still waiting, the stations show it in red instead. Distribution finishes and closes it, then **Open today's shift** appears.
 
 ![Opening today's shift](../images/open-shift.png)
 

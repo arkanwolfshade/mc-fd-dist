@@ -59,7 +59,7 @@ test("a family who left can be recorded from the closing warning", async ({ sign
   await confirm.getByRole("button", { name: "Left without food" }).click();
   await confirm.getByRole("button", { name: "Yes, left without food" }).click();
 
-  await expect(confirm).not.toContainText("not been marked distributed");
+  await expect(confirm).not.toContainText("still waiting");
   await expect(confirm.getByRole("button", { name: "Delete" })).toHaveCount(0);
 });
 
@@ -99,6 +99,6 @@ test("an admin can delete from the closing warning", async ({ signIn }) => {
   await confirm.getByRole("button", { name: "Delete" }).click();
   await confirm.getByRole("button", { name: "Yes, delete" }).click();
 
-  await expect(confirm).not.toContainText("not been marked distributed");
+  await expect(confirm).not.toContainText("still waiting");
   await expect(frontDesk.getByRole("heading", { name: "Cards (0)" })).toBeVisible();
 });

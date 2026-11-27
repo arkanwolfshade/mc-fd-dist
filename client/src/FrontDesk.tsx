@@ -1,4 +1,5 @@
-import { useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
+import { useId, useState } from "preact/hooks";
 import { ARRIVAL_METHODS, arrivalLabel, tefapBags } from "../../server/rules.js";
 import { errorText } from "./api.js";
 import {
@@ -14,10 +15,13 @@ import { EMPTY_FORM, frontDeskView, isEmpty, prepareCard } from "./forms.js";
 import { ErrorMessage, ScreenReaderText } from "./Controls.js";
 import { HelpPopout } from "./HelpPopout.js";
 import type { CardForm, SavedCard } from "./forms.js";
+import type { HelpTopic } from "./help-topics.js";
 import type { ShiftView } from "./pending.js";
 import type { Card, Submit, UpdateCard } from "./types.js";
 
 interface InitialsFieldProps {
+  // The id of the name line that names the group.
+  nameId: string;
   known: string[];
   initials: string;
   typed: string;
@@ -26,10 +30,9 @@ interface InitialsFieldProps {
 
 // Chosen afresh for each card, since volunteers take turns at intake. See ADR 0024.
 function InitialsField(props: InitialsFieldProps) {
-  const { known, initials, typed, onChange } = props;
+  const { nameId, known, initials, typed, onChange } = props;
   return (
-    <fieldset>
-      <legend>Info from</legend>
+    <fieldset aria-labelledby={nameId}>
       <div class="info-from">
         <div class="choices">
           {known.map((option) => (
@@ -60,6 +63,17 @@ function InitialsField(props: InitialsFieldProps) {
   );
 }
 
+// A field's name with its ? right after it, so the ? clearly belongs to that field. The ? sits
+// outside the name, which keeps the field's accessible name as it is. See ADR 0038.
+function NameLine(props: { topic: HelpTopic; children: ComponentChildren }) {
+  return (
+    <div class="name-line">
+      {props.children}
+      <HelpPopout topic={props.topic} />
+    </div>
+  );
+}
+
 export function FrontDesk(props: {
   shift: ShiftView;
   submit: Submit;
@@ -75,6 +89,8 @@ export function FrontDesk(props: {
   const [error, setError] = useState("");
   // The last card saved, confirmed under the form.
   const [saved, setSaved] = useState<SavedCard | null>(null);
+  const id = useId();
+  const ids = { number: `${id}-number`, operator: `${id}-operator`, boxes: `${id}-boxes` };
 
   const { number, familySize, method, initials, typedInitials, seniorBox, cheese, other } = form;
   const size = Number(familySize);
@@ -130,20 +146,36 @@ export function FrontDesk(props: {
               : "Next card number. Type another below to change it."}
           </span>
         </div>
-        <div class="row">
-          <div class="with-help">
-            <label>
-              Card #
-              <input
-                type="number"
-                inputmode="numeric"
-                min="1"
-                placeholder={String(suggested)}
-                value={number}
-                onInput={(e) => change({ number: e.currentTarget.value })}
-              />
-            </label>
-            <HelpPopout topic="card-number" />
+
+        {/* Asked first: the radio person knows which operator they are talking to before any
+            details are read out. */}
+        <div>
+          <NameLine topic="info-from">
+            <span id={ids.operator}>Intake operator</span>
+          </NameLine>
+          <InitialsField
+            nameId={ids.operator}
+            known={knownInitials}
+            initials={initials}
+            typed={typedInitials}
+            onChange={change}
+          />
+        </div>
+
+        <div class="row end">
+          <div class="field">
+            <NameLine topic="card-number">
+              <label for={ids.number}>Card #</label>
+            </NameLine>
+            <input
+              id={ids.number}
+              type="number"
+              inputmode="numeric"
+              min="1"
+              placeholder={String(suggested)}
+              value={number}
+              onInput={(e) => change({ number: e.currentTarget.value })}
+            />
           </div>
           <label>
             # in Family
@@ -189,19 +221,13 @@ export function FrontDesk(props: {
           </div>
         </fieldset>
 
-        <div class="with-help">
-          <InitialsField
-            known={knownInitials}
-            initials={initials}
-            typed={typedInitials}
-            onChange={change}
-          />
-          <HelpPopout topic="info-from" />
-        </div>
-
-        <div class="with-help">
-          <SeniorBoxAndCheese seniorBox={seniorBox} cheese={cheese} onChange={change} />
-          <HelpPopout topic="boxes" />
+        <div>
+          <NameLine topic="boxes">
+            <span id={ids.boxes}>For seniors</span>
+          </NameLine>
+          <div role="group" aria-labelledby={ids.boxes}>
+            <SeniorBoxAndCheese seniorBox={seniorBox} cheese={cheese} onChange={change} />
+          </div>
         </div>
 
         <label>

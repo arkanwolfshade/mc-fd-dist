@@ -1,5 +1,5 @@
 # Distribution quick card
-**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · Print one per distribution station
+**Version 1.2.0** · Food bank shift tracker · 2026-11-26 · Print one per distribution station
 
 ---
 
@@ -20,7 +20,7 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the distribution g
 ## During the shift
 
 **[SPEC]**
-- Items returned: enter the weight under **Returned items**, **Add returned weight**.
+- Items returned: enter the weight (above 0) under **Returned items**, **Add returned weight**.
 
 ## End of shift
 
@@ -33,7 +33,8 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the distribution g
 ## If something goes wrong
 
 **[SPEC]**
-- **A cart has no weight** or **Extras added is not ticked**: **Go back** and fix it, or **Mark distributed anyway** if it truly can't be.
+- **Red: Weigh cart 2…**: weigh that cart and enter its weight. Every cart needs one, above 0.
+- **Yellow: Extras added is not ticked**: **Go back** and tick it, or **Mark distributed anyway** if there were none.
 - **Shift is closed** but needs a fix: ask staff to reopen it.
 - **Connection lost**: keep going. Changes wait on the device and send themselves later.
 - More help: tap **Help** at the top of the screen.

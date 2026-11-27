@@ -1,5 +1,5 @@
 # Front desk quick card
-**Version 1.1.0** · Food bank shift tracker · 2026-11-11 · Print one per front desk
+**Version 1.2.0** · Food bank shift tracker · 2026-11-26 · Print one per front desk
 
 ---
 
@@ -12,7 +12,7 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the front desk gui
 ## Each Family
 
 **[SPEC]**
-1. **Info from**: tap the intake volunteer's initials, or type new ones. Required.
+1. **Intake operator**: tap the initials of the volunteer at the intake computer, or type new ones. Required.
 2. **# in Family**: how many people. TEFAP bags are worked out for you: 1–4 people get 1, 5–8 get 2, 9 or more get 3.
 3. **Location or transport**: East, West, Around corner, Bus or Walk.
 4. **Senior Box** if it applies, then **Cheese** if it applies. Cheese comes only with a Senior Box.
@@ -22,9 +22,10 @@ Read `[SPEC]` blocks for the steps. This card is a summary of the front desk gui
 ## If something goes wrong
 
 **[SPEC]**
-- **Choose who the Family's details came from**: tap or type the initials, then Save card.
+- **Choose the intake operator's initials**: tap or type them, then Save card.
 - **Choose the Family's location or transport**: tap one, then Save card.
 - **Number already in use**: check the Family's card number, type it in Card #, Save card.
+- **Red: yesterday's shift is still open**: ask distribution to finish and close it, then **Open today's shift**.
 - **Connection lost**: keep going. Cards wait on the device and send themselves later.
 - **Down for more than a few minutes**: tell staff. Use paper if they say so.
 - More help: tap **Help** at the top of the screen.

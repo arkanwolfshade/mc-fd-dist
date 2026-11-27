@@ -9,6 +9,7 @@ import {
   deleteCard,
   findCard,
   findCardByClientId,
+  findOpenShift,
   findShift,
   findShiftByDate,
   listCards,
@@ -29,6 +30,9 @@ import {
   INITIALS_RULE,
   isPartnerMethod,
   normalizeInitials,
+  stillOpenRule,
+  unweighedCarts,
+  weighRule,
 } from "./rules.js";
 import { shiftSummary } from "./summary.js";
 
@@ -72,7 +76,7 @@ const CARD_DETAIL_PROPERTIES = {
 const LOADS = {
   type: "array",
   maxItems: 3,
-  items: { type: ["number", "null"], minimum: 0 },
+  items: { type: ["number", "null"], exclusiveMinimum: 0 },
 } as const;
 
 const NEW_CARD_BODY = {
@@ -193,6 +197,11 @@ export function newCardFrom(account: Account, body: NewCard): NewCard | Refusal 
   if (!fitsCarts(input.loads ?? [], carts)) {
     return { code: 400, error: cartRule(carts) };
   }
+  // A partner Family is saved as distributed, so its carts are weighed already.
+  const unweighed = unweighedCarts(input.loads ?? [], carts);
+  if (input.status === "distributed" && unweighed.length > 0) {
+    return { code: 400, error: weighRule(unweighed, "add the partner Family") };
+  }
   return input;
 }
 
@@ -212,8 +221,15 @@ function refuseByRules(current: Card, changes: CardChanges): Refusal | null {
     return { code: 400, error: "A walk-in Family and a partner Family cannot be swapped" };
   }
   const carts = cartCount({ tefapBags: bagsAfter(current, changes) });
-  if (!fitsCarts(changes.loads ?? current.loads, carts)) {
+  const loads = changes.loads ?? current.loads;
+  if (!fitsCarts(loads, carts)) {
     return { code: 400, error: cartRule(carts) };
+  }
+  // Checked whenever the card is distributed after the change, so that a weight can't be
+  // cleared from a Family already served either.
+  const unweighed = unweighedCarts(loads, carts);
+  if ((changes.status ?? current.status) === "distributed" && unweighed.length > 0) {
+    return { code: 400, error: weighRule(unweighed) };
   }
   return null;
 }
@@ -250,6 +266,11 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       schema: { body: DATE_OBJECT },
     },
     async (request, reply) => {
+      // Checked and written with no await between, so two stations can't both get past it.
+      const open = findOpenShift(db);
+      if (open && open.date !== request.body.date) {
+        return reply.code(409).send({ error: stillOpenRule(open.date, "opening") });
+      }
       const shift = createShift(db, request.body.date);
       if (shift === "duplicate") {
         return reply.code(409).send({ error: "A shift already exists for that date" });
@@ -267,7 +288,12 @@ export function registerCardRoutes(app: FastifyInstance, context: CardRouteConte
       schema: { querystring: DATE_OBJECT },
     },
     async (request, reply) => {
-      const shift = findShiftByDate(db, request.query.date);
+      // With no shift for the day, an earlier one still open is answered instead, so the stations
+      // can finish it before the day's shift opens. See ADR 0040.
+      const earlier = findOpenShift(db);
+      const shift =
+        findShiftByDate(db, request.query.date) ??
+        (earlier && earlier.date < request.query.date ? earlier : null);
       if (!shift) {
         return reply.code(404).send({ error: "No shift for that date" });
       }

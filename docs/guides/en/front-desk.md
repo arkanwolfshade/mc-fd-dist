@@ -1,5 +1,5 @@
 # Front desk guide
-**Version 1.2.0** · Food bank shift tracker · 2026-11-26 · For front desk volunteers
+**Version 1.3.0** · Food bank shift tracker · 2026-11-26 · For front desk volunteers
 
 ---
 
@@ -24,8 +24,8 @@ Read `[NOTE]` only if the reason behind a step is needed.
 ## 2. Entering a Family
 
 **[SPEC]**
-1. **Card #**: the yellow ticket at the top shows the number the card will get. Leave **Card #** blank to use it, or type the number on the Family's card. <!-- help:card-number -->
-2. **Info from**: who gave you the Family's details, from the intake computers. Tap their initials if they are already shown, or type new ones (2 to 4 letters) in the box. <!-- help:info-from -->
+1. **Intake operator**: the initials of the volunteer who typed the Family's details in at the intake computer, not the Family's initials. Tap them if they are already shown, or type new ones (2 to 4 letters) in the box. <!-- help:info-from -->
+2. **Card #**: the yellow ticket shows the number the card will get. Leave **Card #** blank to use it, or type the number on the Family's card. <!-- help:card-number -->
 3. **# in Family**: type how many people are in the Family.
 4. **Location or transport**: tap one: East, West, Around corner, Bus or Walk.
 5. Tap **Senior Box** if it applies. **Cheese** comes only with a Senior Box, so it can be tapped once **Senior Box** is ticked. Tap again to undo. <!-- help:boxes -->
@@ -47,17 +47,22 @@ Read `[NOTE]` only if the reason behind a step is needed.
 The form clears as soon as you tap **Save card**, so you can start the next Family straight away, even before the last card has finished saving. Initials used earlier in the shift stay as buttons, so you rarely need to type them twice.
 
 **[NOTE]**
-Only the initials are recorded, never a volunteer's name. Distribution sees them on the card as **Info from** and the initials.
+Only the initials are recorded, never a volunteer's name. Distribution sees them on the card as **Intake:** and the initials.
 
-**[BUG] The card is not saved and asks who the details came from**
-Symptom: A message says **Choose who the Family's details came from.**
-Cause: No initials were chosen or typed in **Info from**, or the typed initials are not 2 to 4 letters.
-Fix: Tap the intake volunteer's initials, or type them, then **Save card** again.
+**[BUG] The card is not saved and asks for the intake operator's initials**
+Symptom: A message says **Choose the intake operator's initials.**
+Cause: No initials were chosen or typed in **Intake operator**, or the typed initials are not 2 to 4 letters.
+Fix: Tap the intake operator's initials, or type them, then **Save card** again.
 
 **[BUG] The card is not saved and asks for the location or transport**
 Symptom: A message says **Choose the Family's location or transport.**
 Cause: Nothing was chosen under **Location or transport**.
 Fix: Tap East, West, Around corner, Bus or Walk, then **Save card** again.
+
+**[BUG] A red message shows instead of the New card form**
+Symptom: A red message says yesterday's shift is still open.
+Cause: Only one shift can be open at a time. Yesterday's had a Family still waiting, so it did not close overnight. Today's Families must not go into it, so the form is hidden.
+Fix: Ask distribution or staff to finish yesterday's cards and close it. **Open today's shift** then appears.
 
 **[BUG] A card was not saved because its number is already in use**
 Symptom: A red message says the card was not saved because the number is already in use. The Family's details are back in the form.

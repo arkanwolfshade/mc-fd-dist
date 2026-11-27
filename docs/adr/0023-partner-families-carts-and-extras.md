@@ -45,3 +45,7 @@ The decisions were settled with the developer on 2026-11-11.
 - The cards CSV's column names changed. *Assumed:* nothing reads the CSV automatically yet, so renaming them is safe.
 - A write queued on a device running an older version could be refused if it holds weights for more carts than the card now has.
 - Weights are still optional in the end, so the totals still count distributed cards without a weight.
+
+## Amendment, 2026-11-26
+
+The exception in **Required weights, with a warned exception** is withdrawn: every cart now needs a weight above 0 before a Family is distributed, with no **Mark distributed anyway**, and a zero no longer counts. See ADR 0039. The extras check is unchanged.

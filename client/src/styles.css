@@ -298,6 +298,22 @@ legend {
   padding: 20px;
 }
 
+/* Distribution: the queue and, beside or below it, everything else in one column. On a wide
+   screen the queue takes two thirds, because it is the work of the whole shift. */
+.side-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* stylelint-disable-next-line media-feature-range-notation -- range notation needs Safari 16.4 */
+@media (min-width: 1000px) {
+  .queue-first {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -470,45 +486,70 @@ a.button {
   gap: 10px 16px;
 }
 
-/* Which intake volunteer the details came from: useful, but quieter than the family. */
+/* The intake operator's initials: useful, but quieter than the family. */
 span.info-from {
   color: var(--muted);
   font-size: 18px;
 }
 
-/* Help popouts (ADR 0038): the ? beside a field or heading, and the card it opens. */
-.with-help,
+/* Help popouts (ADR 0038): the ? right after a field's name or a panel's heading, and the
+   card it opens. */
 .panel-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.with-help > :first-child {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Sized as the field it holds would be, beside the row's other fields. */
-.row > .with-help {
-  flex: 1 1 130px;
-}
-
-.panel-head {
+.name-line {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 2px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.name-line > label {
+  flex: none;
+}
+
+/* A field whose name is on its own line, sized as a label in the row would be. */
+.row > .field {
+  flex: 1 1 130px;
+  min-width: 0;
 }
 
 .panel-head h2 {
   margin: 0;
 }
 
+/* A 48 px target with a smaller circle drawn inside, so it doesn't outweigh the name. */
 .help-button {
+  display: grid;
   flex: none;
+  place-items: center;
   width: 48px;
+  height: 48px;
   padding: 0;
+  border: 0;
   border-radius: 50%;
+  background: none;
   font-weight: 700;
+}
+
+.help-button::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.help-button > span {
+  grid-area: 1 / 1;
+  position: relative;
 }
 
 /* Hidden until opened, also in a browser too old for popovers, which has no ? to open it. */
@@ -732,6 +773,11 @@ label.check input {
   border-top: 1px solid var(--line);
 }
 
+/* An earlier shift still open, above the station's screen (ADR 0040). */
+.shift-banner {
+  margin: 8px 20px;
+}
+
 /* Messages */
 .rejected {
   display: flex;
@@ -822,12 +868,29 @@ label.check input {
   font-size: 18px;
 }
 
+/* A stop: something must be done before going on, and the message says what. Red stops;
+   yellow asks (.confirm). See ADR 0039. */
+.stop {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--alert-tint);
+  color: var(--alert);
+  font-weight: 600;
+}
+
 .warning-inline,
 .confirm {
   margin: 0;
   padding: 12px 14px;
   border-radius: 8px;
   background: var(--ticket-tint);
+}
+
+/* Not a question while cards wait: the red stop above the list says what to do. */
+.confirm.blocked {
+  padding: 0;
+  background: none;
 }
 
 .confirm .unserved {
@@ -850,6 +913,10 @@ label.check input {
 .confirm p {
   margin: 0 0 10px;
   font-weight: 600;
+}
+
+.confirm p.stop {
+  padding: 10px 14px;
 }
 
 .ask {

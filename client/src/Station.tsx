@@ -22,6 +22,7 @@ import {
   isoDate,
   savedShift,
   settleShiftLoad,
+  shiftOnScreen,
 } from "./state.js";
 import { Summary } from "./Summary.js";
 import type { Card, Shift, ShiftWithCards, StationIdentity, Submit, UpdateCard } from "./types.js";
@@ -327,7 +328,10 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
     }
   }
 
-  const shiftView = useMemo(() => (shift ? withPending(shift, waiting) : shift), [shift, waiting]);
+  const shiftView = useMemo(() => {
+    const shown = shiftOnScreen(shift, today);
+    return shown ? withPending(shown, waiting) : shown;
+  }, [shift, waiting, today]);
 
   return (
     <div class="station">
@@ -405,6 +409,7 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
         {SHIFT_VIEWS.has(view) && (
           <ShiftScreen
             view={view}
+            today={today}
             shift={shiftView}
             connected={connected}
             submit={(write) => outbox.submit(write)}
@@ -423,6 +428,7 @@ export function Station(props: { identity: StationIdentity; onSignedOut: () => v
 
 interface ShiftScreenProps {
   view: View;
+  today: string;
   shift: ShiftView | null | undefined;
   connected: boolean;
   submit: Submit;
@@ -479,6 +485,30 @@ function ShiftScreen(props: ShiftScreenProps) {
       </>
     );
   }
+  // An earlier shift still open: its cards are finished first, and today's opens after it
+  // closes. The front desk gets no form, so today's Families can't go into it. See ADR 0040.
+  if (shift.date < props.today) {
+    const banner = (
+      <p class="stop shift-banner">
+        {dayInWords(shift.date)}'s shift is still open. On Distribution, mark each card still
+        waiting distributed or left without food, then close the shift. Today's shift can be opened
+        after that.
+      </p>
+    );
+    if (view === "front_desk") return banner;
+    return (
+      <>
+        {banner}
+        <ShiftTab {...props} shift={shift} />
+      </>
+    );
+  }
+  return <ShiftTab {...props} shift={shift} />;
+}
+
+// The tab itself, for an open shift.
+function ShiftTab(props: ShiftScreenProps & { shift: ShiftView }) {
+  const { view, shift } = props;
   if (view === "front_desk") {
     return (
       <FrontDesk

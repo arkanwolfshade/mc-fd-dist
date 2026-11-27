@@ -16,6 +16,11 @@ export function ReturnedBatches(props: { shift: ShiftView; submit: Submit }) {
 
   async function add(event: Event) {
     event.preventDefault();
+    // The server refuses it too; saying so here keeps it out of the queue of writes.
+    if (!(Number(weight) > 0)) {
+      setError("Enter a returned weight above 0 lb.");
+      return;
+    }
     setError("");
     try {
       await submit({

@@ -12,9 +12,9 @@ import { listAudit } from "./audit.js";
 import { listReturnedBatches } from "./batches.js";
 import { ID_PARAMS } from "./card-routes.js";
 import type { CardRouteContext } from "./card-routes.js";
-import { listCards, listShiftsBetween } from "./cards.js";
+import { findOpenShift, listCards, listShiftsBetween, waitingCardNumbers } from "./cards.js";
 import { toCsv } from "./csv.js";
-import { arrivalLabel } from "./rules.js";
+import { arrivalLabel, stillOpenRule, waitingCardsRule } from "./rules.js";
 import { setShiftStatus } from "./shift-closing.js";
 import { deleteAccountSessions } from "./sessions.js";
 import { shiftSummary } from "./summary.js";
@@ -56,6 +56,10 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
     "/api/shifts/:id/close",
     { preHandler: requireRole("distribution", "admin"), schema: { params: ID_PARAMS } },
     async (request, reply) => {
+      const waiting = waitingCardNumbers(db, request.params.id);
+      if (waiting.length > 0) {
+        return reply.code(409).send({ error: waitingCardsRule(waiting) });
+      }
       const shift = setShiftStatus(db, request.params.id, "closed");
       if (!shift) {
         return reply.code(404).send({ error: "Shift not found" });
@@ -70,6 +74,10 @@ export function registerAdminRoutes(app: FastifyInstance, context: CardRouteCont
     "/api/admin/shifts/:id/reopen",
     { preHandler: adminOnly, schema: { params: ID_PARAMS } },
     async (request, reply) => {
+      const open = findOpenShift(db);
+      if (open && open.id !== request.params.id) {
+        return reply.code(409).send({ error: stillOpenRule(open.date, "reopening") });
+      }
       const shift = setShiftStatus(db, request.params.id, "open");
       if (!shift) {
         return reply.code(404).send({ error: "Shift not found" });

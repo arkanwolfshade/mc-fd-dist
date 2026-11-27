@@ -33,7 +33,7 @@ test("a card moves between stations live, with no reload", async ({ signIn }) =>
   await expect(card).toContainText("Family of 5");
   await expect(card).toContainText("Senior Box");
   await expect(card).toContainText("2 TEFAP bags");
-  await expect(card).toContainText("Info from AB");
+  await expect(card).toContainText("Intake: AB");
 
   await card.getByRole("button", { name: "Confirm" }).click();
   await fillCarts(card, ["12.5", "8"]);
@@ -228,9 +228,7 @@ test("the correction form uses the volunteers' words", async ({ signIn }) => {
   await expect(correct.getByRole("button", { name: "Senior Box" })).toBeVisible();
 });
 
-test("distributing without a weight asks first, then flags it in the totals", async ({
-  signIn,
-}) => {
+test("a Family can't be distributed until every cart is weighed", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
@@ -241,21 +239,23 @@ test("distributing without a weight asks first, then flags it in the totals", as
   const card = queueCard(distribution, 1);
   await card.getByRole("button", { name: "Confirm" }).click();
   await card.getByRole("button", { name: "Mark distributed" }).click();
-  await expect(card.locator(".confirm")).toContainText("Cart 1 has no weight.");
-
-  // Going back keeps the card in the queue.
-  await card.getByRole("button", { name: "Go back" }).click();
-  await expect(card.locator(".confirm")).toHaveCount(0);
-
-  await card.getByRole("button", { name: "Mark distributed" }).click();
-  await card.getByRole("button", { name: "Mark distributed anyway" }).click();
-  await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
-  await expect(cardRow(distribution, 1)).toContainText("no weight");
-
-  await distribution.getByRole("button", { name: "Totals" }).click();
-  await expect(distribution.locator(".warning-inline")).toContainText(
-    "1 distributed card has no weight",
+  // A stop, not a question: there is no way past it but to weigh the cart (ADR 0039).
+  await expect(card.getByRole("alert")).toHaveText(
+    "Weigh cart 1, then mark the Family distributed",
   );
+  await expect(card.getByRole("button", { name: "Mark distributed anyway" })).toHaveCount(0);
+  await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
+
+  // A weight of 0 lb is no weight either.
+  await fillCarts(card, ["0"]);
+  await card.getByRole("button", { name: "Mark distributed" }).click();
+  await expect(card.getByRole("alert")).toContainText("Weigh cart 1");
+
+  await fillCarts(card, ["9"]);
+  await expect(card.getByRole("alert")).toHaveText("");
+  await card.getByRole("button", { name: "Mark distributed" }).click();
+  await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
+  await expect(cardRow(distribution, 1)).toContainText("9 lb");
 });
 
 test("totals combine cards, partner Families and returned items at every station", async ({
@@ -367,6 +367,7 @@ test("a station that loses its connection warns, then recovers the missed update
 test("a station left signed in overnight moves on to the new day", async ({
   browser,
   serverUrl,
+  signIn,
 }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -377,6 +378,12 @@ test("a station left signed in overnight moves on to the new day", async ({
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Saturday, November 7")).toBeVisible();
   await openShift(page);
+  // Closed, as the overnight close does in service; the test server has none. A shift left open
+  // would be shown the next morning instead (ADR 0040, shift-rules.spec.ts).
+  const distribution = await signIn("distribution");
+  await distribution.getByRole("button", { name: "Close shift" }).click();
+  await distribution.getByRole("button", { name: "Yes, close the shift" }).click();
+  await expect(page.getByText("This shift is closed")).toBeVisible();
 
   // A resync for the old day that answers late must not bring the old shift back.
   await page.route("**/api/shifts?date=2026-11-07", async (route) => {

@@ -1,5 +1,5 @@
 # Distribution guide
-**Version 1.4.0** · Food bank shift tracker · 2026-11-26 · For distribution volunteers
+**Version 1.5.0** · Food bank shift tracker · 2026-11-26 · For distribution volunteers
 
 ---
 
@@ -15,9 +15,9 @@ Read `[NOTE]` only if the reason behind a step is needed.
 
 **[SPEC]**
 - **Queue**: Families called back by the front desk, with their details and any note from the front desk. They are listed in the order they were called, so the family at the top has been waiting longest. A family whose call is undone and called again goes to the bottom.
-- Each card leads with the Family's yellow ticket number, then **Info from** with the initials of the intake volunteer who gave the details, then a **Give** line listing the TEFAP bags, Senior Box and Cheese to hand over.
+- Each card leads with the Family's yellow ticket number, then **Intake:** with the initials of the intake operator who typed in the details, then a **Give** line listing the TEFAP bags, Senior Box and Cheese to hand over.
 - **Distributed**: Families served today, with the weight they received and any extras added.
-- **Returned items**, **End of shift: Door Dash and Helping Hands** and **Finish** are further along.
+- **Returned items**, **End of shift: Door Dash and Helping Hands** and **Finish** are beside the queue on a wide screen, or below it on a smaller one.
 
 ![The distribution screen](../images/distribution.png)
 
@@ -36,7 +36,7 @@ You never type a walk-in Family's details. They arrive from the front desk. Only
 
 **[SPEC]**
 1. When the front desk calls a card back, check its number and details against the call, then tap **Confirm card** with its number, for example **Confirm card 16**. The front desk sees the card confirmed.
-2. Enter the weight of each cart: **Cart 1 (lb)**, and **Cart 2 (lb)** and **Cart 3 (lb)** if shown. The card shows one cart for each TEFAP bag. They are added up for you. <!-- help:serving -->
+2. Enter the weight of each cart: **Cart 1 (lb)**, and **Cart 2 (lb)** and **Cart 3 (lb)** if shown. Every cart needs a weight above 0 before the Family can be marked distributed. The card shows one cart for each TEFAP bag. They are added up for you. <!-- help:serving -->
 3. For a Family of 5 to 7, 9 to 11, or 13 or more, tick **Extras added** once you have added the extras. Under **What was added**, you can note what they were, for example meat, deli or bakery. The note is optional. <!-- help:serving -->
 4. Tap **Mark distributed**.
 
@@ -59,15 +59,17 @@ A note from the front desk, if there is one, appears in yellow under the card's 
 
 ![Families served today](../images/distribution-done.png)
 
-**[BUG] A yellow box appears instead of marking the Family distributed**
-Symptom: A yellow box lists what is missing, for example **Cart 2 has no weight.** or **Extras added is not ticked.**
-Cause: A cart shown has no weight, or the Family's extras were not ticked.
-Fix: Tap **Go back**, enter the weights or tick **Extras added**, then **Mark distributed** again. Only tap **Mark distributed anyway** if the food truly was not weighed, or the Family truly got no extras. The totals will then show that a card has no weight.
+**[BUG] A red message appears instead of marking the Family distributed**
+Symptom: A red message names the carts to weigh, for example **Weigh cart 2, then mark the Family distributed**.
+Cause: A cart shown has no weight, or a weight of 0. Every cart must be weighed before a Family is distributed.
+Fix: Weigh the cart, enter its weight, then tap **Mark distributed** again. There is no way past it: red means something must be done first.
 
-![The warning before marking distributed](../images/distribution-no-weight.png)
+![The message when a cart has no weight](../images/distribution-no-weight.png)
 
-**[NOTE]**
-A typed zero counts as a weight.
+**[BUG] A yellow box asks about extras**
+Symptom: A yellow box says **Extras added is not ticked.**
+Cause: The Family's size means it usually gets extras, and **Extras added** was not ticked.
+Fix: Tap **Go back**, tick **Extras added**, then **Mark distributed** again. If no extras were available, tap **Mark distributed anyway**. Yellow asks; you may go on.
 
 ---
 
@@ -98,7 +100,7 @@ Only distribution and staff can record this. A card entered by mistake, such as 
 ## 5. Returned items
 
 **[SPEC]**
-- When items come back, enter their weight under **Returned items** and tap **Add returned weight**.
+- When items come back, enter their weight under **Returned items** and tap **Add returned weight**. The weight must be above 0.
 - Each weight is separate. Returned items are not tied to any card.
 - Entered by mistake? Tap **Remove** next to it.
 
@@ -123,7 +125,7 @@ Only distribution and staff can record this. A card entered by mistake, such as 
 ![A Door Dash Family](../images/distribution-last-cards.png)
 
 **[NOTE]**
-Door Dash and Helping Hands Families do not pass the intake computers, so their cards have no **Info from** initials.
+Door Dash and Helping Hands Families do not pass the intake computers, so their cards have no **Intake** initials.
 
 **[BUG] A partner Family was not saved because its number is already in use**
 Symptom: A red message says the number is already in use.
@@ -157,18 +159,23 @@ A card entered at the front desk counts as a Family even before it is distribute
 
 **[SPEC]**
 - When the last Family is served and every Door Dash and Helping Hands Family is entered, tap **Close shift** under **Finish**. <!-- help:closing -->
-- If any card has not been distributed, the app lists it. Correct each one before closing: <!-- help:closing -->
+- The shift can't close while a card is still waiting. A red message lists each one. Resolve them all first: <!-- help:closing -->
   - the Family was served: go back to the queue and finish their card; <!-- help:closing -->
   - the Family left: tap **Left without food**; <!-- help:closing -->
   - the card was entered by mistake: staff can **Delete** it. <!-- help:closing -->
-- Then tap **Yes, close the shift**. <!-- help:closing -->
+- When none is left, tap **Yes, close the shift**. <!-- help:closing -->
 - Both stations lock and show the final totals. <!-- help:closing -->
 - Only staff can reopen a closed shift. <!-- help:closing -->
-- A shift left open closes by itself overnight. <!-- help:closing -->
+- A shift left open closes by itself overnight, unless a card is still waiting. Then the next morning both stations show it in red until it is finished and closed. <!-- help:closing -->
 
 ![Closing the shift](../images/close-shift.png)
 
 ![A closed shift, as both stations see it](../images/shift-closed.png)
+
+**[BUG] Yesterday's shift is shown in red, and today's can't be opened**
+Symptom: A red message says yesterday's shift is still open, above its queue.
+Cause: Only one shift can be open at a time, and yesterday's has a card still waiting, so it did not close overnight.
+Fix: Tap **Close shift**, mark each listed card distributed or **Left without food**, then **Yes, close the shift**. **Open today's shift** then appears.
 
 **[BUG] Something needs fixing after the shift was closed**
 Symptom: The screens say **This shift is closed**, and nothing can be changed.

@@ -1,5 +1,5 @@
 # Admin guide
-**Version 1.3.0** · Food bank shift tracker · 2026-11-26 · For food bank staff
+**Version 1.4.0** · Food bank shift tracker · 2026-11-26 · For food bank staff
 
 ---
 
@@ -28,7 +28,7 @@ Station sign-ins are shared, so the app records changes by station, not by perso
 - Open **Admin**. The shifts of this month so far are listed at once. To see another period, choose the **From** and **To** dates, then tap **Show totals**. <!-- help:reports -->
 - The first line gives the totals for every shift in that range. <!-- help:reports -->
 - Each shift is listed with its families and net weight. <!-- help:reports -->
-- **Reopen** a closed shift to correct it, then **Close** it again. <!-- help:reports -->
+- **Reopen** a closed shift to correct it, then **Close** it again. Only one shift can be open at a time, so close today's first. A shift with a card still waiting can't close. <!-- help:reports -->
 - A closed shift can also be reopened from where it is shown: on **Front desk** or **Distribution**, under **This shift is closed**, tap **Reopen shift** and confirm. <!-- help:reports -->
 
 ![Shifts and reports](../images/admin-reports.png)
@@ -38,7 +38,7 @@ Station sign-ins are shared, so the app records changes by station, not by perso
 - **Download cards (CSV)**: one row per card, including Door Dash and Helping Hands Families. Among its columns:
   - `cart_1`, `cart_2`, `cart_3`: the weight of each cart, in pounds;
   - `extras_added` and `extras_note`: whether extras were ticked, and what was added;
-  - `intake_initials`: the initials of the intake volunteer the details came from. Door Dash and Helping Hands cards have none.
+  - `intake_initials`: the initials of the intake operator who typed in the details. Door Dash and Helping Hands cards have none.
 
 **[NOTE]**
 The cart columns were called `load_1` to `load_3` before 2026-11-11. A spreadsheet built on the old names needs updating.

@@ -3,7 +3,7 @@
 // such as "Card #" or "Cheese".
 export const HELP_TOPICS = {
   "card-number": { title: "Card numbers", guide: "front-desk" },
-  "info-from": { title: "Who gave the details", guide: "front-desk" },
+  "info-from": { title: "Whose initials to enter", guide: "front-desk" },
   boxes: { title: "Boxes for seniors", guide: "front-desk" },
   serving: { title: "Serving a Family", guide: "distribution" },
   closing: { title: "Finishing the shift", guide: "distribution" },

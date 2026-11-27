@@ -46,3 +46,5 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0036](0036-add-free-aws-security-features-in-a-separate-stack.md) | Add free AWS security features in a stack the release pipeline cannot change | Accepted |
 | [0037](0037-choose-the-deploy-target-with-an-input.md) | Choose the deploy target with an input, and check a release before approval | Accepted |
 | [0038](0038-show-help-popouts-from-the-guides.md) | Show help popouts taken from the guides | Accepted |
+| [0039](0039-require-a-positive-weight-for-every-cart.md) | Require a positive weight for every cart, and show stops in red | Accepted |
+| [0040](0040-one-open-shift-closed-when-every-card-is-resolved.md) | Keep one shift open at a time, and close it only when every card is resolved | Accepted |

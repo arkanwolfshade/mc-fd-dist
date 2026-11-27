@@ -11,7 +11,6 @@ import {
   partnerRow,
   queueCard,
   test,
-  tickExtras,
   totalsRow,
 } from "./fixtures.js";
 import type { Page } from "@playwright/test";
@@ -20,7 +19,7 @@ async function callBackCard(frontDesk: Page, number: number): Promise<void> {
   await cardRow(frontDesk, number).getByRole("button", { name: "Call back" }).click();
 }
 
-test("Info from is required, and initials used this shift become quick buttons", async ({
+test("The intake operator is required, and initials used this shift become quick buttons", async ({
   signIn,
 }) => {
   const frontDesk = await signIn("front-desk");
@@ -31,11 +30,11 @@ test("Info from is required, and initials used this shift become quick buttons",
   await expect(quickButtons).toHaveCount(0);
 
   await addCard(frontDesk, { familySize: 3, method: "Walk", initials: null });
-  await expect(error).toHaveText("Choose who the Family's details came from.");
+  await expect(error).toHaveText("Choose the intake operator's initials.");
 
   await frontDesk.getByLabel("New initials").fill("A1");
   await frontDesk.getByRole("button", { name: "Save card" }).click();
-  await expect(error).toHaveText("Choose who the Family's details came from.");
+  await expect(error).toHaveText("Choose the intake operator's initials.");
 
   // Typed in lower case, kept in capitals.
   await frontDesk.getByLabel("New initials").fill("zy");
@@ -55,7 +54,7 @@ test("Info from is required, and initials used this shift become quick buttons",
   await expect(quickButtons).toHaveText(["AB", "ZY"]);
 
   await callBackCard(frontDesk, 3);
-  await expect(queueCard(distribution, 3).locator(".queue-head")).toContainText("Info from ZY");
+  await expect(queueCard(distribution, 3).locator(".queue-head")).toContainText("Intake: ZY");
 });
 
 test("cart weights follow the Family's size", async ({ signIn }) => {
@@ -117,7 +116,7 @@ test("the extras check is asked for a Family of 6, and not for a Family of 8", a
   await expect(eight.getByLabel("What was added")).toHaveCount(0);
 });
 
-test("missing cart weights and extras are named before a Family is distributed", async ({
+test("a missing weight stops a Family being distributed; extras not ticked only asks", async ({
   signIn,
 }) => {
   const frontDesk = await signIn("front-desk");
@@ -129,27 +128,37 @@ test("missing cart weights and extras are named before a Family is distributed",
 
   const card = queueCard(distribution, 1);
   const warning = card.locator(".confirm");
+  const stop = card.locator(".stop");
   await card.getByRole("button", { name: "Confirm card 1" }).click();
   await fillCarts(card, ["10"]);
   await card.getByRole("button", { name: "Mark distributed" }).click();
-  await expect(warning.locator("p")).toHaveText([
-    "Cart 2 has no weight.",
-    "Extras added is not ticked.",
-  ]);
+  // The stop comes first, and alone: the extras question waits until the carts are weighed.
+  await expect(stop).toHaveText("Weigh cart 2, then mark the Family distributed");
+  await expect(warning).toHaveCount(0);
 
+  await fillCarts(card, ["10", "8"]);
+  await expect(stop).toHaveCount(0);
+  await card.getByRole("button", { name: "Mark distributed" }).click();
+  await expect(warning.locator("p")).toHaveText(["Extras added is not ticked."]);
   await warning.getByRole("button", { name: "Go back" }).click();
   await expect(warning).toHaveCount(0);
   await expect(distribution.getByRole("heading", { name: "Queue (1)" })).toBeVisible();
 
-  await tickExtras(card, "Meat");
   await card.getByRole("button", { name: "Mark distributed" }).click();
-  await expect(warning.locator("p")).toHaveText(["Cart 2 has no weight."]);
   await warning.getByRole("button", { name: "Mark distributed anyway" }).click();
-
   await expect(distribution.getByRole("heading", { name: "Distributed (1)" })).toBeVisible();
-  const done = cardRow(distribution, 1);
-  await expect(done).toContainText("10 lb");
-  await expect(done).toContainText("Extras: Meat");
+  await expect(cardRow(distribution, 1)).toContainText("18 lb");
+});
+
+test("a returned weight must be above 0 lb", async ({ signIn }) => {
+  const frontDesk = await signIn("front-desk");
+  const distribution = await signIn("distribution");
+  await openShift(frontDesk);
+  const returned = distribution.locator("section", { hasText: "Returned items" });
+  await returned.getByLabel("Weight (lb)").fill("0");
+  await returned.getByRole("button", { name: "Add returned weight" }).click();
+  await expect(returned.locator(".error")).toHaveText("Enter a returned weight above 0 lb.");
+  await expect(returned.getByRole("heading", { name: "Returned items (0)" })).toBeVisible();
 });
 
 test("a Door Dash Family entered at the end of the shift counts in the totals", async ({

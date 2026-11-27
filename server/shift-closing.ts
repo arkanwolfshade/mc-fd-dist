@@ -30,8 +30,12 @@ export function setShiftStatus(db: Database, id: number, status: Shift["status"]
 export function closeExpiredShifts(db: Database, today: string): Shift[] {
   return db
     .prepare(
+      // A shift with cards still waiting stays open for a person to finish. See ADR 0040.
       `UPDATE shift SET status = 'closed'
        WHERE status = 'open' AND reopened = 0 AND date < ?
+         AND NOT EXISTS (SELECT 1 FROM card
+                         WHERE card.shift_id = shift.id
+                           AND card.status IN ('entered', 'called', 'confirmed'))
        RETURNING id, date, status`,
     )
     .all(today) as Shift[];

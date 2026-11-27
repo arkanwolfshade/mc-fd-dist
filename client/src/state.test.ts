@@ -5,18 +5,19 @@ import type { ShiftWithCards } from "./types.js";
 import {
   applyLiveMessage,
   applyToShift,
+  checkBeforeDistribution,
   classifyLoadFailure,
   distributionLists,
   distributionQueue,
   hasWeight,
   isoDate,
   loadsForCarts,
-  missingBeforeDistribution,
   mergeCard,
   nextCardNumber,
   parseLoads,
   savedShift,
   settleShiftLoad,
+  shiftOnScreen,
   toggleSeniorBox,
 } from "./state.js";
 
@@ -140,33 +141,44 @@ describe("distributionQueue", () => {
   });
 });
 
-describe("missingBeforeDistribution", () => {
-  it("names each shown cart without a weight", () => {
-    const missing = missingBeforeDistribution(card({ tefapBags: 3 }), [12, null, null], false);
-    expect(missing).toEqual(["Cart 2 has no weight.", "Cart 3 has no weight."]);
+// A cart without a weight stops the Family being distributed; extras not ticked only asks.
+// See ADR 0039.
+describe("checkBeforeDistribution", () => {
+  it("stops for each shown cart without a weight", () => {
+    const check = checkBeforeDistribution(card({ tefapBags: 3 }), [12, null, null], false);
+    expect(check).toEqual({
+      stop: "Weigh carts 2 and 3, then mark the Family distributed",
+      warnings: [],
+    });
   });
 
   it("ignores carts the Family does not get", () => {
-    expect(missingBeforeDistribution(card({ tefapBags: 1 }), [8, null, null], false)).toEqual([]);
+    expect(checkBeforeDistribution(card({ tefapBags: 1 }), [8, null, null], false)).toEqual({
+      stop: null,
+      warnings: [],
+    });
   });
 
-  it("counts a typed zero as a weight", () => {
-    expect(missingBeforeDistribution(card({ tefapBags: 1 }), [0, null, null], false)).toEqual([]);
+  it("does not count a typed zero as a weight", () => {
+    expect(checkBeforeDistribution(card({ tefapBags: 1 }), [0, null, null], false).stop).toBe(
+      "Weigh cart 1, then mark the Family distributed",
+    );
   });
 
   it("asks about extras only for sizes that need the check", () => {
     const five = card({ familySize: 5, tefapBags: 2 });
-    expect(missingBeforeDistribution(five, [5, 6, null], false)).toEqual([
-      "Extras added is not ticked.",
-    ]);
-    expect(missingBeforeDistribution(five, [5, 6, null], true)).toEqual([]);
+    expect(checkBeforeDistribution(five, [5, 6, null], false)).toEqual({
+      stop: null,
+      warnings: ["Extras added is not ticked."],
+    });
+    expect(checkBeforeDistribution(five, [5, 6, null], true).warnings).toEqual([]);
     const eight = card({ familySize: 8, tefapBags: 2 });
-    expect(missingBeforeDistribution(eight, [5, 6, null], false)).toEqual([]);
+    expect(checkBeforeDistribution(eight, [5, 6, null], false).warnings).toEqual([]);
   });
 
   it("follows an override of the bags", () => {
-    const missing = missingBeforeDistribution(card({ tefapBags: 2 }), [4, null, null], false);
-    expect(missing).toEqual(["Cart 2 has no weight."]);
+    const check = checkBeforeDistribution(card({ tefapBags: 2 }), [4, null, null], false);
+    expect(check.stop).toBe("Weigh cart 2, then mark the Family distributed");
   });
 });
 
@@ -272,6 +284,29 @@ describe("applyLiveMessage", () => {
     const message = { type: "card", card: card({}) } as const;
     expect(applyLiveMessage(null, message)).toBeNull();
     expect(applyLiveMessage(undefined, message)).toBeUndefined();
+  });
+});
+
+// A station shows today's shift, or an earlier one still open until it is closed. See ADR 0040.
+describe("shiftOnScreen", () => {
+  const earlier = shiftWith([]); // 2026-11-07
+
+  it("shows an earlier shift while it is still open", () => {
+    expect(shiftOnScreen(earlier, "2026-11-08")).toBe(earlier);
+  });
+
+  it("shows no shift once the earlier one closes, so today's can open", () => {
+    expect(shiftOnScreen({ ...earlier, status: "closed" }, "2026-11-08")).toBeNull();
+  });
+
+  it("keeps today's shift when it closes", () => {
+    const closed = { ...earlier, status: "closed" as const };
+    expect(shiftOnScreen(closed, "2026-11-07")).toBe(closed);
+  });
+
+  it("passes on a shift not loaded or not opened", () => {
+    expect(shiftOnScreen(undefined, "2026-11-08")).toBeUndefined();
+    expect(shiftOnScreen(null, "2026-11-08")).toBeNull();
   });
 });
 

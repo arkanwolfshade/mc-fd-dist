@@ -5,6 +5,7 @@ import {
   cartCount,
   isPartnerMethod,
   needsExtrasCheck,
+  waitingCardsRule,
 } from "../../server/rules.js";
 import type { ArrivalMethod } from "../../server/rules.js";
 import { CartFields, ExtrasFields, PartnerCards, ReturnedBatches } from "./Batches.js";
@@ -24,7 +25,7 @@ import {
   distributionLists,
   hasWeight,
   loadsForCarts,
-  missingBeforeDistribution,
+  checkBeforeDistribution,
   parseLoads,
   toggleSeniorBox,
 } from "./state.js";
@@ -58,7 +59,9 @@ export function Distribution(props: {
   const { queue, done, left, unserved } = distributionLists(cards);
 
   return (
-    <div class="columns">
+    // The queue is the work of the whole shift, so on a wide screen it gets the wide column and
+    // the rest share the narrow one. Stacked, the queue still comes first.
+    <div class="columns queue-first">
       <section class="panel">
         <div class="panel-head">
           <h2>Queue ({queue.length})</h2>
@@ -72,86 +75,88 @@ export function Distribution(props: {
         </ul>
       </section>
 
-      <section class="panel">
-        <h2>Distributed ({done.length})</h2>
-        <ul class="cards">
-          {[...done].reverse().map((card) => (
-            <li class="card-row" key={card.id}>
-              <Ticket number={card.number} />
-              <span class="who">
-                <strong class="family">{familyLabel(card)}</strong>
-                <span class="details">{distributedDetails(card)}</span>
-              </span>
-              <span class="row-actions">
-                <button onClick={() => onUpdate(card, { status: "confirmed" })}>
-                  Undo<ScreenReaderText> distributed, card {card.number}</ScreenReaderText>
-                </button>
-              </span>
-            </li>
-          ))}
-          {left.map((card) => (
-            <li class="card-row" key={card.id}>
-              <Ticket number={card.number} />
-              <Family card={card} />
-              <StatusLabel status={card.status} />
-              <span class="row-actions">
-                <button onClick={() => onUpdate(card, { status: "entered" })}>
-                  Undo<ScreenReaderText> left without food, card {card.number}</ScreenReaderText>
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div class="side-panels">
+        <section class="panel">
+          <h2>Distributed ({done.length})</h2>
+          <ul class="cards">
+            {[...done].reverse().map((card) => (
+              <li class="card-row" key={card.id}>
+                <Ticket number={card.number} />
+                <span class="who">
+                  <strong class="family">{familyLabel(card)}</strong>
+                  <span class="details">{distributedDetails(card)}</span>
+                </span>
+                <span class="row-actions">
+                  <button onClick={() => onUpdate(card, { status: "confirmed" })}>
+                    Undo<ScreenReaderText> distributed, card {card.number}</ScreenReaderText>
+                  </button>
+                </span>
+              </li>
+            ))}
+            {left.map((card) => (
+              <li class="card-row" key={card.id}>
+                <Ticket number={card.number} />
+                <Family card={card} />
+                <StatusLabel status={card.status} />
+                <span class="row-actions">
+                  <button onClick={() => onUpdate(card, { status: "entered" })}>
+                    Undo<ScreenReaderText> left without food, card {card.number}</ScreenReaderText>
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-      <ReturnedBatches shift={shift} submit={submit} />
-      <PartnerCards shift={shift} submit={submit} onSaved={onSaved} />
+        <ReturnedBatches shift={shift} submit={submit} />
+        <PartnerCards shift={shift} submit={submit} onSaved={onSaved} />
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Finish</h2>
-          <HelpPopout topic="closing" />
-        </div>
-        {confirmClose ? (
-          <div class="confirm">
-            {unserved.length > 0 && (
-              <>
-                <p>
-                  {unserved.length} {unserved.length === 1 ? "card has" : "cards have"} not been
-                  marked distributed. Correct {unserved.length === 1 ? "it" : "them"} before
-                  closing:
-                </p>
-                <ul class="unserved">
-                  {unserved.map((card) => (
-                    <li key={card.id}>
-                      <span class="unserved-card">
-                        <Ticket number={card.number} />
-                        <span class="family">{familyLabel(card)}</span>
-                        <StatusLabel status={card.status} />
-                      </span>
-                      <span class="choices">
-                        <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
-                        {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            <p>Close this shift? Only an admin can reopen it.</p>
-            <div class="choices">
-              <button onClick={onCloseShift}>Yes, close the shift</button>
-              <button ref={keepOpen} class="primary" onClick={() => askToClose(false)}>
-                Keep it open
-              </button>
-            </div>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Finish</h2>
+            <HelpPopout topic="closing" />
           </div>
-        ) : (
-          <button ref={closeButton} onClick={() => askToClose(true)}>
-            Close shift
-          </button>
-        )}
-      </section>
+          {/* With cards still waiting the shift can't close, so the question becomes a stop that
+            lists them (ADR 0040). Red stops; yellow asks. */}
+          {confirmClose ? (
+            <div class={unserved.length > 0 ? "confirm blocked" : "confirm"}>
+              {unserved.length > 0 && (
+                <>
+                  <p class="stop">{waitingCardsRule(unserved.map((card) => card.number))}</p>
+                  <ul class="unserved">
+                    {unserved.map((card) => (
+                      <li key={card.id}>
+                        <span class="unserved-card">
+                          <Ticket number={card.number} />
+                          <span class="family">{familyLabel(card)}</span>
+                          <StatusLabel status={card.status} />
+                        </span>
+                        <span class="choices">
+                          <LeftWithoutFoodButton card={card} onUpdate={onUpdate} />
+                          {onDelete && <DeleteCardButton card={card} onDelete={onDelete} />}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {unserved.length === 0 && <p>Close this shift? Only an admin can reopen it.</p>}
+              <div class="choices">
+                {unserved.length === 0 && (
+                  <button onClick={onCloseShift}>Yes, close the shift</button>
+                )}
+                <button ref={keepOpen} class="primary" onClick={() => askToClose(false)}>
+                  Keep it open
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button ref={closeButton} onClick={() => askToClose(true)}>
+              Close shift
+            </button>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
@@ -163,9 +168,16 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
   const [extrasAdded, setExtrasAdded] = useState(card.extrasAdded);
   const [extrasNote, setExtrasNote] = useState(card.extrasNote);
   const [correcting, setCorrecting] = useState(false);
-  // What the volunteer is warned about before marking the Family distributed anyway.
-  const [missing, setMissing] = useState<string[]>([]);
+  // A cart without a weight stops the Family being distributed (ADR 0039). A warning, such as
+  // extras not ticked, asks first and can be gone past.
+  const [stop, setStop] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const carts = cartCount(card);
+
+  function clearChecks() {
+    setStop(null);
+    setWarnings([]);
+  }
 
   function distribute() {
     const parsed = loadsForCarts(loads, carts);
@@ -173,12 +185,10 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
   }
 
   function markDistributed() {
-    const found = missingBeforeDistribution(card, parseLoads(loads), extrasAdded);
-    if (found.length > 0) {
-      setMissing(found);
-      return;
-    }
-    distribute();
+    const check = checkBeforeDistribution(card, parseLoads(loads), extrasAdded);
+    setStop(check.stop);
+    setWarnings(check.stop ? [] : check.warnings);
+    if (!check.stop && check.warnings.length === 0) distribute();
   }
 
   return (
@@ -227,19 +237,20 @@ function QueueCard(props: { card: Card; onUpdate: UpdateCard }) {
           loads={loads}
           extrasAdded={extrasAdded}
           extrasNote={extrasNote}
-          missing={missing}
+          stop={stop}
+          warnings={warnings}
           onLoads={(next) => {
             setLoads(next);
-            setMissing([]);
+            clearChecks();
           }}
           onExtras={(added, note) => {
             setExtrasAdded(added);
             setExtrasNote(note);
-            setMissing([]);
+            clearChecks();
           }}
           onMarkDistributed={markDistributed}
           onDistributeAnyway={distribute}
-          onGoBack={() => setMissing([])}
+          onGoBack={clearChecks}
           onUndoConfirm={() => onUpdate(card, { status: "called" })}
           correcting={correcting}
           onCorrect={() => setCorrecting(!correcting)}
@@ -259,7 +270,8 @@ interface ConfirmedCardProps {
   loads: string[];
   extrasAdded: boolean;
   extrasNote: string;
-  missing: string[];
+  stop: string | null;
+  warnings: string[];
   onLoads: (loads: string[]) => void;
   onExtras: (added: boolean, note: string) => void;
   onMarkDistributed: () => void;
@@ -272,8 +284,8 @@ interface ConfirmedCardProps {
 
 // What Distribution fills in once a card is confirmed: the weight of each cart and the extras.
 function ConfirmedCard(props: ConfirmedCardProps) {
-  const { card, missing } = props;
-  // Asking about missing details moves focus to "Go back", and going back returns it.
+  const { card, stop, warnings } = props;
+  // Asking about a warning moves focus to "Go back", and going back returns it.
   const markButton = useRef<HTMLButtonElement>(null);
   const goBack = useRef<HTMLButtonElement>(null);
   const cardNumber = <ScreenReaderText>, card {card.number}</ScreenReaderText>;
@@ -299,9 +311,13 @@ function ConfirmedCard(props: ConfirmedCardProps) {
           Correct details{cardNumber}
         </button>
       </div>
-      {missing.length > 0 && (
+      {/* Red stops, and says what to do; yellow asks. Read out as it appears. */}
+      <div class="live" role="alert">
+        {stop && <p class="stop">{stop}</p>}
+      </div>
+      {warnings.length > 0 && (
         <div class="confirm">
-          {missing.map((message) => (
+          {warnings.map((message) => (
             <p key={message}>{message}</p>
           ))}
           <div class="choices">

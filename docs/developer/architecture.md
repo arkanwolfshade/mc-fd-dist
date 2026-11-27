@@ -1,5 +1,5 @@
 # Architecture
-**Version 1.8.0** · mc-fd-dist · 2026-11-26 · For developers
+**Version 1.9.0** · mc-fd-dist · 2026-11-26 · For developers
 
 ---
 
@@ -94,7 +94,7 @@ The tables and what each holds:
 |---|---|
 | `account` | Username, Argon2 hash, role (`front_desk`, `distribution`, `admin`) |
 | `session` | Hash of the session token, account, expiry |
-| `shift` | Date (unique), status (`open`, `closed`), whether it was reopened |
+| `shift` | Date (unique), status (`open`, `closed`; at most one open, and closed only with no card waiting, ADR 0040), whether it was reopened |
 | `card` | Shift, number (unique per shift), family size, arrival method (including `DD` and `HH` for partner Families), senior box, cheese, other, TEFAP bags and override, status, up to three cart weights (`load_1` to `load_3`, one per TEFAP bag), extras added and note, intake initials, call order (`called_order`, ADR 0032), revision, client ID |
 | `returned_batch` | Shift, weight, client ID |
 | `audit_log` | Time, actor (station or admin username), action, detail |

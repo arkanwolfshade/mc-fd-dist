@@ -88,7 +88,7 @@ export function cardDetails(card: {
 // Who at the front desk took the Family's details. See ADR 0024.
 export function InfoFrom(props: { initials: string | null }) {
   if (!props.initials) return null;
-  return <span class="info-from">Info from {props.initials}</span>;
+  return <span class="info-from">Intake: {props.initials}</span>;
 }
 
 // Name and details stacked, as each row and card shows them.

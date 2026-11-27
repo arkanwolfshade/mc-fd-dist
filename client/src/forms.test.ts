@@ -124,10 +124,10 @@ describe("prepareCard", () => {
     });
   });
 
-  it("asks who the Family's details came from", () => {
+  it("asks for the intake operator's initials", () => {
     expect(prepareCard({ ...filled, initials: "" }, 3, 7)).toEqual({
       ok: false,
-      error: "Choose who the Family's details came from.",
+      error: "Choose the intake operator's initials.",
     });
     expect(prepareCard({ ...filled, initials: "A1" }, 3, 7)).toMatchObject({ ok: false });
   });
@@ -240,6 +240,17 @@ describe("preparePartnerCard", () => {
     seniorBox: true,
     loads: ["30", "12", ""],
   };
+
+  it("asks for every cart's weight, each above 0 lb", () => {
+    const sixPeople = { ...filled, familySize: "6" };
+    expect(preparePartnerCard({ ...sixPeople, loads: ["30", "", ""] }, 3)).toEqual({
+      ok: false,
+      error: "Weigh cart 2, then add the partner Family",
+    });
+    expect(preparePartnerCard({ ...sixPeople, loads: ["30", "0", ""] }, 3)).toMatchObject({
+      ok: false,
+    });
+  });
 
   it("asks for a partner first", () => {
     expect(preparePartnerCard({ ...filled, partner: null }, 3)).toEqual({

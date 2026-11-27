@@ -33,3 +33,7 @@ The project's standing rule is that no personal data is added without a decision
 - Queued cards keep the initials unencrypted in `localStorage` during a dropout. ADR 0014 accepted that because cards held no personal data. *Assumed:* initials alone are low enough risk to keep that arrangement. Revisit it if more personal data is added.
 - Two volunteers with the same initials on one shift cannot be told apart. They can add a letter, since up to four are allowed.
 - Any further personal data, such as names, still needs a new decision record.
+
+## Amendment, 2026-11-26
+
+The field is now called **Intake operator** on the front desk, Distribution's queue card shows "Intake: AB", and the errors ask for "the intake operator's initials". The earlier label, **Info from**, could be read as asking for the Family's initials. The data is the same: one set of initials per walk-in card, for the volunteer who typed the Family's details in at an intake computer.
