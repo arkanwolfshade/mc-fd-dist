@@ -60,6 +60,37 @@
   color-scheme: dark;
 }
 
+/* Color-blind friendly colors, chosen on the Help screen (ADR 0041): blue for go and orange
+   for alert, which stay apart for red-green color blindness, with Light or Dark. Called is
+   ink, since orange and amber look alike then; its yellow dot still marks it. Only these
+   six change. The two dark blocks must match, and outrank the dark blocks above. */
+:root[data-color-blind] {
+  --go: #0068a6;
+  --go-text: #005a8f;
+  --go-tint: #dcebf5;
+  --alert: #b33c00;
+  --alert-tint: #fbe6d6;
+  --called: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-color-blind]:not([data-scheme="light"]) {
+    --go: #2479b3;
+    --go-text: #7cc4f2;
+    --go-tint: #17303f;
+    --alert: #ff9a52;
+    --alert-tint: #45291a;
+  }
+}
+
+:root[data-color-blind][data-scheme="dark"] {
+  --go: #2479b3;
+  --go-text: #7cc4f2;
+  --go-tint: #17303f;
+  --alert: #ff9a52;
+  --alert-tint: #45291a;
+}
+
 * {
   box-sizing: border-box;
 }
