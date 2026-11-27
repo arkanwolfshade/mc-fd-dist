@@ -47,8 +47,10 @@ if [ ! -s "$work/known_hosts" ]; then
   exit 1
 fi
 
+# --verbosity error hides the tunnel's "consider installing NumPy" warning, printed for every
+# connection. NumPy only speeds up uploads, and this copies a few kilobytes (about 1.5 s).
 ssh_options=(-i "$work/key" -o "HostKeyAlias=$instance"
-  -o "ProxyCommand=gcloud compute start-iap-tunnel $instance 22 --listen-on-stdin --project $project --zone $zone --verbosity warning"
+  -o "ProxyCommand=gcloud compute start-iap-tunnel $instance 22 --listen-on-stdin --project $project --zone $zone --verbosity error"
   -o "UserKnownHostsFile=$work/known_hosts" -o StrictHostKeyChecking=yes
   -o ConnectTimeout=20 -o BatchMode=yes)
 
