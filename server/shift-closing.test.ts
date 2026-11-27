@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "./app.js";
 import { AUTOMATIC_ACTOR, listAudit } from "./audit.js";
 import { closeExpiredShifts, localDate, setShiftStatus } from "./shift-closing.js";
-import { createShift, findShift } from "./cards.js";
-import type { Shift } from "./cards.js";
+import { createCard, createShift, findShift } from "./cards.js";
+import type { NewCard, Shift } from "./cards.js";
 import { openDatabase } from "./db.js";
 
 describe("localDate", () => {
@@ -39,6 +39,18 @@ describe("automatic closing when the server starts", () => {
   });
 });
 
+const CARD: NewCard = {
+  clientId: "c1",
+  number: 1,
+  familySize: 3,
+  arrivalMethod: "Walk",
+  seniorBox: false,
+  cheese: false,
+  other: "",
+  intakeInitials: "AB",
+  status: "entered",
+};
+
 describe("closeExpiredShifts", () => {
   let db: Database;
 
@@ -54,6 +66,21 @@ describe("closeExpiredShifts", () => {
     const old = shift("2026-11-05");
     expect(closeExpiredShifts(db, "2026-11-06").map((s) => s.id)).toEqual([old.id]);
     expect(findShift(db, old.id)?.status).toBe("closed");
+  });
+
+  // Its cards must be resolved first, so it waits for a person. See ADR 0040.
+  it("leaves open an earlier shift with cards still waiting", () => {
+    const old = shift("2026-11-05");
+    createCard(db, old.id, CARD);
+    expect(closeExpiredShifts(db, "2026-11-06")).toEqual([]);
+    expect(findShift(db, old.id)?.status).toBe("open");
+  });
+
+  it("closes an earlier shift whose cards were all served or left", () => {
+    const old = shift("2026-11-05");
+    createCard(db, old.id, { ...CARD, status: "distributed", loads: [9, null, null] });
+    createCard(db, old.id, { ...CARD, clientId: "c2", number: 2, status: "left" });
+    expect(closeExpiredShifts(db, "2026-11-06").map((s) => s.id)).toEqual([old.id]);
   });
 
   it("leaves today's shift open", () => {

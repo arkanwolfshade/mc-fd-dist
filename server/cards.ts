@@ -1,6 +1,6 @@
 import { SqliteError } from "better-sqlite3";
 import type { Database } from "better-sqlite3";
-import { bagsAfter, overrideAfter, tefapBags } from "./rules.js";
+import { bagsAfter, overrideAfter, tefapBags, WAITING_STATUSES } from "./rules.js";
 import type { ArrivalMethod, CardStatus } from "./rules.js";
 import { totalWeight } from "./summary.js";
 
@@ -127,6 +127,27 @@ export function createShift(db: Database, date: string): Shift | "duplicate" {
 export function findShiftByDate(db: Database, date: string): Shift | null {
   const row = db.prepare("SELECT id, date, status FROM shift WHERE date = ?").get(date);
   return (row as Shift | undefined) ?? null;
+}
+
+// The open shift, if any: there is at most one (ADR 0040), but the earliest is taken in case an
+// older database holds two.
+export function findOpenShift(db: Database): Shift | null {
+  const row = db
+    .prepare("SELECT id, date, status FROM shift WHERE status = 'open' ORDER BY date LIMIT 1")
+    .get();
+  return (row as Shift | undefined) ?? null;
+}
+
+// The numbers of a shift's cards still waiting to be distributed or marked left.
+export function waitingCardNumbers(db: Database, shiftId: number): number[] {
+  const placeholders = WAITING_STATUSES.map(() => "?").join(", ");
+  return (
+    db
+      .prepare(
+        `SELECT number FROM card WHERE shift_id = ? AND status IN (${placeholders}) ORDER BY number`,
+      )
+      .all(shiftId, ...WAITING_STATUSES) as { number: number }[]
+  ).map((row) => row.number);
 }
 
 export function findShift(db: Database, id: number): Shift | null {

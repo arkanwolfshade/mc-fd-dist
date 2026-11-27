@@ -152,8 +152,10 @@ describe("shift and card routes", () => {
 
     it("counts again from one in each shift", async () => {
       const today = await openShift();
-      const other = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-08" });
       const first = await move(await addCard(today), frontDesk, "called");
+      // Only one shift is open at a time (ADR 0040).
+      db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(today);
+      const other = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-08" });
       const elsewhere = await addCard(other.json().id);
       const second = await move(elsewhere, frontDesk, "called");
 
@@ -187,6 +189,37 @@ describe("shift and card routes", () => {
       await openShift();
       const response = await request("POST", "/api/shifts", distribution, { date: DATE });
       expect(response.statusCode).toBe(409);
+    });
+
+    // One shift open at a time. See ADR 0040.
+    it("refuses to open a shift while another is still open, naming its day", async () => {
+      await openShift();
+      const response = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-08" });
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error).toBe(
+        "The shift of Saturday, November 7 is still open. Close it before opening another.",
+      );
+    });
+
+    it("opens the next shift once the earlier one is closed", async () => {
+      const shiftId = await openShift();
+      db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(shiftId);
+      const response = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-08" });
+      expect(response.statusCode).toBe(201);
+    });
+
+    it("answers an earlier shift still open when the date asked for has none", async () => {
+      const shiftId = await openShift();
+      const response = await request("GET", "/api/shifts?date=2026-11-08", distribution);
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ id: shiftId, date: DATE, status: "open" });
+    });
+
+    it("does not answer an earlier shift once it is closed", async () => {
+      const shiftId = await openShift();
+      db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(shiftId);
+      const response = await request("GET", "/api/shifts?date=2026-11-08", distribution);
+      expect(response.statusCode).toBe(404);
     });
 
     it("rejects an invalid date", async () => {
@@ -245,7 +278,9 @@ describe("shift and card routes", () => {
     });
 
     it("allows the same card number on a different shift", async () => {
-      await addCard(await openShift());
+      const first = await openShift();
+      await addCard(first);
+      db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(first);
       const other = await request("POST", "/api/shifts", frontDesk, { date: "2026-11-14" });
       const card = await addCard(other.json().id);
       expect(card.number).toBe(1);
@@ -314,7 +349,7 @@ describe("shift and card routes", () => {
       expect(response.statusCode).toBe(409);
     });
 
-    it("stores the intake volunteer's initials in capitals", async () => {
+    it("stores the intake operator's initials in capitals", async () => {
       const card = await addCard(await openShift(), { intakeInitials: "jq" });
       expect(card.intakeInitials).toBe("JQ");
     });
@@ -332,6 +367,7 @@ describe("shift and card routes", () => {
         ...overrides,
       });
       expect(response.statusCode).toBe(400);
+      expect(response.json().error).toBe("The intake operator's initials must be 2 to 4 letters");
     });
 
     it("starts a walk-in card at the entered status whatever status is sent", async () => {
@@ -391,6 +427,14 @@ describe("shift and card routes", () => {
         loads: [5, 5, null],
       });
       expect(response.statusCode).toBe(400);
+    });
+
+    it("refuses one with a cart not weighed", async () => {
+      const response = await addPartnerCard(await openShift(), distribution, {
+        loads: [10, null, null],
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toBe("Weigh cart 2, then add the partner Family");
     });
 
     it("refuses intake initials, which partner Families do not have", async () => {
@@ -460,10 +504,69 @@ describe("shift and card routes", () => {
         revision: 2,
         status: "confirmed",
       });
-      const done = await patchCard(card.id, distribution, { revision: 3, status: "distributed" });
+      const done = await patchCard(card.id, distribution, {
+        revision: 3,
+        status: "distributed",
+        loads: [9, 8, null],
+      });
       expect(called.json().status).toBe("called");
       expect(confirmed.json().status).toBe("confirmed");
       expect(done.json().status).toBe("distributed");
+    });
+
+    // Every cart the Family gets is weighed at more than 0 lb first. See ADR 0039.
+    describe("weighing before distributing", () => {
+      async function confirmedCard(overrides: object = {}) {
+        const card = await addCard(await openShift(), overrides);
+        await patchCard(card.id, frontDesk, { revision: 1, status: "called" });
+        await patchCard(card.id, distribution, { revision: 2, status: "confirmed" });
+        return card;
+      }
+
+      it("refuses to mark a Family distributed before every cart is weighed", async () => {
+        const card = await confirmedCard();
+        await patchCard(card.id, distribution, { revision: 3, loads: [9, null, null] });
+        const response = await patchCard(card.id, distribution, {
+          revision: 4,
+          status: "distributed",
+        });
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error).toBe("Weigh cart 2, then mark the Family distributed");
+      });
+
+      it("names every cart still to weigh", async () => {
+        const card = await confirmedCard({ familySize: 9 });
+        const response = await patchCard(card.id, distribution, {
+          revision: 3,
+          status: "distributed",
+        });
+        expect(response.json().error).toBe(
+          "Weigh carts 1, 2 and 3, then mark the Family distributed",
+        );
+      });
+
+      it("keeps the weights of a Family already distributed", async () => {
+        const card = await confirmedCard();
+        await patchCard(card.id, distribution, {
+          revision: 3,
+          status: "distributed",
+          loads: [9, 8, null],
+        });
+        const response = await patchCard(card.id, distribution, {
+          revision: 4,
+          loads: [9, null, null],
+        });
+        expect(response.statusCode).toBe(400);
+      });
+
+      it("lets a weight be cleared once the Family is no longer distributed", async () => {
+        const card = await confirmedCard();
+        const response = await patchCard(card.id, distribution, {
+          revision: 3,
+          loads: [9, null, null],
+        });
+        expect(response.statusCode).toBe(200);
+      });
     });
 
     it("rejects a status change the role may not make", async () => {
@@ -474,7 +577,11 @@ describe("shift and card routes", () => {
 
     it("rejects a skipped step even for an admin", async () => {
       const card = await addCard(await openShift());
-      const response = await patchCard(card.id, admin, { revision: 1, status: "distributed" });
+      const response = await patchCard(card.id, admin, {
+        revision: 1,
+        status: "distributed",
+        loads: [9, 8, null],
+      });
       expect(response.statusCode).toBe(403);
     });
 
@@ -539,6 +646,7 @@ describe("shift and card routes", () => {
 
     it.each([
       ["a negative weight", [-1, null, null]],
+      ["a weight of zero", [0, null, null]],
       ["more than three loads", [1, 2, 3, 4]],
     ])("rejects %s", async (_name, loads) => {
       const card = await addCard(await openShift());
@@ -583,7 +691,11 @@ describe("shift and card routes", () => {
       const card = await addCard(await openShift());
       await patchCard(card.id, frontDesk, { revision: 1, status: "called" });
       await patchCard(card.id, distribution, { revision: 2, status: "confirmed" });
-      await patchCard(card.id, distribution, { revision: 3, status: "distributed" });
+      await patchCard(card.id, distribution, {
+        revision: 3,
+        status: "distributed",
+        loads: [9, 8, null],
+      });
       const response = await patchCard(card.id, distribution, { revision: 4, status: "left" });
       expect(response.statusCode).toBe(403);
     });

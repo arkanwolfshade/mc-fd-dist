@@ -102,19 +102,66 @@ export function cartRule(carts: number): string {
   return `This Family gets ${carts} ${carts === 1 ? "cart" : "carts"}, so only ${carts === 1 ? "one weight" : `${carts} weights`} can be recorded`;
 }
 
+// Every cart a Family gets is weighed, at more than 0 lb, before the Family counts as
+// distributed. Returns the cart numbers, from 1, still to weigh. See ADR 0039.
+export function unweighedCarts(loads: readonly (number | null)[], carts: number): number[] {
+  const missing: number[] = [];
+  for (let cart = 0; cart < carts; cart++) {
+    if (!((loads[cart] ?? 0) > 0)) missing.push(cart + 1);
+  }
+  return missing;
+}
+
+export function weighRule(
+  missing: readonly number[],
+  then = "mark the Family distributed",
+): string {
+  return `Weigh ${missing.length === 1 ? "cart" : "carts"} ${listInWords(missing)}, then ${then}`;
+}
+
 // Families just past each four people have room on their last cart for extras, such as meat,
 // deli or bakery, so Distribution checks that something was added. See ADR 0023.
 export function needsExtrasCheck(familySize: number): boolean {
   return familySize >= 13 || (familySize >= 5 && familySize % 4 !== 0);
 }
 
-// The intake volunteer whose computer the Family's details came from. See ADR 0024.
+// The intake operator: the volunteer who typed the Family's details in at an intake computer.
+// The initials are never the Family's. See ADR 0024.
 const INITIALS_PATTERN = /^[A-Z]{2,4}$/;
-export const INITIALS_RULE = "Initials must be 2 to 4 letters";
+export const INITIALS_RULE = "The intake operator's initials must be 2 to 4 letters";
 
 export function normalizeInitials(value: string): string | null {
   const initials = value.trim().toUpperCase();
   return INITIALS_PATTERN.test(initials) ? initials : null;
+}
+
+// "2026-11-07" becomes "Saturday, November 7".
+export function dayInWords(isoDay: string): string {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+// "1, 2 and 3".
+function listInWords(items: readonly (string | number)[]): string {
+  return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+// One shift is open at a time, so another can't open or reopen until it closes. See ADR 0040.
+export function stillOpenRule(openDate: string, action: "opening" | "reopening"): string {
+  return `The shift of ${dayInWords(openDate)} is still open. Close it before ${action} another.`;
+}
+
+// A shift closes only when no card is still waiting: each was distributed or left. See ADR 0040.
+export const WAITING_STATUSES: readonly CardStatus[] = ["entered", "called", "confirmed"];
+
+export function waitingCardsRule(numbers: readonly number[]): string {
+  const cards = numbers.length === 1 ? "Card" : "Cards";
+  const are = numbers.length === 1 ? "is" : "are";
+  return `${cards} ${listInWords(numbers)} ${are} still waiting. Mark each distributed or left without food, then close the shift.`;
 }
 
 // Cheese is handed out only with a senior box. See ADR 0020.

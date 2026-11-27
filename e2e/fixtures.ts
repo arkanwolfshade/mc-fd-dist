@@ -123,7 +123,7 @@ export async function addCard(
 }
 
 export function infoFrom(frontDesk: Page): Locator {
-  return frontDesk.getByRole("group", { name: "Info from" });
+  return frontDesk.getByRole("group", { name: "Intake operator" });
 }
 
 // Taps the quick button for initials already used this shift, or types new ones.

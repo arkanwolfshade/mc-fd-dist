@@ -11,6 +11,7 @@ const STATION_TESTS = [
   "offline.spec.ts",
   "popouts.spec.ts",
   "shift-flow.spec.ts",
+  "shift-rules.spec.ts",
 ];
 
 // Each test starts its own server and database (see e2e/fixtures.ts). The client must

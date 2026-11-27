@@ -20,7 +20,7 @@ export function HelpPopout(props: { topic: HelpTopic }) {
   return (
     <>
       <button type="button" class="help-button" popovertarget={id} aria-label={`Help: ${title}`}>
-        ?
+        <span aria-hidden="true">?</span>
       </button>
       <div id={id} popover="auto" class="popout" role="dialog" aria-labelledby={titleId}>
         <h3 id={titleId}>{title}</h3>

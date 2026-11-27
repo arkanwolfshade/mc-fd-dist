@@ -55,7 +55,7 @@ test("the wall lists the queue in the order families were called, confirmed apar
   await expect(first).toContainText("2 carts");
   await expect(first).toContainText("Senior Box");
   await expect(wall.getByRole("main")).not.toContainText("peanuts");
-  await expect(wall.getByRole("main")).not.toContainText("Info from");
+  await expect(wall.getByRole("main")).not.toContainText("Intake");
 
   // A family served leaves the wall.
   await expect(group(wall, "Confirmed")).toContainText("Confirmed (1)");

@@ -6,6 +6,8 @@ import {
   inDistributionQueue,
   isPartnerMethod,
   needsExtrasCheck,
+  unweighedCarts,
+  weighRule,
 } from "../../server/rules.js";
 import { ApiError } from "./api.js";
 import { classify } from "./outbox.js";
@@ -65,6 +67,15 @@ export function settleShiftLoad(
   return settled as ShiftWithCards;
 }
 
+// What a station shows: today's shift, or an earlier one the server answered because it is still
+// open. Once that one closes it counts as no shift, so today's can be opened. See ADR 0040.
+export function shiftOnScreen<T extends { date: string; status: string }>(
+  shift: T | null | undefined,
+  today: string,
+): T | null | undefined {
+  return shift && shift.date < today && shift.status === "closed" ? null : shift;
+}
+
 // The last shift seen, for a reload during an outage. Only used for the same date.
 export function savedShift(
   storage: Pick<Storage, "getItem">,
@@ -106,15 +117,8 @@ export function nextCardNumber(cards: readonly { number: number }[]): number {
   return cards.reduce((highest, card) => Math.max(highest, card.number), 0) + 1;
 }
 
-// "2026-11-07" becomes "Saturday, November 7".
-export function dayInWords(isoDay: string): string {
-  const [year, month, day] = isoDay.split("-").map(Number);
-  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
+// Shared with the server, which names a day in its messages.
+export { dayInWords } from "../../server/rules.js";
 
 export function isoDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -163,19 +167,18 @@ export function distributionLists(cards: Card[]) {
   };
 }
 
-// What Distribution is warned about before marking a Family distributed. Each is a warning,
-// not a block: a volunteer can still go ahead. See ADR 0023.
-export function missingBeforeDistribution(
+// What is checked before a Family is marked distributed. A cart without a weight stops it, as
+// the server would; extras not ticked is only a warning, which a volunteer may go past.
+// See ADR 0023 and 0039.
+export function checkBeforeDistribution(
   card: { familySize: number; tefapBags: number },
   loads: readonly (number | null)[],
   extrasAdded: boolean,
-): string[] {
-  const missing: string[] = [];
-  for (let cart = 0; cart < cartCount(card); cart++) {
-    if ((loads[cart] ?? null) === null) missing.push(`Cart ${cart + 1} has no weight.`);
-  }
-  if (needsExtrasCheck(card.familySize) && !extrasAdded) {
-    missing.push("Extras added is not ticked.");
-  }
-  return missing;
+): { stop: string | null; warnings: string[] } {
+  const unweighed = unweighedCarts(loads, cartCount(card));
+  return {
+    stop: unweighed.length > 0 ? weighRule(unweighed) : null,
+    warnings:
+      needsExtrasCheck(card.familySize) && !extrasAdded ? ["Extras added is not ticked."] : [],
+  };
 }

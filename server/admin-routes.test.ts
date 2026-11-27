@@ -32,7 +32,7 @@ describe("admin and closing routes", () => {
   });
 
   function request(
-    method: "GET" | "POST" | "PUT" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     url: string,
     cookie: string,
     payload?: object,
@@ -90,6 +90,40 @@ describe("admin and closing routes", () => {
         arrivalMethod: "East",
       });
       expect(blocked.statusCode).toBe(409);
+    });
+
+    // A shift closes only when every card is resolved. See ADR 0040.
+    it("refuses to close a shift with cards still waiting, naming them", async () => {
+      const shiftId = await openShift("2026-11-07");
+      await addCard(shiftId);
+      await addCard(shiftId, { number: 2 });
+      const response = await request("POST", `/api/shifts/${shiftId}/close`, distribution);
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error).toBe(
+        "Cards 1 and 2 are still waiting. Mark each distributed or left without food, then close the shift.",
+      );
+    });
+
+    it("closes a shift once every card is distributed or left", async () => {
+      const shiftId = await openShift("2026-11-07");
+      const card = await addCard(shiftId);
+      await request("PATCH", `/api/cards/${card.id}`, distribution, {
+        revision: 1,
+        status: "left",
+      });
+      const response = await request("POST", `/api/shifts/${shiftId}/close`, admin);
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("refuses to reopen a shift while another is open, naming its day", async () => {
+      const earlier = await openShift("2026-11-07");
+      await request("POST", `/api/shifts/${earlier}/close`, admin);
+      await openShift("2026-11-08");
+      const response = await request("POST", `/api/admin/shifts/${earlier}/reopen`, admin);
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error).toBe(
+        "The shift of Sunday, November 8 is still open. Close it before reopening another.",
+      );
     });
 
     it("lets an admin close a shift", async () => {
@@ -156,12 +190,17 @@ describe("admin and closing routes", () => {
     );
 
     it("returns each shift in the range and combined totals", async () => {
+      // Past shifts, each closed before the next opens (ADR 0040).
+      const close = (id: number) =>
+        db.prepare("UPDATE shift SET status = 'closed' WHERE id = ?").run(id);
       const first = await openShift("2026-11-07");
-      const second = await openShift("2026-11-14");
-      const outside = await openShift("2026-12-01");
       await addCard(first, { tefapBags: 2 });
+      close(first);
+      const second = await openShift("2026-11-14");
       await addCard(second, { tefapBags: 1 });
       await addCard(second, { number: 2, tefapBags: 3 });
+      close(second);
+      const outside = await openShift("2026-12-01");
       await addCard(outside, { tefapBags: 9 });
 
       const response = await request(
@@ -403,7 +442,7 @@ describe("admin and closing routes", () => {
     it("records which station made each card change, newest first", async () => {
       const shiftId = await openShift("2026-11-07");
       const card = await addCard(shiftId);
-      await request("PATCH" as "POST", `/api/cards/${card.id}`, distribution, {
+      await request("PATCH", `/api/cards/${card.id}`, distribution, {
         revision: 1,
         familySize: 2,
       });

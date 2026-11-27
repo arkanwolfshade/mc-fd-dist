@@ -5,17 +5,19 @@ import {
   needsExtrasCheck,
   normalizeInitials,
   tefapBags,
+  unweighedCarts,
+  weighRule,
 } from "../../server/rules.js";
 import type { ArrivalMethod, PartnerMethod } from "../../server/rules.js";
 import type { QueuedWrite } from "./outbox.js";
 import type { ShiftView } from "./pending.js";
-import { loadsForCarts, nextCardNumber } from "./state.js";
+import { loadsForCarts, nextCardNumber, parseLoads } from "./state.js";
 
 export interface CardForm {
   number: string;
   familySize: string;
   method: ArrivalMethod | null;
-  // Who the Family's details came from, chosen or typed. See ADR 0024.
+  // The intake operator's initials, chosen or typed. See ADR 0024.
   initials: string;
   // What is in the New initials box, kept apart so a quick button does not overwrite typing.
   typedInitials: string;
@@ -87,7 +89,7 @@ export function prepareCard(form: CardForm, shiftId: number, suggested: number):
   }
   const intakeInitials = normalizeInitials(form.initials);
   if (!intakeInitials) {
-    return { ok: false, error: "Choose who the Family's details came from." };
+    return { ok: false, error: "Choose the intake operator's initials." };
   }
   const size = Number(familySize);
   const cardNumber = Number(form.number) || suggested;
@@ -177,6 +179,11 @@ export function preparePartnerCard(form: PartnerForm, shiftId: number): Prepared
     return { ok: false, error: "Choose a partner." };
   }
   const { size, carts, checkExtras } = partnerSizing(form.familySize);
+  // Saved as distributed, so every cart is weighed first, as the server requires (ADR 0039).
+  const unweighed = unweighedCarts(parseLoads(form.loads), carts);
+  if (unweighed.length > 0) {
+    return { ok: false, error: weighRule(unweighed, "add the partner Family") };
+  }
   const cardNumber = Number(form.number);
   return {
     ok: true,

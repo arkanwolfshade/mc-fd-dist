@@ -227,7 +227,7 @@ function frontDeskEntersFamilies(scene: Scene): Step[] {
     },
     {
       station: frontDesk,
-      say: "Info from records which intake volunteer gave these details, by their initials only. It is required. AB is new this shift, so it is typed.",
+      say: "Intake operator records who typed these details in at the intake computer, by their initials only. It is required. AB is new this shift, so it is typed.",
       target: () => infoFrom,
       act: () => type(fd.getByLabel("New initials"), "AB"),
     },
@@ -255,7 +255,7 @@ function frontDeskEntersFamilies(scene: Scene): Step[] {
     },
     {
       station: frontDesk,
-      say: "A Family of 6 parked around the corner. Their details came from a second intake volunteer, CD.",
+      say: "A Family of 6 parked around the corner. A second intake operator, CD, typed their details.",
       target: () => fd.getByLabel("New initials"),
       act: async () => {
         await type(fd.getByLabel("# in Family"), "6");
@@ -310,7 +310,7 @@ function firstFamilyServed(scene: Scene): Step[] {
   return [
     {
       station: distribution,
-      say: "The card appears in distribution's queue straight away, with what to give on its own line, who the details came from, and the front desk's note.",
+      say: "The card appears in distribution's queue straight away, with what to give on its own line, the intake operator, and the front desk's note.",
       target: () => queueCard(1),
     },
     {
@@ -398,9 +398,8 @@ function correctionAndWarnings(scene: Scene): Step[] {
     },
     {
       station: distribution,
-      say: "The app names what is missing before the card moves on. Go back keeps the card in the queue.",
-      target: () => queueCard(2).locator(".confirm"),
-      act: () => queueCard(2).getByRole("button", { name: "Go back" }).click(),
+      say: "Every cart must be weighed, so the app stops in red and names the cart to weigh. The card stays in the queue.",
+      target: () => queueCard(2).locator(".stop"),
     },
     {
       station: distribution,
@@ -610,7 +609,7 @@ function closingTheShift(scene: Scene): Step[] {
   return [
     {
       station: distribution,
-      say: "Before closing, distribution taps Close shift. The warning lists every card not yet marked distributed.",
+      say: "Distribution taps Close shift, but a card is still waiting, so the shift can't close yet. The red message lists every card that must first be distributed or marked left without food.",
       act: async () => {
         await dist.getByRole("button", { name: "Distribution", exact: true }).click();
         await finish.getByRole("button", { name: "Close shift" }).click();
@@ -664,7 +663,7 @@ function closingTheShift(scene: Scene): Step[] {
     },
     {
       station: distribution,
-      say: "Every Family is served, so closing has nothing to warn about. It must still be confirmed, and only an admin can reopen the shift.",
+      say: "Every Family is served, so nothing stops the close. It must still be confirmed, and only an admin can reopen the shift.",
       target: () => finish.getByRole("button", { name: "Close shift" }),
       act: () => finish.getByRole("button", { name: "Close shift" }).click(),
     },
@@ -795,7 +794,7 @@ async function run(
       .locator("section", { hasText: "Distributed (" })
       .locator("li")
       .filter({ has: ticket(dist, number) });
-  const infoFrom = fd.getByRole("group", { name: "Info from" });
+  const infoFrom = fd.getByRole("group", { name: "Intake operator" });
   const returned = dist.locator("section", { hasText: "Returned items" });
   const partners = dist.locator("section", { hasText: "End of shift" });
   const partnerRow = (number: number) =>

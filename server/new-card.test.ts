@@ -35,6 +35,7 @@ describe("newCardFrom", () => {
       arrivalMethod: "DD",
       intakeInitials: undefined,
       status: "entered",
+      loads: [10, null, null],
     } as NewCard;
     expect(newCardFrom(distribution, body)).toMatchObject({ status: "distributed" });
   });

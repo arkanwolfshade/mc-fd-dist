@@ -7,8 +7,7 @@ test("distribution closes the shift, and every station sees it lock", async ({ s
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
-  await addCard(frontDesk, { familySize: 3, method: "East" });
-  await expect(frontDesk.getByRole("heading", { name: "Cards (1)" })).toBeVisible();
+  await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
 
   await distribution.getByRole("button", { name: "Close shift" }).click();
   await distribution.getByRole("button", { name: "Yes, close the shift" }).click();
@@ -21,7 +20,8 @@ test("distribution closes the shift, and every station sees it lock", async ({ s
   await expect(frontDesk.getByRole("heading", { name: "New card" })).toHaveCount(0);
 });
 
-test("closing warns about families not yet served, and lists them", async ({ signIn }) => {
+// A shift can't close while a card waits (ADR 0040): a red stop lists them instead of asking.
+test("closing is stopped while families wait, and lists them", async ({ signIn }) => {
   const frontDesk = await signIn("front-desk");
   const distribution = await signIn("distribution");
   await openShift(frontDesk);
@@ -33,7 +33,9 @@ test("closing warns about families not yet served, and lists them", async ({ sig
   await distribution.getByRole("button", { name: "Close shift" }).click();
 
   const confirm = distribution.locator(".confirm");
-  await expect(confirm).toContainText("2 cards have not been marked distributed");
+  await expect(confirm.locator(".stop")).toHaveText(
+    "Cards 1 and 2 are still waiting. Mark each distributed or left without food, then close the shift.",
+  );
   await expect(confirm.locator(".unserved-card .ticket")).toHaveText(["1", "2"]);
   await expect(confirm.locator(".unserved-card .family")).toHaveText([
     "Family of 5",
@@ -41,7 +43,17 @@ test("closing warns about families not yet served, and lists them", async ({ sig
   ]);
   await expect(confirm.locator(".unserved-card .status")).toHaveText(["Waiting", "Called back"]);
   await expect(confirm.getByRole("button", { name: "Keep it open" })).toBeVisible();
-  await expect(confirm.getByRole("button", { name: "Yes, close the shift" })).toBeVisible();
+  await expect(confirm.getByRole("button", { name: "Yes, close the shift" })).toHaveCount(0);
+
+  // Once each is resolved, the question comes back.
+  for (const remaining of [2, 1]) {
+    await expect(confirm.locator(".unserved-card")).toHaveCount(remaining);
+    await confirm.getByRole("button", { name: "Left without food" }).first().click();
+    await confirm.getByRole("button", { name: "Yes, left without food" }).click();
+  }
+  await expect(confirm.locator(".stop")).toHaveCount(0);
+  await confirm.getByRole("button", { name: "Yes, close the shift" }).click();
+  await expect(distribution.getByText("This shift is closed")).toBeVisible();
 });
 
 test("closing a fully served shift has nothing to warn about", async ({ signIn }) => {
@@ -59,7 +71,7 @@ test("closing a fully served shift has nothing to warn about", async ({ signIn }
   await distribution.getByRole("button", { name: "Close shift" }).click();
 
   await expect(distribution.locator(".confirm")).toBeVisible();
-  await expect(distribution.locator(".confirm")).not.toContainText("not been marked distributed");
+  await expect(distribution.locator(".confirm")).not.toContainText("still waiting");
 });
 
 test("closing can be cancelled", async ({ signIn }) => {
@@ -85,7 +97,6 @@ test("an admin reopens a closed shift, and stations can work again", async ({ si
   const distribution = await signIn("distribution");
   const admin = await signIn("pat");
   await openShift(frontDesk);
-  await addCard(frontDesk, { familySize: 3, method: "East" });
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
   await distribution.getByRole("button", { name: "Close shift" }).click();
   await distribution.getByRole("button", { name: "Yes, close the shift" }).click();
@@ -104,7 +115,6 @@ test("an admin reopens a closed shift from the closed message", async ({ signIn 
   const distribution = await signIn("distribution");
   const admin = await signIn("pat");
   await openShift(frontDesk);
-  await addCard(frontDesk, { familySize: 3, method: "East" });
   await expect(distribution.getByRole("heading", { name: "Queue (0)" })).toBeVisible();
   await distribution.getByRole("button", { name: "Close shift" }).click();
   await distribution.getByRole("button", { name: "Yes, close the shift" }).click();

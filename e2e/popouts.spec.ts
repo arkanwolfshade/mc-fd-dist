@@ -43,7 +43,7 @@ test("the front desk's help popouts open and close, and keep what was typed", as
   await frontDesk.getByLabel("# in Family").fill("4");
 
   await checkPopout(frontDesk, "Card numbers", "type the number on the Family's card");
-  await checkPopout(frontDesk, "Who gave the details", "from the intake computers");
+  await checkPopout(frontDesk, "Whose initials to enter", "at the intake computer");
   await checkPopout(frontDesk, "Boxes for seniors", "comes only with a Senior Box");
 
   await expect(frontDesk.getByLabel("# in Family")).toHaveValue("4");

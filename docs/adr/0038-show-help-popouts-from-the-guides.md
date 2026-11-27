@@ -29,3 +29,7 @@ In-app help was a separate Help tab showing the user guides (ADR 0018). A volunt
 - Five buttons are added to the station screens and three to Admin, each at least 48 px, which takes room on a phone.
 - An open popout covers the screen behind it until it is closed. Nothing typed is lost.
 - The browser tests cover opening, closing and focus in emulated browsers. Real iPhones and iPads are on the device checklist in the operations runbook.
+
+## Amendment, 2026-11-26
+
+On the front desk the **?** now sits on the field's name line, right after the name ("Card #  ?", "Intake operator  ?", "For seniors  ?"), because a design review found the buttons too far from what they explain. Each name is its own element, tied to its field by `for` or `aria-labelledby`, so the field's accessible name is unchanged and the ? is still outside it. The ? is a 48 px target drawn as a 32 px circle, so the name line stays light. The Senior Box and Cheese pair gained the name **For seniors** to carry it. The `info-from` popout is now titled "Whose initials to enter".

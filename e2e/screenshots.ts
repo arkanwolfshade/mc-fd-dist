@@ -67,7 +67,7 @@ async function addCard(
 // Taps the quick button for initials already used this shift, or types new ones.
 async function chooseInitials(page: Page, initials: string): Promise<void> {
   const quick = page
-    .getByRole("group", { name: "Info from" })
+    .getByRole("group", { name: "Intake operator" })
     .getByRole("button", { name: initials, exact: true });
   if ((await quick.count()) > 0) {
     await quick.click();
@@ -142,9 +142,8 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await queue(2).getByRole("button", { name: "Confirm card 2" }).click();
   await queue(2).getByLabel("Cart 1 (lb)").fill("18");
   await queue(2).getByRole("button", { name: "Mark distributed" }).click();
-  await expect(queue(2).locator(".confirm")).toContainText("Cart 2 has no weight.");
-  await shot(queue(2).locator(".confirm"), "distribution-no-weight");
-  await queue(2).getByRole("button", { name: "Go back" }).click();
+  await expect(queue(2).locator(".stop")).toContainText("Weigh cart 2");
+  await shot(queue(2).locator(".stop"), "distribution-no-weight");
   await queue(2).getByLabel("Cart 2 (lb)").fill("12");
   await queue(2).getByRole("button", { name: "Mark distributed" }).click();
   await expect(dist.getByRole("heading", { name: "Distributed (2)" })).toBeVisible();
@@ -196,6 +195,14 @@ async function run(browser: Browser, url: string, password: string): Promise<voi
   await dist.getByRole("button", { name: "Distribution", exact: true }).click();
   await dist.getByRole("button", { name: "Close shift" }).click();
   await shot(dist.locator("section.panel", { hasText: "Finish" }), "close-shift");
+  // The shift closes only once no card waits (ADR 0040).
+  const finish = dist.locator(".confirm");
+  while ((await finish.locator(".unserved-card").count()) > 0) {
+    const remaining = await finish.locator(".unserved-card").count();
+    await finish.getByRole("button", { name: "Left without food" }).first().click();
+    await finish.getByRole("button", { name: "Yes, left without food" }).click();
+    await expect(finish.locator(".unserved-card")).toHaveCount(remaining - 1);
+  }
   await dist.getByRole("button", { name: "Yes, close the shift" }).click();
   await expect(fd.getByText("This shift is closed")).toBeVisible();
   await shot(fd, "shift-closed");

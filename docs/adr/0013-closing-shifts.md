@@ -24,3 +24,7 @@ Closing a shift locks its cards and totals, so reports can be trusted. The plan 
 ## Consequences
 
 Shifts reliably lock with no training or staff presence. A volunteer can close a shift too early, which then needs an admin to fix. A reopened shift that nobody closes stays open indefinitely. The server's time zone setting must be correct, though an error only shifts the close by a few hours.
+
+## Amendment, 2026-11-26
+
+A shift now closes only when every card is distributed or left without food, by hand or overnight; the overnight close skips a shift with a card still waiting. Only one shift can be open at a time, so an admin closes the open shift before reopening another. See ADR 0040.
