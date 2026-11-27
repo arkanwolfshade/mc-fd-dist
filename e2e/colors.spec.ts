@@ -46,3 +46,46 @@ test("colors follow the device until Light or Dark is chosen, and the choice is 
   await (await openHelp(page)).getByRole("button", { name: "Same as this device" }).click();
   expect(await background(page)).toBe(LIGHT);
 });
+
+// The fill for go: green normally, blue in color-blind colors (ADR 0041).
+function go(page: Page) {
+  return page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--go").trim(),
+  );
+}
+
+test("color-blind colors swap green for blue in light or dark, and the choice is kept", async ({
+  signIn,
+}) => {
+  const page = await signIn("front-desk");
+  await page.emulateMedia({ colorScheme: "light" });
+  await openHelp(page);
+  const colorBlind = page.getByRole("group", { name: "Color-blind friendly colors" });
+  await expect(colorBlind.getByRole("button", { name: "Off" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(await go(page)).toBe("#1e6b45");
+
+  await colorBlind.getByRole("button", { name: "On" }).click();
+  await expect(colorBlind.getByRole("button", { name: "On" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(await go(page)).toBe("#0068a6");
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  expect(await go(page)).toBe("#2479b3");
+  expect(await background(page)).toBe(DARK);
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  expect(await go(page)).toBe("#2479b3");
+
+  await openHelp(page);
+  await page
+    .getByRole("group", { name: "Color-blind friendly colors" })
+    .getByRole("button", { name: "Off" })
+    .click();
+  expect(await go(page)).toBe("#2a8456");
+});

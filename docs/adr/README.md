@@ -48,3 +48,4 @@ Each record captures one significant decision, why it was made, and what it cost
 | [0038](0038-show-help-popouts-from-the-guides.md) | Show help popouts taken from the guides | Accepted |
 | [0039](0039-require-a-positive-weight-for-every-cart.md) | Require a positive weight for every cart, and show stops in red | Accepted |
 | [0040](0040-one-open-shift-closed-when-every-card-is-resolved.md) | Keep one shift open at a time, and close it only when every card is resolved | Accepted |
+| [0041](0041-offer-color-blind-friendly-colors.md) | Offer color-blind friendly colors | Accepted |

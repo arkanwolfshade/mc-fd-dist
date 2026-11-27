@@ -4,7 +4,7 @@ import { ApiError, api } from "./api.js";
 import { Display } from "./Display.js";
 import type { Identity } from "./types.js";
 import { Login } from "./Login.js";
-import { savedScheme, showScheme } from "./scheme.js";
+import { savedColorBlind, savedScheme, showColorBlind, showScheme } from "./scheme.js";
 import { Station } from "./Station.js";
 // Bundled with the app, so it works offline and within the content security policy.
 import "@fontsource/atkinson-hyperlegible-next/400.css";
@@ -17,6 +17,7 @@ const IDENTITY_KEY = "identity";
 
 // Before the first render, so that a device set to Dark does not open in light colors.
 showScheme(savedScheme());
+showColorBlind(savedColorBlind());
 
 // Only the username and role are kept, so that a reload during an outage can still
 // show the station. The session itself stays in its protected cookie.

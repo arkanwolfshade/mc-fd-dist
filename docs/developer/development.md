@@ -1,5 +1,5 @@
 # Development
-**Version 1.18.0** · mc-fd-dist · 2026-11-26 · For developers
+**Version 1.19.0** · mc-fd-dist · 2026-11-27 · For developers
 
 ---
 
@@ -87,7 +87,7 @@ Screens follow these rules for screen readers, and `e2e/accessibility.spec.ts` c
 - Each screen has one `main` area and a level-one heading, which a change of screen moves focus to.
 
 **[SPEC]**
-Colors come only from the custom properties at the top of `client/src/styles.css`. Each one has a dark value in two blocks that must match: one for a device set to dark, one for Dark chosen on the Help screen (`client/src/scheme.ts`). A new color needs a dark value in both, with text at 4.5:1 against its background, and `e2e/colors.spec.ts` checks the choice itself. Windows High Contrast replaces every color, so anything shown only by a fill needs a rule in the `forced-colors` block.
+Colors come only from the custom properties at the top of `client/src/styles.css`. Each one has a dark value in two blocks that must match: one for a device set to dark, one for Dark chosen on the Help screen (`client/src/scheme.ts`). Color-blind friendly colors (ADR 0041) add three more blocks under `data-color-blind`: one light, and two dark ones that must match. A new color needs a dark value in both dark blocks, and a meaning color (go, alert, called) also needs color-blind values that stay apart under a red-green simulation. Text needs 4.5:1 against its background, and `e2e/colors.spec.ts` checks the choice itself. Windows High Contrast replaces every color, so anything shown only by a fill needs a rule in the `forced-colors` block.
 
 ---
 

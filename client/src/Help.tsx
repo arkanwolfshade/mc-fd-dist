@@ -4,7 +4,14 @@ import admin from "../../docs/guides/en/admin.md?guide";
 import distribution from "../../docs/guides/en/distribution.md?guide";
 import frontDesk from "../../docs/guides/en/front-desk.md?guide";
 import gettingStarted from "../../docs/guides/en/getting-started.md?guide";
-import { SCHEMES, type Scheme, saveScheme, savedScheme } from "./scheme.js";
+import {
+  SCHEMES,
+  type Scheme,
+  saveColorBlind,
+  saveScheme,
+  savedColorBlind,
+  savedScheme,
+} from "./scheme.js";
 
 interface Guide {
   title: string;
@@ -33,6 +40,7 @@ export function Help(props: { role: WorkingRole }) {
   const guides = GUIDES_BY_ROLE[props.role];
   const [shown, setShown] = useState(guides[0]);
   const [scheme, setScheme] = useState(savedScheme);
+  const [colorBlind, setColorBlind] = useState(savedColorBlind);
 
   return (
     <div class="help">
@@ -62,6 +70,24 @@ export function Help(props: { role: WorkingRole }) {
               }}
             >
               {SCHEME_LABELS[option]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Color-blind friendly colors</legend>
+        <div class="choices">
+          {[false, true].map((on) => (
+            <button
+              key={String(on)}
+              class={on === colorBlind ? "selected" : ""}
+              aria-pressed={on === colorBlind}
+              onClick={() => {
+                saveColorBlind(on);
+                setColorBlind(on);
+              }}
+            >
+              {on ? "On" : "Off"}
             </button>
           ))}
         </div>
